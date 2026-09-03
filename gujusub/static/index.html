@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<title>Gujarati Live Captions</title>
+<style>
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: flex-end; background: #111; color: #eee;
+    font-family: system-ui, "Noto Sans Gujarati", sans-serif;
+  }
+  #captions { padding: 2rem; font-size: 2rem; line-height: 1.5; }
+  .final { color: #fff; }
+  .committed { color: #fff; }
+  .tail { color: #888; }
+  .translation { color: #7fd97f; font-size: 1.4rem; }
+  #controls { padding: 1rem 2rem; }
+  button { font-size: 1.1rem; padding: .5rem 1.5rem; border-radius: .5rem;
+           border: none; cursor: pointer; }
+  #status { margin-left: 1rem; color: #888; }
+  #mic { font-size: 1rem; padding: .4rem .6rem; margin-left: 1rem; max-width: 24rem;
+         background: #222; color: #eee; border: 1px solid #444; border-radius: .4rem; }
+</style>
+</head>
+<body>
+<div id="captions"></div>
+<div id="controls">
+  <button id="btn">Start mic</button>
+  <select id="mic" title="Audio input"><option value="">Default microphone</option></select>
+  <span id="status">idle</span>
+</div>
+<script>
+const SAMPLE_RATE = 16000;
+const captionsEl = document.getElementById("captions");
+const statusEl = document.getElementById("status");
+const btn = document.getElementById("btn");
+const micSel = document.getElementById("mic");
+const MIC_KEY = "gujuSubMicDeviceId";
+let running = false, ws = null, ctx = null, liveEl = null, media = null;
+
+// Device labels are only exposed after the user has granted mic permission,
+// so this runs at load (ids only), again after the first start, and whenever
+// devices are plugged in or removed.
+async function listMics() {
+  if (!navigator.mediaDevices?.enumerateDevices) return;
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const inputs = devices.filter(d => d.kind === "audioinput");
+  const chosen = micSel.value || localStorage.getItem(MIC_KEY) || "";
+  micSel.innerHTML = "";
+  micSel.appendChild(new Option("Default microphone", ""));
+  inputs.forEach((d, i) => {
+    const label = d.label || `Microphone ${i + 1}`;
+    micSel.appendChild(new Option(label, d.deviceId));
+  });
+  if ([...micSel.options].some(o => o.value === chosen)) micSel.value = chosen;
+}
+micSel.onchange = () => {
+  localStorage.setItem(MIC_KEY, micSel.value);
+  if (running) start().catch(e => stop(e.message));  // hot-swap the input
+};
+navigator.mediaDevices?.addEventListener("devicechange", listMics);
+listMics();
+
+// AudioWorklet that forwards raw float32 frames to the main thread.
+const workletSrc = `
+class Fwd extends AudioWorkletProcessor {
+  process(inputs) {
+    if (inputs[0] && inputs[0][0]) this.port.postMessage(inputs[0][0]);
+    return true;
+  }
+}
+registerProcessor("fwd", Fwd);`;
+
+function floatToPcm16(f32) {
+  const out = new Int16Array(f32.length);
+  for (let i = 0; i < f32.length; i++) {
+    const s = Math.max(-1, Math.min(1, f32[i]));
+    out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  return out;
+}
+
+function onEvent(e) {
+  const ev = JSON.parse(e.data);
+  if (!liveEl || liveEl.dataset.utt !== String(ev.utterance_id)) {
+    liveEl = document.createElement("div");
+    liveEl.dataset.utt = ev.utterance_id;
+    captionsEl.appendChild(liveEl);
+  }
+  if (ev.type === "final") {
+    liveEl.innerHTML = `<div class="final"></div><div class="translation"></div>`;
+    liveEl.children[0].textContent = ev.committed;
+    liveEl.children[1].textContent = ev.translation || "";
+    liveEl = null;
+  } else {
+    liveEl.innerHTML = `<div><span class="committed"></span> <span class="tail"></span></div><div class="translation"></div>`;
+    liveEl.children[0].children[0].textContent = ev.committed;
+    liveEl.children[0].children[1].textContent = ev.tail;
+    liveEl.children[1].textContent = ev.translation || "";
+  }
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+async function start() {
+  if (running) stop();  // restarting with a different input
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = onEvent;
+  ws.onclose = () => stop("server closed");
+  await new Promise(r => ws.onopen = r);
+
+  const audio = { channelCount: 1, echoCancellation: true, noiseSuppression: true };
+  if (micSel.value) audio.deviceId = { exact: micSel.value };
+  media = await navigator.mediaDevices.getUserMedia({ audio });
+  await listMics();  // permission is granted now, so labels are available
+  ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
+  const url = URL.createObjectURL(new Blob([workletSrc], { type: "text/javascript" }));
+  await ctx.audioWorklet.addModule(url);
+  const node = new AudioWorkletNode(ctx, "fwd");
+  node.port.onmessage = (msg) => {
+    if (ws && ws.readyState === WebSocket.OPEN)
+      ws.send(floatToPcm16(msg.data).buffer);
+  };
+  ctx.createMediaStreamSource(media).connect(node);
+  running = true;
+  btn.textContent = "Stop mic";
+  const track = media.getAudioTracks()[0];
+  statusEl.textContent = `${track?.label || "mic"} @ ${ctx.sampleRate} Hz`;
+}
+
+function stop(reason) {
+  if (ctx) ctx.close();
+  if (media) media.getTracks().forEach(t => t.stop());  // release the mic
+  if (ws && ws.readyState === WebSocket.OPEN) { ws.onclose = null; ws.close(); }
+  ctx = ws = media = null;
+  running = false;
+  btn.textContent = "Start mic";
+  statusEl.textContent = reason || "idle";
+}
+
+btn.onclick = () => running ? stop() : start().catch(e => stop(e.message));
+</script>
+</body>
+</html>

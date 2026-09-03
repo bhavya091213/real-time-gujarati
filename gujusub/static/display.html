@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caption Display</title>
+<style>
+  :root {
+    --bg: #000000;
+    --text-color: #ffffff;
+    --font: system-ui, "Noto Sans Gujarati", sans-serif;
+    --size: 64px;
+    --weight: 700;
+    --lh: 1.3;
+    --ls: 0px;
+    --tt: none;
+    --align: center;
+    --pad: 5%;
+    --bottom: 8%;
+    --stroke-w: 0px;
+    --stroke-c: #000000;
+    --cap-shadow: none;
+    --ar-w: 16;
+    --ar-h: 9;
+    --bar-w: 8px;
+    --bar-c: #ffffff;
+    --bar-h: 0px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; }
+  body {
+    background: var(--bg);
+    overflow: hidden;
+    font-family: system-ui, sans-serif;
+  }
+  body.hide-chrome { cursor: none; }
+
+  /* ---- Stage ---- */
+  #app {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #stage {
+    position: relative;
+    width: min(100vw, calc(100vh * var(--ar-w) / var(--ar-h)));
+    aspect-ratio: calc(var(--ar-w) / var(--ar-h));
+  }
+
+  /* ---- Caption (two-line clamp, bottom-anchored) ---- */
+  #caption {
+    position: absolute;
+    left: var(--pad); right: var(--pad); bottom: var(--bottom);
+    font-family: var(--font);
+    font-size: var(--size);
+    font-weight: var(--weight);
+    line-height: var(--lh);
+    letter-spacing: var(--ls);
+    text-transform: var(--tt);
+    text-align: var(--align);
+    color: var(--text-color);
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+  #caption.faded { opacity: 0; }
+  #caption.with-bar { padding-left: calc(var(--bar-w) + var(--size) * 0.4); }
+  #bar {
+    position: absolute; left: 0; bottom: 0;
+    width: var(--bar-w); height: var(--bar-h);
+    background: var(--bar-c);
+    border-radius: calc(var(--bar-w) / 4);
+    transition: height 0.15s ease;
+  }
+  #bar[hidden] { display: none; }
+  .cap-block {
+    display: flex; flex-direction: column; justify-content: flex-end;
+    overflow: hidden;
+  }
+  .cap-block.lines-2 { height: calc(var(--size) * var(--lh) * 2); }
+  .cap-block.lines-1 { height: calc(var(--size) * var(--lh) * 1); }
+  .cap-block[hidden] { display: none; }
+  .cap-block span {
+    display: block;  /* so its height is a whole number of line boxes */
+    -webkit-text-stroke: var(--stroke-w) var(--stroke-c);
+    paint-order: stroke fill;
+    text-shadow: var(--cap-shadow);
+    overflow-wrap: break-word;
+  }
+
+  /* ---- Chrome (auto-hiding UI) ---- */
+  #chrome {
+    position: fixed; top: 12px; right: 12px;
+    display: flex; gap: 8px; z-index: 20;
+    transition: opacity 0.3s ease;
+  }
+  #chrome button {
+    width: 40px; height: 40px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(20,20,20,0.75);
+    color: #eee; font-size: 20px; cursor: pointer;
+  }
+  #chrome button:hover { background: rgba(60,60,60,0.85); }
+  #dot {
+    position: fixed; left: 10px; bottom: 10px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #e33; z-index: 20;
+    transition: opacity 0.3s ease;
+  }
+  #dot.on { background: #2c2; }
+  body.hide-chrome #chrome, body.hide-chrome #dot {
+    opacity: 0; pointer-events: none;
+  }
+
+  /* ---- Settings panel ---- */
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 320px; max-width: 90vw; z-index: 30;
+    background: rgba(15,15,18,0.96);
+    color: #ddd;
+    border-left: 1px solid rgba(255,255,255,0.15);
+    padding: 16px; overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    font-size: 13px;
+  }
+  #panel.open { transform: translateX(0); }
+  #panel h2 { font-size: 15px; margin-bottom: 12px; color: #fff; }
+  #panel .group {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 0;
+  }
+  #panel .group h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #999; margin-bottom: 8px;
+  }
+  #panel .row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 8px;
+  }
+  #panel .row label { flex: 0 0 auto; }
+  #panel .row .val { color: #888; min-width: 42px; text-align: right; }
+  #panel input[type="range"] { flex: 1; min-width: 0; }
+  #panel input[type="text"], #panel input[type="number"], #panel select {
+    background: #222; color: #eee; border: 1px solid #444;
+    border-radius: 4px; padding: 4px 6px; font-size: 13px; max-width: 170px;
+  }
+  #panel input[type="text"].wide { width: 100%; max-width: none; }
+  #panel input[type="color"] {
+    width: 36px; height: 24px; padding: 0; border: 1px solid #444;
+    border-radius: 4px; background: none; cursor: pointer;
+  }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .swatches button {
+    width: 32px; height: 24px; border-radius: 4px; cursor: pointer;
+    border: 2px solid #555;
+  }
+  .swatches button.active { border-color: #fff; }
+  .swatches .sw-transparent {
+    background:
+      linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%),
+      linear-gradient(45deg, #666 25%, #333 25%, #333 75%, #666 75%);
+    background-size: 10px 10px; background-position: 0 0, 5px 5px;
+  }
+  #panel .btns { display: flex; gap: 8px; margin-top: 12px; }
+  #panel .btns button {
+    flex: 1; padding: 8px; border-radius: 6px; cursor: pointer;
+    background: #2a2a30; color: #eee; border: 1px solid #555; font-size: 13px;
+  }
+  #panel .btns button:hover { background: #3a3a42; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="stage">
+    <div id="caption">
+      <div id="bar" hidden></div>
+      <div id="guBlock" class="cap-block lines-2" hidden><span id="guText"></span></div>
+      <div id="enBlock" class="cap-block lines-2"><span id="enText"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="chrome">
+  <button id="fsBtn" title="Fullscreen (f)">&#x26F6;</button>
+  <button id="gearBtn" title="Settings (s)">&#x2699;&#xFE0E;</button>
+</div>
+<div id="dot"></div>
+
+<aside id="panel">
+  <h2>Display Settings</h2>
+
+  <div class="group">
+    <h3>Layout</h3>
+    <div class="row"><label>Aspect ratio</label>
+      <select id="c-aspect">
+        <option value="16:9">16:9</option><option value="4:3">4:3</option>
+        <option value="21:9">21:9</option><option value="1:1">1:1</option>
+        <option value="9:16">9:16</option>
+      </select></div>
+    <div class="row"><label>Content</label>
+      <select id="c-mode">
+        <option value="en">English only</option>
+        <option value="gu">Gujarati only</option>
+        <option value="both">Both</option>
+      </select></div>
+    <div class="row"><label>Stable text only</label><input type="checkbox" id="c-stable"></div>
+    <div class="row"><label>Clear after (s, 0=never)</label>
+      <input type="number" id="c-clear" min="0" max="600" step="1" style="width:64px"></div>
+  </div>
+
+  <div class="group">
+    <h3>Text</h3>
+    <div class="row"><input type="text" id="c-font" class="wide" title="Font family"></div>
+    <div class="row"><label>Size</label><input type="range" id="c-size" min="24" max="160" step="1"><span class="val" id="v-size"></span></div>
+    <div class="row"><label title="Text shrinks to fit the line limit, but never below this">Min size (auto-fit)</label><input type="range" id="c-minsize" min="16" max="160" step="1"><span class="val" id="v-minsize"></span></div>
+    <div class="row"><label>Weight</label>
+      <select id="c-weight">
+        <option>400</option><option>500</option><option>600</option>
+        <option>700</option><option>800</option><option>900</option>
+      </select></div>
+    <div class="row"><label>Line height</label><input type="range" id="c-lh" min="1.0" max="2.2" step="0.05"><span class="val" id="v-lh"></span></div>
+    <div class="row"><label>Letter spacing</label><input type="range" id="c-ls" min="-2" max="20" step="0.5"><span class="val" id="v-ls"></span></div>
+    <div class="row"><label>Transform</label>
+      <select id="c-tt"><option value="none">none</option><option value="uppercase">UPPERCASE</option></select></div>
+    <div class="row"><label>Text color</label><input type="color" id="c-color"></div>
+  </div>
+
+  <div class="group">
+    <h3>Outline</h3>
+    <div class="row"><label>Width</label><input type="range" id="c-ow" min="0" max="12" step="0.5"><span class="val" id="v-ow"></span></div>
+    <div class="row"><label>Color</label><input type="color" id="c-oc"></div>
+    <div class="row"><label>Use shadow instead of stroke</label><input type="checkbox" id="c-shadow"></div>
+  </div>
+
+  <div class="group">
+    <h3>Background</h3>
+    <div class="swatches" id="swatches">
+      <button data-bg="#000000" title="Black (luma key)" style="background:#000"></button>
+      <button data-bg="#00ff00" title="Green (chroma)" style="background:#0f0"></button>
+      <button data-bg="#0000ff" title="Blue" style="background:#00f"></button>
+      <button data-bg="#ff00ff" title="Magenta" style="background:#f0f"></button>
+      <button data-bg="transparent" title="Transparent (OBS alpha)" class="sw-transparent"></button>
+    </div>
+    <div class="row"><label>Custom</label><input type="color" id="c-bgcustom"></div>
+  </div>
+
+  <div class="group">
+    <h3>Position</h3>
+    <div class="row"><label>Align</label>
+      <select id="c-align"><option>left</option><option>center</option><option>right</option></select></div>
+    <div class="row"><label>H padding (%)</label><input type="range" id="c-pad" min="0" max="25" step="0.5"><span class="val" id="v-pad"></span></div>
+    <div class="row"><label>Bottom margin (%)</label><input type="range" id="c-bottom" min="0" max="50" step="0.5"><span class="val" id="v-bottom"></span></div>
+  </div>
+
+  <div class="group">
+    <h3>Caption bar</h3>
+    <div class="row"><label title="Vertical bar beside the text while captions are live">Show bar</label><input type="checkbox" id="c-bar"></div>
+    <div class="row"><label>Width</label><input type="range" id="c-barw" min="2" max="24" step="1"><span class="val" id="v-barw"></span></div>
+    <div class="row"><label>Color</label><input type="color" id="c-barc"></div>
+  </div>
+
+  <div class="btns">
+    <button id="copyUrlBtn">Copy URL</button>
+    <button id="resetBtn">Reset to defaults</button>
+  </div>
+</aside>
+
+<script>
+"use strict";
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var LS_KEY = "gujuSubDisplaySettings";
+
+  /* ---------------- Settings ---------------- */
+  var SCHEMA = 2;  // bump when a changed default should override stored settings
+  var DEFAULTS = {
+    aspect: "16:9",          // stage aspect ratio
+    mode: "en",              // en | gu | both
+    stable: false,           // ignore tail (stable-only)
+    clear: 6,                // seconds of silence before fade, 0 = never
+    font: 'system-ui, "Noto Sans Gujarati", sans-serif',
+    size: 64,                // px (maximum; text auto-shrinks to fit)
+    minsize: 36,             // px floor for auto-shrink; below this it wraps/scrolls
+    weight: 700,
+    lh: 1.3,
+    ls: 0,                   // px
+    tt: "none",              // none | uppercase
+    color: "#ffffff",
+    ow: 0,                   // outline width px
+    oc: "#000000",           // outline color
+    shadow: false,           // use text-shadow instead of stroke
+    bg: "#000000",           // hex or "transparent"
+    align: "left",           // left reads better while text is still growing
+    pad: 5,                  // horizontal padding, % of stage width
+    bottom: 8,               // bottom margin, % of stage height
+    bar: true,               // vertical bar beside live captions
+    barw: 8,                 // bar width px
+    barc: "#ffffff"
+  };
+  var settings = Object.assign({}, DEFAULTS);
+
+  function loadFromStorage() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      var obj = JSON.parse(raw);
+      if (!obj) return;
+      if (!(obj.schema >= 2)) obj.align = DEFAULTS.align;  // v2: center -> left
+      Object.keys(DEFAULTS).forEach(function (k) {
+        if (typeof obj[k] === typeof DEFAULTS[k]) settings[k] = obj[k];
+      });
+    } catch (e) { /* corrupt storage — ignore */ }
+  }
+  function loadFromUrl() {
+    var p = new URLSearchParams(location.search);
+    Object.keys(DEFAULTS).forEach(function (k) {
+      if (!p.has(k)) return;
+      var v = p.get(k);
+      var t = typeof DEFAULTS[k];
+      if (t === "boolean") settings[k] = (v === "1" || v === "true");
+      else if (t === "number") { var n = parseFloat(v); if (isFinite(n)) settings[k] = n; }
+      else if (v !== null && v !== "") settings[k] = v;
+    });
+  }
+  function persist() {
+    var stored = Object.assign({ schema: SCHEMA }, settings);
+    try { localStorage.setItem(LS_KEY, JSON.stringify(stored)); } catch (e) {}
+  }
+  function buildUrl() {
+    var p = new URLSearchParams();
+    Object.keys(DEFAULTS).forEach(function (k) {
+      var v = settings[k];
+      p.set(k, typeof v === "boolean" ? (v ? "1" : "0") : String(v));
+    });
+    return location.origin + location.pathname + "?" + p.toString();
+  }
+
+  /* ---------------- Apply settings -> CSS vars & DOM ---------------- */
+  function applySettings() {
+    var r = document.documentElement.style;
+    var parts = settings.aspect.split(":");
+    var arW = parseFloat(parts[0]), arH = parseFloat(parts[1]);
+    if (!isFinite(arW) || !isFinite(arH) || arW <= 0 || arH <= 0) { arW = 16; arH = 9; }
+    r.setProperty("--ar-w", arW);
+    r.setProperty("--ar-h", arH);
+    r.setProperty("--bg", settings.bg);
+    r.setProperty("--text-color", settings.color);
+    r.setProperty("--font", settings.font);
+    r.setProperty("--size", settings.size + "px");
+    r.setProperty("--weight", settings.weight);
+    r.setProperty("--lh", settings.lh);
+    r.setProperty("--ls", settings.ls + "px");
+    r.setProperty("--tt", settings.tt);
+    r.setProperty("--align", settings.align);
+    r.setProperty("--pad", settings.pad + "%");
+    r.setProperty("--bottom", settings.bottom + "%");
+    r.setProperty("--stroke-c", settings.oc);
+    r.setProperty("--bar-w", settings.barw + "px");
+    r.setProperty("--bar-c", settings.barc);
+    $("caption").classList.toggle("with-bar", settings.bar);
+    if (settings.shadow) {
+      r.setProperty("--stroke-w", "0px");
+      r.setProperty("--cap-shadow", buildShadow(settings.ow, settings.oc));
+    } else {
+      r.setProperty("--stroke-w", settings.ow + "px");
+      r.setProperty("--cap-shadow", "none");
+    }
+    // Content mode: which blocks show, and their line clamp.
+    var guB = $("guBlock"), enB = $("enBlock");
+    var both = settings.mode === "both";
+    guB.hidden = settings.mode === "en";
+    enB.hidden = settings.mode === "gu";
+    guB.className = "cap-block " + (both ? "lines-1" : "lines-2");
+    enB.className = "cap-block " + (both ? "lines-1" : "lines-2");
+    // Swatch highlight
+    var sw = document.querySelectorAll("#swatches button");
+    for (var i = 0; i < sw.length; i++)
+      sw[i].classList.toggle("active", sw[i].getAttribute("data-bg") === settings.bg);
+  }
+  function buildShadow(w, c) {
+    if (!w || w <= 0) return "none";
+    var out = [];
+    [-w, 0, w].forEach(function (x) {
+      [-w, 0, w].forEach(function (y) {
+        if (x !== 0 || y !== 0) out.push(x + "px " + y + "px 0 " + c);
+      });
+    });
+    out.push("0 0 " + w + "px " + c);
+    return out.join(", ");
+  }
+
+  function update(key, value) {
+    settings[key] = value;
+    persist();
+    applySettings();
+    render();
+  }
+
+  /* ---------------- Panel wiring ---------------- */
+  var panel = $("panel");
+  function syncForm() {
+    $("c-aspect").value = settings.aspect;
+    $("c-mode").value = settings.mode;
+    $("c-stable").checked = settings.stable;
+    $("c-clear").value = settings.clear;
+    $("c-font").value = settings.font;
+    $("c-size").value = settings.size;
+    $("c-minsize").value = settings.minsize;
+    $("c-weight").value = String(settings.weight);
+    $("c-lh").value = settings.lh;
+    $("c-ls").value = settings.ls;
+    $("c-tt").value = settings.tt;
+    $("c-color").value = settings.color;
+    $("c-ow").value = settings.ow;
+    $("c-oc").value = settings.oc;
+    $("c-shadow").checked = settings.shadow;
+    if (/^#[0-9a-fA-F]{6}$/.test(settings.bg)) $("c-bgcustom").value = settings.bg;
+    $("c-align").value = settings.align;
+    $("c-pad").value = settings.pad;
+    $("c-bottom").value = settings.bottom;
+    $("c-bar").checked = settings.bar;
+    $("c-barw").value = settings.barw;
+    $("c-barc").value = settings.barc;
+    syncVals();
+  }
+  function syncVals() {
+    $("v-size").textContent = settings.size + "px";
+    $("v-minsize").textContent = settings.minsize + "px";
+    $("v-lh").textContent = settings.lh.toFixed(2);
+    $("v-ls").textContent = settings.ls + "px";
+    $("v-ow").textContent = settings.ow + "px";
+    $("v-pad").textContent = settings.pad + "%";
+    $("v-bottom").textContent = settings.bottom + "%";
+    $("v-barw").textContent = settings.barw + "px";
+  }
+  function bind(id, key, parse) {
+    var el = $(id);
+    el.addEventListener("input", function () {
+      var v = el.type === "checkbox" ? el.checked : el.value;
+      update(key, parse ? parse(v) : v);
+      syncVals();
+    });
+  }
+  bind("c-aspect", "aspect");
+  bind("c-mode", "mode");
+  bind("c-stable", "stable");
+  bind("c-clear", "clear", function (v) { var n = parseFloat(v); return isFinite(n) && n >= 0 ? n : 0; });
+  bind("c-font", "font");
+  bind("c-size", "size", parseFloat);
+  bind("c-minsize", "minsize", parseFloat);
+  bind("c-weight", "weight", parseFloat);
+  bind("c-lh", "lh", parseFloat);
+  bind("c-ls", "ls", parseFloat);
+  bind("c-tt", "tt");
+  bind("c-color", "color");
+  bind("c-ow", "ow", parseFloat);
+  bind("c-oc", "oc");
+  bind("c-shadow", "shadow");
+  bind("c-bgcustom", "bg");
+  bind("c-align", "align");
+  bind("c-pad", "pad", parseFloat);
+  bind("c-bottom", "bottom", parseFloat);
+  bind("c-bar", "bar");
+  bind("c-barw", "barw", parseFloat);
+  bind("c-barc", "barc");
+
+  document.querySelectorAll("#swatches button").forEach(function (btn) {
+    btn.addEventListener("click", function () { update("bg", btn.getAttribute("data-bg")); });
+  });
+
+  $("copyUrlBtn").addEventListener("click", function () {
+    var url = buildUrl();
+    var btn = $("copyUrlBtn");
+    function done() {
+      btn.textContent = "Copied!";
+      setTimeout(function () { btn.textContent = "Copy URL"; }, 1200);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { window.prompt("Copy this URL:", url); });
+    } else {
+      window.prompt("Copy this URL:", url);
+    }
+  });
+  $("resetBtn").addEventListener("click", function () {
+    settings = Object.assign({}, DEFAULTS);
+    persist();
+    applySettings();
+    syncForm();
+    render();
+  });
+
+  function togglePanel(force) {
+    panel.classList.toggle("open", force);
+    if (panel.classList.contains("open")) showChrome();
+  }
+  $("gearBtn").addEventListener("click", function () { togglePanel(); });
+
+  /* ---------------- Fullscreen ---------------- */
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+    } else {
+      document.documentElement.requestFullscreen().catch(function () {});
+    }
+  }
+  $("fsBtn").addEventListener("click", toggleFullscreen);
+  $("stage").addEventListener("dblclick", toggleFullscreen);
+
+  /* ---------------- Keyboard ---------------- */
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    var typing = tag === "input" || tag === "select" || tag === "textarea";
+    if (e.key === "Escape") { togglePanel(false); return; }
+    if (typing) return;
+    if (e.key === "s" || e.key === "S") togglePanel();
+    else if (e.key === "f" || e.key === "F") toggleFullscreen();
+  });
+
+  /* ---------------- Auto-hiding chrome ---------------- */
+  var chromeTimer = null;
+  function showChrome() {
+    document.body.classList.remove("hide-chrome");
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(function () {
+      if (!panel.classList.contains("open"))
+        document.body.classList.add("hide-chrome");
+    }, 3000);
+  }
+  document.addEventListener("mousemove", showChrome);
+  document.addEventListener("mousedown", showChrome);
+  showChrome();
+
+  /* ---------------- Caption state & rendering ---------------- */
+  var state = { uid: null, committed: "", tail: "", translation: "" };
+  var caption = $("caption");
+  var clearTimer = null;
+
+  function render() {
+    var gu = state.committed;
+    if (!settings.stable && state.tail)
+      gu = gu ? gu + " " + state.tail : state.tail;
+    $("guText").textContent = gu;
+    $("enText").textContent = state.translation;
+    fitText();
+  }
+
+  // Shrink each visible block's text until it fits its line limit, stopping
+  // at settings.minsize. The block keeps its full-size height, so nothing
+  // else moves; if the floor is hit the text simply wraps and scrolls.
+  function fitText() {
+    var textHeight = 0;
+    [$("guBlock"), $("enBlock")].forEach(function (block) {
+      if (block.hidden) return;
+      var span = block.firstElementChild;
+      var limit = block.clientHeight + 0.5;
+      var fits = function () { return span.getBoundingClientRect().height <= limit; };
+      span.style.fontSize = "";
+      if (span.textContent && !fits()) {
+        var lo = Math.min(settings.minsize, settings.size), hi = settings.size;
+        for (var i = 0; i < 7; i++) {
+          var mid = (lo + hi) / 2;
+          span.style.fontSize = mid + "px";
+          if (fits()) lo = mid; else hi = mid;
+        }
+        span.style.fontSize = lo + "px";
+      }
+      if (span.textContent)
+        textHeight += Math.min(span.getBoundingClientRect().height, block.clientHeight);
+    });
+    // The bar spans exactly the text currently on screen (blocks are
+    // bottom-anchored, so it grows upward from the last line).
+    var bar = $("bar");
+    bar.hidden = !settings.bar || textHeight === 0;
+    document.documentElement.style.setProperty("--bar-h", textHeight + "px");
+  }
+  window.addEventListener("resize", fitText);
+  function armClearTimer() {
+    caption.classList.remove("faded");
+    clearTimeout(clearTimer);
+    if (settings.clear > 0) {
+      clearTimer = setTimeout(function () {
+        caption.classList.add("faded");
+      }, settings.clear * 1000);
+    }
+  }
+  function handleEvent(msg) {
+    if (!msg || (msg.type !== "partial" && msg.type !== "final")) return;
+    if (msg.utterance_id !== state.uid) {
+      state.uid = msg.utterance_id;
+      state.committed = "";
+      state.tail = "";
+      state.translation = "";
+    }
+    if (typeof msg.committed === "string") state.committed = msg.committed;
+    state.tail = (msg.type === "final") ? "" : (typeof msg.tail === "string" ? msg.tail : "");
+    if (typeof msg.translation === "string" && msg.translation !== "")
+      state.translation = msg.translation;
+    render();
+    armClearTimer();
+  }
+
+  /* ---------------- WebSocket client (receive-only, auto-reconnect) ---------- */
+  var dot = $("dot");
+  var ws = null;
+  var backoff = 1000;
+  var BACKOFF_MAX = 10000;
+
+  function connect() {
+    var proto = location.protocol === "https:" ? "wss" : "ws";
+    var url = proto + "://" + location.host + "/ws/view";
+    try { ws = new WebSocket(url); } catch (e) { scheduleReconnect(); return; }
+    ws.onopen = function () {
+      backoff = 1000;
+      dot.classList.add("on");
+    };
+    ws.onmessage = function (ev) {
+      if (typeof ev.data !== "string") return;
+      var msg;
+      try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      handleEvent(msg);
+    };
+    ws.onclose = function () {
+      dot.classList.remove("on");
+      scheduleReconnect();
+    };
+    ws.onerror = function () {
+      try { ws.close(); } catch (e) {}
+    };
+  }
+  function scheduleReconnect() {
+    setTimeout(connect, backoff);
+    backoff = Math.min(backoff * 2, BACKOFF_MAX);
+  }
+
+  /* ---------------- Init ---------------- */
+  loadFromStorage();
+  loadFromUrl();
+  persist();
+  applySettings();
+  syncForm();
+  render();
+  connect();
+})();
+</script>
+</body>
+</html>

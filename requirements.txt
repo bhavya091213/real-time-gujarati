@@ -1,0 +1,13 @@
+torch
+torchaudio
+transformers
+fastapi
+uvicorn
+websockets
+sounddevice
+silero-vad
+numpy
+sentencepiece
+ctranslate2
+IndicTransToolkit
+huggingface_hub
