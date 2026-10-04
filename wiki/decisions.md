@@ -77,3 +77,37 @@ backoff so they survive server restarts during a long event.
 only appear post-permission), and on `devicechange`. Choice persisted in
 localStorage. Changing the device while streaming restarts the capture
 (hot-swap). `stop()` now releases tracks so the browser mic indicator clears.
+
+## WS1 latency work (2026-10-04)
+
+- **Bounded re-decode window with seam dedupe.** Decode cost is about
+  30 + 47 ms per second of window, and lag built up from roughly 7 s of
+  continuous speech (12 s windows cost 600+ ms per 480 ms tick). The window
+  is trimmed beyond `max_window_s` (5 s), whisper_streaming style: aligned,
+  committed words before the cut become a prefix when at least one aligned
+  word remains. On the first post-trim decode, a matching 1-5 word hypothesis
+  head is dropped only if that produces a strictly longer common prefix with
+  the retained pre-trim hypothesis; that choice is reused until the next trim.
+  Without alignment evidence the trim is deferred, preserving ambiguous
+  repeats while the 12 s utterance cap remains the safety bound. A 4 s cap
+  would meet a 250 ms decode target; left at 5.
+- **Adaptive interval.** Re-decode every `max(interval_ms, 1.2 x recent
+  decode)`, clamped to `max_interval_ms` (2 s of audio), so a slow machine
+  falls behind less instead of queueing decodes. "Recent" is the low median
+  of the current utterance's last 5 partial decodes: unlike an EMA, one
+  outlier (e.g. a 20 s stall) stops mattering after a single normal decode.
+  The history resets per utterance so a slow final cannot throttle the next
+  utterance, and the 2 s cap keeps partials flowing even when every decode is
+  slow (an uncapped interval let one slow decode suppress all partials until
+  the final). `last_decode_ms` / `avg_decode_ms` stay raw for stats.
+- **Translation off the ASR path.** Partials go out at once with the last
+  known translation; a latest-only slot translates the newest text, at most
+  one start per 1 s (`PARTIAL_TRANSLATE_GAP_S`), and the latest partial is
+  re-sent. Finals are translated inline and sent once. Commit-change gating
+  alone still translated ~55% of partials; the gap halves that.
+- **ORT intra-op = performance cores, spinning off.** Measured: the default
+  (all cores incl. E-cores, spinning on) contended with CT2 translation.
+- **Display: rAF coalescing + bounded fit passes** (1-6 layout passes per
+  block instead of 1-9; one render per frame at most).
+- **Word-level confidence** is exposed by `Transcript.words` but unused; it
+  is there for later trimming/commit decisions.

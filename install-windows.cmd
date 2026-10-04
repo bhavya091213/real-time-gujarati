@@ -107,14 +107,11 @@ if "%DEV%"=="1" (
 )
 
 echo.
-echo Done. Start the server with:
+echo Done.
 echo.
-echo     .venv\Scripts\python -m gujusub.server
+echo Next: start.cmd --open      ^(starts the server and opens the mic + display pages^)
 echo.
-echo then open  http://localhost:8765/          (mic page)
-echo       and  http://localhost:8765/display   (broadcast page for OBS)
-echo.
-echo Windows runs the models on CPU (--device mps is macOS only).
+echo Windows runs the models on CPU ^(--device mps is macOS only^).
 exit /b 0
 
 :help

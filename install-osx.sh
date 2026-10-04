@@ -94,12 +94,9 @@ fi
 
 cat <<EOF
 
-Done. Start the server with:
+Done.
 
-    .venv/bin/python -m gujusub.server
+Next: ./start.sh --open      (starts the server and opens the mic + display pages)
 
-then open  http://localhost:8765/          (mic page)
-      and  http://localhost:8765/display   (broadcast page for OBS)
-
-Add --device mps on Apple Silicon to run the ASR on the GPU.
+Add --device mps on Apple Silicon to run the ASR on the GPU (./start.sh --open --device mps).
 EOF

@@ -42,3 +42,6 @@ Thumbs.db
 # Claude Code local state
 .claude/worktrees/
 .claude/settings.local.json
+
+# Orchestraion
+.orchestrate

@@ -14,6 +14,8 @@ import ctranslate2
 import sentencepiece as spm
 from huggingface_hub import snapshot_download
 
+from gujusub.threads import ct2_threads
+
 # it2_compat must be imported before IndicTransToolkit (see its docstring).
 # isort: off
 from gujusub import it2_compat  # noqa: F401
@@ -55,7 +57,7 @@ class Translator:
         logger.info("loading %s ...", CT2_REPO)
         root = Path(snapshot_download(CT2_REPO)) / CT2_SUBDIR
         self.model = ctranslate2.Translator(
-            str(root), device="cpu", compute_type="int8"
+            str(root), device="cpu", compute_type="int8", intra_threads=ct2_threads()
         )
         self.sp_src = spm.SentencePieceProcessor(model_file=str(root / "vocab" / "model.SRC"))
         self.sp_tgt = spm.SentencePieceProcessor(model_file=str(root / "vocab" / "model.TGT"))

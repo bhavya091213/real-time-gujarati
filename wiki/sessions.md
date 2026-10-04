@@ -96,3 +96,40 @@ toolkit import (likely during the 2026-09-03 package reorg).
 - Confirm the Mac mini install passes end to end after this change.
 - Run `install-windows.cmd` on an actual Windows box and fix whatever breaks.
 - Earlier threads unchanged from 2026-09-02.
+
+## 2026-10-04 - WS1 latency/perf (branch ws1-perf)
+
+**Why**: lag built up in continuous speech (decode cost grows with window; ~7 s
+of nonstop speech was enough), and ORT/CT2 contended for cores.
+
+**Done**: engine protocol + word timings (`engine.py`); bounded 5 s window with
+seam dedupe and adaptive interval (`streaming.py`); ORT/CT2 thread policy
+(`threads.py`); server pipeline with coalescing worker and latest-only
+translation (1 s partial gap); display.html rAF coalescing; `tools/replay.py`
+(+ model-free tests). 122 tests pass, ruff clean.
+
+**Numbers** (60 s looped sample, `--no-endpoint --translate`, load avg ~4-5):
+before (unit 1.6, load ~10): decode p95 630 ms, max lag 2.32 s, end lag 0.81 s,
+52 translate calls, RTF 0.755. After: decode p50/p95 ~148/200 ms (max 236-743),
+max lag 0.58-0.79 s, end lag ~0.38 s, 39 translate calls, RTF ~0.355. Natural
+6.6 s sample: final text identical to pre-WS1, max lag ~0.36 s, RTF ~0.28.
+Baselines were taken under heavier machine load, so the gain is partly noise.
+
+**Open threads**: `max_window_s` 4 s option; CoreML EP and skipping the 26
+unused ORT sessions as speedups; `feed()` still decodes every 480 ms inside
+big batches; rare fuzzy seam fragment; display not verified on real GPU/OBS
+with Gujarati script.
+
+**Review (same day):** Codex (gpt-5.5 hunt, gpt-5.6-sol adjudicate) found 5
+issues, then a Claude round found 4 more; all fixed before landing: disconnect
+final was dropped; final could retract committed words (now prefix + committed +
+anchored suffix, fallback to last partial's tail); seam dedupe ate real repeats
+(now evidence-gated, re-checked on every use); adaptive interval unbounded (now
+per-utterance lower-median estimate, capped at `max_interval_ms` 2 s); display
+ignored empty translation; `broadcast` iterated the live viewer set across an
+await; empty translations were stored and blanked the English line; translator
+task cancel/await on shutdown; filler-only finals leaked a translation entry.
+Deferred (low): one decode per batched feed() under overload + lag metric;
+replay clock/batching parity; torch imported via streaming import; cache
+`perf_cores()`; test hardening; late translation re-send after a final.
+Tests: 146.

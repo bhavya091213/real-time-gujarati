@@ -68,7 +68,6 @@
     width: var(--bar-w); height: var(--bar-h);
     background: var(--bar-c);
     border-radius: calc(var(--bar-w) / 4);
-    transition: height 0.15s ease;
   }
   #bar[hidden] { display: none; }
   .cap-block {
@@ -393,7 +392,7 @@
     settings[key] = value;
     persist();
     applySettings();
-    render();
+    render(true);
   }
 
   /* ---------------- Panel wiring ---------------- */
@@ -486,7 +485,7 @@
     persist();
     applySettings();
     syncForm();
-    render();
+    render(true);
   });
 
   function togglePanel(force) {
@@ -535,45 +534,78 @@
   var caption = $("caption");
   var clearTimer = null;
 
-  function render() {
+  // Last text actually laid out; lets render() skip identical frames.
+  var lastGu = null, lastEn = null;
+
+  // force=true (settings/resize changes) re-fits even if the text is unchanged.
+  function render(force) {
     var gu = state.committed;
     if (!settings.stable && state.tail)
       gu = gu ? gu + " " + state.tail : state.tail;
+    var en = state.translation;
+    if (!force && gu === lastGu && en === lastEn) return;
+    // Block limits are CSS-fixed (N line boxes), read before dirtying the DOM.
+    var limits = blockLimits();
+    lastGu = gu; lastEn = en;
     $("guText").textContent = gu;
-    $("enText").textContent = state.translation;
-    fitText();
+    $("enText").textContent = en;
+    fitText(limits);
+  }
+
+  // Events can arrive faster than frames; handleEvent only updates state and
+  // this renders at most once per animation frame (latest state wins).
+  var rafPending = false;
+  function scheduleRender() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () { rafPending = false; render(false); });
+  }
+
+  function blockLimits() {
+    return [$("guBlock"), $("enBlock")].map(function (block) {
+      return block.hidden ? 0 : block.clientHeight + 0.5;
+    });
   }
 
   // Shrink each visible block's text until it fits its line limit, stopping
   // at settings.minsize. The block keeps its full-size height, so nothing
-  // else moves; if the floor is hit the text simply wraps and scrolls.
-  function fitText() {
+  // else moves; if the floor is hit the text simply wraps and is clipped.
+  // Layout passes per block: 1 if the full size fits (common case); 2 if even
+  // the min size overflows; otherwise 2 + at most 4 bisection steps = 6.
+  function fitText(limits) {
+    limits = limits || blockLimits();
     var textHeight = 0;
-    [$("guBlock"), $("enBlock")].forEach(function (block) {
+    [$("guBlock"), $("enBlock")].forEach(function (block, idx) {
       if (block.hidden) return;
       var span = block.firstElementChild;
-      var limit = block.clientHeight + 0.5;
-      var fits = function () { return span.getBoundingClientRect().height <= limit; };
+      var limit = limits[idx];
       span.style.fontSize = "";
-      if (span.textContent && !fits()) {
-        var lo = Math.min(settings.minsize, settings.size), hi = settings.size;
-        for (var i = 0; i < 7; i++) {
-          var mid = (lo + hi) / 2;
-          span.style.fontSize = mid + "px";
-          if (fits()) lo = mid; else hi = mid;
-        }
+      if (!span.textContent) return;
+      var h = span.getBoundingClientRect().height;       // pass 1: max size
+      if (h > limit) {
+        var hi = settings.size, lo = Math.min(settings.minsize, hi);
         span.style.fontSize = lo + "px";
+        h = span.getBoundingClientRect().height;         // pass 2: min size
+        if (h <= limit) {
+          var hLo = h;
+          for (var i = 0; i < 4; i++) {                  // passes 3..6
+            var mid = (lo + hi) / 2;
+            span.style.fontSize = mid + "px";
+            var hm = span.getBoundingClientRect().height;
+            if (hm <= limit) { lo = mid; hLo = hm; } else hi = mid;
+          }
+          span.style.fontSize = lo + "px";
+          h = hLo;
+        }
       }
-      if (span.textContent)
-        textHeight += Math.min(span.getBoundingClientRect().height, block.clientHeight);
+      textHeight += Math.min(h, block.clientHeight);
     });
     // The bar spans exactly the text currently on screen (blocks are
     // bottom-anchored, so it grows upward from the last line).
-    var bar = $("bar");
-    bar.hidden = !settings.bar || textHeight === 0;
-    document.documentElement.style.setProperty("--bar-h", textHeight + "px");
+    $("bar").hidden = !settings.bar || textHeight === 0;
+    caption.style.setProperty("--bar-h", textHeight + "px");
   }
-  window.addEventListener("resize", fitText);
+  window.addEventListener("resize", function () { render(true); });
   function armClearTimer() {
     caption.classList.remove("faded");
     clearTimeout(clearTimer);
@@ -593,9 +625,9 @@
     }
     if (typeof msg.committed === "string") state.committed = msg.committed;
     state.tail = (msg.type === "final") ? "" : (typeof msg.tail === "string" ? msg.tail : "");
-    if (typeof msg.translation === "string" && msg.translation !== "")
+    if (typeof msg.translation === "string")
       state.translation = msg.translation;
-    render();
+    scheduleRender();
     armClearTimer();
   }
 
@@ -638,7 +670,7 @@
   persist();
   applySettings();
   syncForm();
-  render();
+  render(true);
   connect();
 })();
 </script>

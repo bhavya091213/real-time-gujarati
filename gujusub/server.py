@@ -8,11 +8,28 @@ Protocol:
   /ws/view  receive-only: every TranscriptEvent from every /ws client is
             broadcast here (for the broadcast display page at /display)
 
+Per-connection pipeline (see _Pipeline):
+  receiver    only reads audio messages into an asyncio.Queue.
+  worker      waits for audio, drains everything queued, and calls feed() once
+              on the concatenation, so a backlog costs one executor hop instead
+              of one per 8 ms message. Of the resulting events only the last
+              partial per utterance is sent (older ones are already stale).
+  translator  latest-only slot. Partials never wait for translation: they go
+              out at once carrying the last translation known for their
+              utterance. A partial whose committed text changed queues a
+              translation (at most one start per PARTIAL_TRANSLATE_GAP_S; the
+              slot keeps only the newest text); when it completes the latest
+              partial is re-sent with the new translation (only if that
+              utterance has no final yet).
+              Finals are translated inline by the worker and sent exactly once,
+              after their translation, so events stay in order.
+
 Run:  python -m gujusub.server [--device cpu|mps] [--lang gu] [--port 8765]
 """
 
 import argparse
 import asyncio
+import dataclasses
 import logging
 from pathlib import Path
 
@@ -36,6 +53,10 @@ engine: ASREngine | None = None  # loaded once in main()
 translator: Translator | None = None  # loaded once in main(); None if --no-translate
 filter_fillers = True  # set from --no-filter in main()
 viewers: set[WebSocket] = set()  # connected /ws/view sockets
+# Min seconds between partial-translation starts. Committed text grows on most
+# ticks in continuous speech, so commit-change gating alone still translates
+# ~55% of partials; the gap (latest-only, so the newest text wins) halves that.
+PARTIAL_TRANSLATE_GAP_S = 1.0
 
 
 @app.get("/")
@@ -54,12 +75,27 @@ def filtered(event: TranscriptEvent) -> TranscriptEvent:
     committed, tail = clean_event(
         event.committed, event.tail, final=event.type == "final"
     )
-    return TranscriptEvent(event.type, event.utterance_id, committed, tail)
+    return dataclasses.replace(event, committed=committed, tail=tail)
+
+
+def new_transcriber() -> StreamingTranscriber:
+    """One transcriber per /ws connection (tests monkeypatch this)."""
+    return StreamingTranscriber(engine, StreamingConfig())
+
+
+def latest_events(events: list[TranscriptEvent]) -> list[TranscriptEvent]:
+    """Drop partials superseded by a later event of the same utterance."""
+    return [
+        ev
+        for i, ev in enumerate(events)
+        if ev.type == "final"
+        or not any(later.utterance_id == ev.utterance_id for later in events[i + 1:])
+    ]
 
 
 async def broadcast(payload: dict) -> None:
     dead = []
-    for viewer in viewers:
+    for viewer in list(viewers):  # /ws/view can join or leave during the await
         try:
             await viewer.send_json(payload)
         except Exception:  # closed mid-send; dropped below
@@ -68,34 +104,147 @@ async def broadcast(payload: dict) -> None:
         viewers.discard(viewer)
 
 
+class _Pipeline:
+    """receiver -> coalescing worker -> (latest-only) translator for one /ws."""
+
+    def __init__(self, ws: WebSocket):
+        self.ws = ws
+        self.transcriber = new_transcriber()
+        self.translator = translator
+        self.loop = asyncio.get_running_loop()
+        self.audio: asyncio.Queue[np.ndarray | None] = asyncio.Queue()
+        self.last_sent: dict | None = None  # most recent payload sent
+        self.translations: dict[int, str] = {}  # utterance_id -> latest English
+        self.requested: tuple[int, str] | None = None  # last (uid, committed) queued
+        self.pending: tuple[int, str] | None = None  # latest-only slot
+        self.wake = asyncio.Event()
+
+    async def receive(self) -> None:
+        try:
+            while True:
+                data = await self.ws.receive_bytes()
+                audio = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
+                self.audio.put_nowait(audio)
+        finally:
+            self.audio.put_nowait(None)  # tell the worker to stop after draining
+
+    async def work(self) -> None:
+        try:
+            await self._work()
+        except Exception:
+            logger.exception("pipeline worker failed; closing %s", self.ws.client)
+            try:
+                await self.ws.close(code=1011)  # unblocks receive() so run() ends
+            except RuntimeError:
+                pass  # client already gone
+
+    async def _work(self) -> None:
+        done = False
+        while not done:
+            chunks = [await self.audio.get()]
+            while not self.audio.empty():
+                chunks.append(self.audio.get_nowait())
+            done = chunks[-1] is None
+            chunks = [c for c in chunks if c is not None]
+            if not chunks:
+                continue
+            batch = np.concatenate(chunks)
+            # feed() runs VAD + (sometimes) inference; keep it off the event loop
+            events = await self.loop.run_in_executor(None, self.transcriber.feed, batch)
+            for raw in latest_events(events):
+                await self.publish(filtered(raw))
+
+    async def publish(self, event: TranscriptEvent) -> None:
+        uid = event.utterance_id
+        text = f"{event.committed} {event.tail}".strip()
+        if not text:
+            if event.type == "final":
+                self.translations.pop(uid, None)  # nothing published; still forget it
+            return  # utterance was nothing but fillers
+        payload = event.to_dict()
+        if self.translator is not None:
+            if event.type == "final":
+                payload["translation"] = await self.translate(text)
+                self.translations.pop(uid, None)
+            else:
+                payload["translation"] = self.translations.get(uid, "")
+                if self.requested != (uid, event.committed):
+                    self.requested = (uid, event.committed)
+                    self.pending = (uid, text)
+                    self.wake.set()
+        await self.send(payload)
+
+    async def translate(self, text: str) -> str:
+        try:
+            return await self.loop.run_in_executor(None, self.translator.translate, text)
+        except Exception:
+            logger.exception("translation failed for %r", text)
+            return ""
+
+    async def translate_partials(self) -> None:
+        while True:
+            await self.wake.wait()
+            self.wake.clear()
+            if self.pending is None:
+                continue
+            uid, text = self.pending
+            self.pending = None
+            started = self.loop.time()
+            try:
+                english = await self.translate(text)
+                await self.publish_translation(uid, english)
+            except Exception:  # keep translating later partials
+                logger.exception("partial translation update failed for %r", text)
+            gap = PARTIAL_TRANSLATE_GAP_S - (self.loop.time() - started)
+            if gap > 0:
+                await asyncio.sleep(gap)  # newer text keeps landing in self.pending
+
+    async def publish_translation(self, uid: int, english: str) -> None:
+        """Re-send the latest partial of `uid` with a fresh translation."""
+        last = self.last_sent
+        if last is None or last["utterance_id"] != uid or last["type"] != "partial":
+            return  # utterance already finalized (or nothing to update)
+        if not english:
+            return  # failed/dropped: partials keep the last good English
+        self.translations[uid] = english
+        if english != last.get("translation"):
+            await self.send({**last, "translation": english})
+
+    async def send(self, payload: dict) -> None:
+        self.last_sent = payload
+        try:
+            await self.ws.send_json(payload)
+        except Exception:  # mic client gone; viewers still get it
+            logger.debug("send to closed /ws client dropped")
+        await broadcast(payload)
+
+    async def run(self) -> None:
+        worker = asyncio.create_task(self.work())
+        translating = asyncio.create_task(self.translate_partials())
+        try:
+            await self.receive()
+        except WebSocketDisconnect:
+            logger.info("client disconnected: %s", self.ws.client)
+        finally:
+            try:
+                await worker  # drains queued audio; never cancel mid-feed()
+            finally:  # unconditional: shutdown may cancel us mid-await
+                translating.cancel()
+            try:  # submit flush before the next await: a cancel lands there
+                events = await self.loop.run_in_executor(None, self.transcriber.flush)
+                for raw in latest_events(events):
+                    await self.publish(filtered(raw))
+            except Exception:
+                logger.exception("flush failed for %s", self.ws.client)
+            # reap; asyncio.wait never re-raises the child's CancelledError
+            await asyncio.wait([translating])
+
+
 @app.websocket("/ws")
 async def ws_transcribe(ws: WebSocket) -> None:
     await ws.accept()
-    transcriber = StreamingTranscriber(engine, StreamingConfig())
-    loop = asyncio.get_running_loop()
     logger.info("client connected: %s", ws.client)
-    try:
-        while True:
-            data = await ws.receive_bytes()
-            audio = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
-            # feed() runs VAD + (sometimes) inference; keep it off the event loop
-            events = await loop.run_in_executor(None, transcriber.feed, audio)
-            for raw in events:
-                event = filtered(raw)
-                text = f"{event.committed} {event.tail}".strip()
-                if not text:
-                    continue  # utterance was nothing but fillers
-                payload = event.to_dict()
-                if translator is not None:
-                    payload["translation"] = await loop.run_in_executor(
-                        None, translator.translate, text
-                    )
-                await ws.send_json(payload)
-                await broadcast(payload)
-    except WebSocketDisconnect:
-        logger.info("client disconnected: %s", ws.client)
-    finally:
-        await loop.run_in_executor(None, transcriber.flush)
+    await _Pipeline(ws).run()
 
 
 @app.websocket("/ws/view")

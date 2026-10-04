@@ -82,3 +82,32 @@ fresh install did not. Fix (2026-10-04): `gujusub/model_dir.py` hardlinks
 the snapshot into `~/.cache/gujusub/<repo>` (override: `GUJUSUB_MODEL_DIR`)
 and `asr_engine.py` loads from there. Do not load the ASR model straight
 from the hub cache again.
+
+## ORT defaults are the slowest config here
+
+ONNX Runtime's default intra-op threads include the E-cores and spin-wait.
+The worst measured setup was 8 threads with spinning on: idle ORT threads
+fought CT2 for cores. `gujusub/threads.py` sets performance cores and spinning
+off; do not remove that without re-measuring.
+
+## CTC word times run early
+
+Word `end_s` from the CTC engine is 0.1-0.3 s before the sound ends. Never cut
+the window exactly at `end_s` (it duplicated words, "hun hun"); cut midway
+between a word's end and the next word's start.
+
+## `FRAME_DURATION_MS` warning is harmless
+
+The ASR model logs a `FRAME_DURATION_MS` warning on load and in replay output.
+It does not affect results.
+
+## Partials keep ticking during endpoint silence
+
+Until the 600 ms endpoint fires, partial decodes continue on the silent
+tail, so `replay.py` and the server show events during pauses.
+
+## `filtered()` must use `dataclasses.replace`
+
+`server.filtered()` copies `TranscriptEvent` with `dataclasses.replace`;
+rebuilding by hand drops any field added later.
+
