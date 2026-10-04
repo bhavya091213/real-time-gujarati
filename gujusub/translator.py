@@ -13,10 +13,11 @@ from pathlib import Path
 import ctranslate2
 import sentencepiece as spm
 from huggingface_hub import snapshot_download
-from IndicTransToolkit.processor import IndicProcessor
 
-# isort: off  -- it2_compat must be imported before IndicTransToolkit
+# it2_compat must be imported before IndicTransToolkit (see its docstring).
+# isort: off
 from gujusub import it2_compat  # noqa: F401
+from IndicTransToolkit.processor import IndicProcessor
 
 # isort: on
 

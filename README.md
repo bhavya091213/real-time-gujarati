@@ -2,7 +2,7 @@
 
 Live Gujarati speech → on-screen Gujarati captions + English translation,
 built for keying onto a broadcast or projector feed (OBS / ProPresenter → ATEM).
-Everything runs locally on one Mac; no cloud services.
+Everything runs locally on one machine; no cloud services.
 
 ## How it works
 
@@ -18,22 +18,62 @@ Everything runs locally on one Mac; no cloud services.
 See [`wiki/`](wiki/README.md) for architecture, design decisions, gotchas, and
 the broadcast setup guide.
 
-## Quick start
+## Install
+
+Requires Python 3.11 or newer. The installers create `.venv/`, install the
+dependencies, verify the imports, and pre-download the ~1 GB of models into the
+Hugging Face cache. They are safe to re-run.
+
+### macOS
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-python -m gujusub.server          # first run downloads ~1 GB of models
+./install-osx.sh            # add --dev to also install pytest/ruff and run the tests
 ```
 
-Then open:
+If no suitable Python is found and Homebrew is present, the script installs
+`python@3.12` for you.
+
+### Windows
+
+1. Install Python 3.11+ from [python.org](https://www.python.org/downloads/windows/)
+   and tick **Add python.exe to PATH**.
+2. Install the
+   [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+   with the **Desktop development with C++** workload. `IndicTransToolkit`
+   ships no Windows wheel, so pip compiles it from source.
+3. From a Command Prompt in the repo folder:
+
+```bat
+install-windows.cmd         # add --dev to also install pytest/ruff and run the tests
+```
+
+Both scripts accept `--skip-models` to defer the model download to first run.
+
+### Manual
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Run
+
+```bash
+.venv/bin/python -m gujusub.server            # macOS
+.venv\Scripts\python -m gujusub.server        # Windows
+```
+
+Startup takes ~10 s with cached models (longer on the first run if the
+installer skipped the download). Then open:
 
 - `http://localhost:8765/` — mic page: pick an input, click **Start mic**
 - `http://localhost:8765/display` — broadcast page: add as an OBS browser source
   (press `s` for settings, `f` for fullscreen; **Copy URL** bakes settings into the link)
 
-Flags: `--device cpu|mps`, `--lang gu`, `--port 8765`, `--no-translate`, `--no-filter`.
+Flags: `--device cpu|mps` (`mps` is Apple Silicon only; Windows uses `cpu`),
+`--lang gu`, `--port 8765`, `--no-translate`, `--no-filter`.
+
+Always run from the repo root so the `gujusub` package is importable.
 
 ## Layout
 
@@ -50,6 +90,8 @@ tools/              mic_client.py (terminal client), transcribe_file.py (offline
 tests/              pytest suite
 samples/            Short Gujarati test clip
 wiki/               Project knowledge base (read this before changing things)
+install-osx.sh      macOS installer
+install-windows.cmd Windows installer
 ```
 
 ## Development
