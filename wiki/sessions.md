@@ -82,6 +82,17 @@ toolkit import (likely during the 2026-09-03 package reorg).
   passed). The Windows script is untested on a real Windows machine. README rewritten around the installers with a
   Windows prerequisites section (Build Tools needed, see gotchas).
 
+- Mac mini fresh install failed in onnxruntime with `External data path
+  validation failed for initializer`. Cause: symlinked HF cache + newer
+  onnxruntime (see gotchas). Added `gujusub/model_dir.py` (hardlink
+  materialisation, 7 unit tests), rewired `asr_engine.py` to load the remote
+  `model_onnx.py` from the materialised dir, added `onnxruntime` to
+  `requirements.txt` (it was missing), and `tools/prefetch_models.py`
+  (`--verify` loads both models). Both installers now prefetch *and* run the
+  verify step. Pushed straight to main at the user's request without an
+  end-to-end load run on this machine (unit tests + lint only).
+
 **Open threads**
+- Confirm the Mac mini install passes end to end after this change.
 - Run `install-windows.cmd` on an actual Windows box and fix whatever breaks.
 - Earlier threads unchanged from 2026-09-02.

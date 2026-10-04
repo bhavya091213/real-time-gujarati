@@ -77,18 +77,13 @@ say "verifying imports"
 "$PY" -c 'from gujusub.translator import Translator; from gujusub.asr_engine import ASREngine' \
   || fail "import check failed; see the traceback above"
 
-# ---- 3. pre-download models (~1 GB, cached in ~/.cache/huggingface) -------
+# ---- 3. pre-download models (~1 GB; hub cache + real-file copy in ~/.cache/gujusub)
 if [ "$SKIP_MODELS" -eq 0 ]; then
   say "downloading models (skip with --skip-models)"
-  "$PY" - <<'EOF'
-from huggingface_hub import snapshot_download
-from gujusub.asr_engine import MODEL_ID
-from gujusub.translator import CT2_REPO
+  "$PY" tools/prefetch_models.py || fail "model download failed; check your network and re-run"
 
-for repo in (MODEL_ID, CT2_REPO):
-    print(f"  {repo}")
-    snapshot_download(repo)
-EOF
+  say "loading models once to verify they work (ASR + translator, ~30 s)"
+  "$PY" tools/prefetch_models.py --verify || fail "model load check failed; see the traceback above"
 fi
 
 # ---- 4. optional: run the test suite ---------------------------------------

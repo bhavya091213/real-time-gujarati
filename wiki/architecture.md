@@ -28,6 +28,7 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 |------|------|
 | `gujusub/server.py` | FastAPI app. Routes: `/` (mic page), `/display` (output page), `/ws` (audio in, events out), `/ws/view` (receive-only event broadcast). Flags: `--device cpu\|mps`, `--lang gu`, `--port 8765`, `--no-translate`, `--no-filter`. |
 | `gujusub/asr_engine.py` | Wraps `ai4bharat/indic-conformer-600m-multilingual` (CTC). Lock-serialized; not thread-safe otherwise. |
+| `gujusub/model_dir.py` | Materialises a HF snapshot into real files (hardlinks) under `~/.cache/gujusub`; required by onnxruntime >= 1.24 (see gotchas). `GUJUSUB_MODEL_DIR` overrides the root. |
 | `gujusub/streaming.py` | VAD-gated growing window, re-decodes every 480 ms, commits common prefix of last two hypotheses. 600 ms silence finalizes. 12 s hard cap. |
 | `gujusub/fillers.py` | Two-tier filler suppression (ALWAYS / CONTEXTUAL / PHRASES). Pure text transform. |
 | `gujusub/translator.py` | CT2 model load + `translate()`. `looks_untranslated()` guard. |
@@ -36,6 +37,7 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 | `gujusub/static/display.html` | Output page. Single file, no deps. See [broadcast-setup.md](broadcast-setup.md). |
 | `tools/mic_client.py` | Terminal mic client (sounddevice → `/ws`), prints captions. Debug tool. |
 | `tools/transcribe_file.py` | One-shot file transcription (`samples/test-guju.m4a`), optional `--translate`. |
+| `tools/prefetch_models.py` | Downloads + materialises both models; `--verify` loads them and runs a tiny inference. Called by the installers. |
 | `tests/` | pytest suite (34 tests, no models loaded). Run: `.venv/bin/python -m pytest` |
 | `samples/` | Short Gujarati test clip. |
 | `pyproject.toml` | pytest + ruff config. `requirements.txt` runtime, `requirements-dev.txt` adds pytest/httpx/ruff. |

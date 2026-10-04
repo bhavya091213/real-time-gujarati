@@ -9,5 +9,6 @@ silero-vad
 numpy
 sentencepiece
 ctranslate2
+onnxruntime
 IndicTransToolkit
 huggingface_hub

@@ -69,3 +69,16 @@ needs the MSVC Build Tools ("Desktop development with C++"). Without them
 `install-windows.cmd` fails inside `pip install -r requirements.txt` with
 "Microsoft Visual C++ 14.0 or greater is required". `--device mps` is also
 macOS-only; Windows runs on CPU.
+
+## onnxruntime >= 1.24 rejects the symlinked Hugging Face cache
+
+`encoder.onnx` keeps its weights in ~370 external-data files beside it.
+huggingface_hub stores every snapshot file as a symlink into `blobs/`, and
+newer onnxruntime validates that external data resolves inside the model's
+own directory, so session creation fails with
+`External data path validation failed for initializer ...`. Older
+onnxruntime (1.20) did not check, which is why one machine worked and a
+fresh install did not. Fix (2026-10-04): `gujusub/model_dir.py` hardlinks
+the snapshot into `~/.cache/gujusub/<repo>` (override: `GUJUSUB_MODEL_DIR`)
+and `asr_engine.py` loads from there. Do not load the ASR model straight
+from the hub cache again.

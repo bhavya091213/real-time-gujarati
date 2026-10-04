@@ -1,16 +1,48 @@
 """Wrapper around ai4bharat/indic-conformer-600m-multilingual for repeated inference."""
 
+import importlib.util
+import json
 import logging
 import threading
+from pathlib import Path
 
 import numpy as np
 import torch
-from transformers import AutoModel
+
+from gujusub.model_dir import local_model_dir
 
 logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16000
 MODEL_ID = "ai4bharat/indic-conformer-600m-multilingual"
+REMOTE_CODE_FILE = "model_onnx.py"
+CONFIG_FILE = "config.json"
+
+
+def prepare_model_dir() -> Path:
+    """Download the model and return a directory of real files (see model_dir.py)."""
+    return local_model_dir(MODEL_ID)
+
+
+def _load_remote_model(model_dir: Path) -> torch.nn.Module:
+    """Instantiate the repo's IndicASRModel from a materialised directory.
+
+    Equivalent to ``AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)``
+    but pointed at ``model_dir`` instead of the symlinked hub cache, which
+    onnxruntime >= 1.24 refuses to load external data from.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "gujusub_indic_conformer_remote", model_dir / REMOTE_CODE_FILE
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {REMOTE_CODE_FILE} from {model_dir}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    cfg = json.loads((model_dir / CONFIG_FILE).read_text())
+    cfg.pop("auto_map", None)
+    config = module.IndicASRConfig(ts_folder=str(model_dir), **cfg)
+    return module.IndicASRModel(config)
 
 
 class ASREngine:
@@ -29,7 +61,8 @@ class ASREngine:
         self._lock = threading.Lock()
 
         logger.info("loading %s on %s ...", MODEL_ID, self.device)
-        self.model = AutoModel.from_pretrained(MODEL_ID, trust_remote_code=True)
+        model_dir = prepare_model_dir()
+        self.model = _load_remote_model(model_dir)
         try:
             self.model = self.model.to(self.device)
         except Exception:

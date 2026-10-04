@@ -86,11 +86,16 @@ echo ==^> verifying imports
   exit /b 1
 )
 
-REM ---- 3. pre-download models (~1 GB, cached in %%USERPROFILE%%\.cache\huggingface)
+REM ---- 3. pre-download models (~1 GB; hub cache + real-file copy in %%USERPROFILE%%\.cache\gujusub)
 if "%SKIP_MODELS%"=="0" (
   echo ==^> downloading models ^(skip with --skip-models^)
-  "%PY%" -c "from huggingface_hub import snapshot_download; from gujusub.asr_engine import MODEL_ID; from gujusub.translator import CT2_REPO; [print('  ' + r) or snapshot_download(r) for r in (MODEL_ID, CT2_REPO)]" || (
+  "%PY%" tools\prefetch_models.py || (
     echo error: model download failed; check your network and re-run
+    exit /b 1
+  )
+  echo ==^> loading models once to verify they work ^(ASR + translator, ~30 s^)
+  "%PY%" tools\prefetch_models.py --verify || (
+    echo error: model load check failed; see the traceback above
     exit /b 1
   )
 )

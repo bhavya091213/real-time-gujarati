@@ -48,6 +48,12 @@ install-windows.cmd         # add --dev to also install pytest/ruff and run the 
 ```
 
 Both scripts accept `--skip-models` to defer the model download to first run.
+After downloading, the installers load both models once (`tools/prefetch_models.py --verify`)
+so version problems surface at install time rather than on show day.
+
+The ASR model is copied out of the Hugging Face cache into `~/.cache/gujusub`
+(hardlinks, no extra disk) because recent onnxruntime refuses to load external
+weights through the cache's symlinks. Set `GUJUSUB_MODEL_DIR` to move it.
 
 ### Manual
 
