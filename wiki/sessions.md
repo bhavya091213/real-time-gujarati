@@ -77,9 +77,9 @@ toolkit import (likely during the 2026-09-03 package reorg).
 
 - Added `install-osx.sh` and `install-windows.cmd` (venv, deps, import
   check, model prefetch; `--dev`, `--skip-models`). macOS script verified on
-  the reuse-.venv path (`--dev`, tests green); a fresh-.venv run was started
-  in a scratch copy but had not finished downloading torch when the PR went
-  up. The Windows script is untested on a real Windows machine. README rewritten around the installers with a
+  the reuse-.venv path (`--dev`, tests green) and on a fresh .venv in a
+  scratch copy (resolved transformers 5.18.0 / torch 2.14.1, import check
+  passed). The Windows script is untested on a real Windows machine. README rewritten around the installers with a
   Windows prerequisites section (Build Tools needed, see gotchas).
 
 **Open threads**
