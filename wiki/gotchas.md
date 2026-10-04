@@ -52,3 +52,20 @@ Since the 2026-09-03 reorg the code is a package. `python gujusub/server.py`
 fails with `ModuleNotFoundError: gujusub`; use `python -m gujusub.server`.
 `tools/*.py` add the repo root to `sys.path` themselves so they can be run
 directly.
+
+## `# isort: off` must be the whole comment
+
+Ruff only honours `# isort: off` / `# isort: on` when the comment is exactly
+that. `# isort: off  -- reason` is ignored, and ruff will happily sort
+`gujusub.it2_compat` below `IndicTransToolkit`, which breaks server startup
+with `ImportError: cannot import name 'PreTrainedTokenizerBase'`. Put the
+reason on its own comment line (see `translator.py`).
+
+## Windows: IndicTransToolkit has no wheel
+
+PyPI ships macOS arm64 and manylinux wheels only (checked 2026-10-04,
+v1.1.1). On Windows pip builds the Cython extension from the sdist, which
+needs the MSVC Build Tools ("Desktop development with C++"). Without them
+`install-windows.cmd` fails inside `pip install -r requirements.txt` with
+"Microsoft Visual C++ 14.0 or greater is required". `--device mps` is also
+macOS-only; Windows runs on CPU.

@@ -39,6 +39,7 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 | `tests/` | pytest suite (34 tests, no models loaded). Run: `.venv/bin/python -m pytest` |
 | `samples/` | Short Gujarati test clip. |
 | `pyproject.toml` | pytest + ruff config. `requirements.txt` runtime, `requirements-dev.txt` adds pytest/httpx/ruff. |
+| `install-osx.sh`, `install-windows.cmd` | One-shot installers: find Python >= 3.11, create `.venv`, pip install, verify imports, pre-download models. `--dev` adds dev deps + runs tests; `--skip-models` defers the download. Idempotent. |
 
 ## WebSocket event shape
 
@@ -55,6 +56,9 @@ empty tail and the full re-decoded text. Events whose text is entirely fillers
 are not sent at all.
 
 ## Running
+
+Install once with `./install-osx.sh` (macOS) or `install-windows.cmd`
+(Windows), then:
 
 ```bash
 .venv/bin/python -m gujusub.server        # loads ASR + translator (~30 s), port 8765

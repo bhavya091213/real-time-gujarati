@@ -56,3 +56,32 @@ scrolling Gujarati/English. No broadcast output, fillers shown verbatim.
   tool only).
 - Possible: per-language font size in "Both" mode; ProPresenter-specific
   testing not yet done.
+
+## 2026-10-04 — get server running again
+
+**Starting point:** `python -m gujusub.server` crashed on import:
+`ImportError: cannot import name 'PreTrainedTokenizerBase' from
+'transformers.tokenization_utils'` (transformers 5.16.1, IndicTransToolkit 1.1.1).
+
+**Cause:** in `gujusub/translator.py` the `it2_compat` shim was imported
+*after* `IndicTransToolkit.processor`, so the shim never ran before the
+collator's broken import. The `# isort: off` marker had trailing text on the
+same line, so ruff did not honour it and had sorted the shim below the
+toolkit import (likely during the 2026-09-03 package reorg).
+
+**Done**
+- Moved `from gujusub import it2_compat` above the IndicTransToolkit import;
+  bare `# isort: off` marker with the explanation on its own comment line.
+- `ruff check .` clean, 34 tests pass, server boots in ~10 s with cached
+  models and serves `/` and `/display`.
+
+- Added `install-osx.sh` and `install-windows.cmd` (venv, deps, import
+  check, model prefetch; `--dev`, `--skip-models`). macOS script verified on
+  the reuse-.venv path (`--dev`, tests green) and on a fresh .venv in a
+  scratch copy (resolved transformers 5.18.0 / torch 2.14.1, import check
+  passed). The Windows script is untested on a real Windows machine. README rewritten around the installers with a
+  Windows prerequisites section (Build Tools needed, see gotchas).
+
+**Open threads**
+- Run `install-windows.cmd` on an actual Windows box and fix whatever breaks.
+- Earlier threads unchanged from 2026-09-02.
