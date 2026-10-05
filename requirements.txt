@@ -10,5 +10,6 @@ numpy
 sentencepiece
 ctranslate2
 onnxruntime
+onnx-asr
 IndicTransToolkit
 huggingface_hub

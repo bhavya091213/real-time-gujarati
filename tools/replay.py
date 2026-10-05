@@ -41,7 +41,13 @@ def _load_gu():
     return ASREngine(lang="gu", device="cpu")
 
 
-ENGINES: dict[str, Callable[[], object]] = {"gu": _load_gu}  # WS3/4 add en/auto
+def _load_en():
+    from gujusub.engine_parakeet import ParakeetEngine
+
+    return ParakeetEngine()
+
+
+ENGINES: dict[str, Callable[[], object]] = {"gu": _load_gu, "en": _load_en}  # WS4 adds auto
 
 
 def load_audio(path: Path) -> np.ndarray:
