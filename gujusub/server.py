@@ -55,6 +55,7 @@ from fastapi.responses import FileResponse
 
 from gujusub.asr_engine import ASREngine
 from gujusub.fillers import clean_event
+from gujusub.glossary import Glossary, load_glossary
 from gujusub.settings import Settings, SettingsStore, display_payload, snapshot_payload
 from gujusub.streaming import StreamingConfig, StreamingTranscriber, TranscriptEvent
 from gujusub.translator import Translator
@@ -68,6 +69,7 @@ app = FastAPI()
 engine: ASREngine | None = None  # loaded once in main()
 translator: Translator | None = None  # loaded once in main(); None if --no-translate
 filter_fillers = True  # set from --no-filter in main()
+_glossary: Glossary | None = None  # lazily loaded; see get_glossary()
 viewers: set[WebSocket] = set()  # connected /ws/view sockets
 viewer_membership_lock = asyncio.Lock()  # guards viewers + _joining; never held across a send
 VIEWER_INIT_TIMEOUT_S = 2.0  # bound on each send to a still-connecting viewer
@@ -100,12 +102,25 @@ async def display() -> FileResponse:
     return FileResponse(STATIC / "display.html")
 
 
+def get_glossary() -> Glossary:
+    """BAPS spelling glossary (sub-millisecond; safe to call on the event loop)."""
+    global _glossary
+    if _glossary is None:
+        _glossary = load_glossary()
+    _glossary.maybe_reload()
+    return _glossary
+
+
 def filtered(event: TranscriptEvent) -> TranscriptEvent:
-    if not filter_fillers:
+    """Fillers first, then glossary (glossary only for English captions)."""
+    committed, tail = event.committed, event.tail
+    if filter_fillers:
+        committed, tail = clean_event(committed, tail, final=event.type == "final")
+    if getattr(event, "lang", "gu") == "en":
+        glossary = get_glossary()
+        committed, tail = glossary.apply(committed), glossary.apply(tail)
+    if (committed, tail) == (event.committed, event.tail):
         return event
-    committed, tail = clean_event(
-        event.committed, event.tail, final=event.type == "final"
-    )
     return dataclasses.replace(event, committed=committed, tail=tail)
 
 
@@ -286,7 +301,8 @@ class _Pipeline:
 
     async def translate(self, text: str) -> str:
         try:
-            return await self.loop.run_in_executor(None, self.translator.translate, text)
+            english = await self.loop.run_in_executor(None, self.translator.translate, text)
+            return get_glossary().apply(english)
         except Exception:
             logger.exception("translation failed for %r", text)
             return ""

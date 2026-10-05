@@ -1198,3 +1198,39 @@ def test_idle_status_shape():
     st = server.idle_status()
     assert st["type"] == "status" and st["asr"] is None
     assert st["translate"] is False and st["lid"] is False
+# --- BAPS glossary hook ----------------------------------------------------
+
+
+@dataclasses.dataclass(frozen=True)
+class LangEvent(TranscriptEvent):
+    lang: str = "gu"
+
+
+def test_filtered_applies_glossary_to_english_events():
+    ev = LangEvent("final", 1, "um he gave prasad.", "to pramuk swami", lang="en")
+    out = server.filtered(ev)
+    assert out.committed == "he gave Prasad."
+    assert out.tail == "to Pramukh Swami Maharaj"
+    assert out.lang == "en"
+
+
+def test_filtered_leaves_gujarati_mode_events_alone(monkeypatch):
+    monkeypatch.setattr(server, "filter_fillers", False)
+    ev = LangEvent("final", 1, "prasad", "pramuk swami", lang="gu")
+    assert server.filtered(ev) is ev
+    plain = TranscriptEvent("final", 1, "prasad", "")
+    assert server.filtered(plain) is plain
+
+
+def test_translation_text_gets_glossary():
+    class T:
+        def translate(self, text):
+            return "he gave prasad."
+
+    async def run():
+        pipe = server._Pipeline.__new__(server._Pipeline)
+        pipe.loop = asyncio.get_running_loop()
+        pipe.translator = T()
+        return await pipe.translate("x")
+
+    assert asyncio.run(run()) == "he gave Prasad."
