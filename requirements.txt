@@ -13,3 +13,4 @@ onnxruntime
 onnx-asr
 IndicTransToolkit
 huggingface_hub
+speechbrain
