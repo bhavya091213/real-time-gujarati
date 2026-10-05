@@ -133,3 +133,29 @@ Deferred (low): one decode per batched feed() under overload + lag metric;
 replay clock/batching parity; torch imported via streaming import; cache
 `perf_cores()`; test hardening; late translation re-send after a final.
 Tests: 146.
+
+## 2026-10-05 - WS2: server-side settings + mic-page panel
+
+Settings moved to the server (`gujusub/settings.py`, `/ws/control`, persisted
+JSON, env `GUJUSUB_SETTINGS`); `/display` is now output-only (no panel, no
+localStorage, `f` fullscreen only); the mic page has the full settings panel,
+Translate switch (D16: off = no translator work), confidence sliders (inert),
+asr_mode (en/auto disabled, run as gu), and a live status strip. Content modes
+renamed primary/translation/both. Polish: control snapshot carries `defaults`
+(Reset uses it), startup logs settings path + asr_mode/translate, lang-en block
+honours the configured font. Real-browser check (headless Chromium via
+playwright-core, display ws proxied to inject events) passed: panel, live push,
+reloads, `s` inert, `f` fullscreen, empty-translation fallback, lang-en.
+Not covered: status strip with a live mic (no audio in headless run).
+Open: WS3/4 engines for en/auto; confidence consumption; per-mic status tags.
+
+**Review (WS2):** Codex found 3 mediums, all fixed before landing: numeric
+settings now clamped to the panel's ranges (out-of-range saved values revert
+to defaults); viewer join is ordered against broadcasts with a per-viewer
+backlog and a 2 s bound on the connecting viewer's first send; the control
+socket got an 8 KiB message cap, strict shapes, a 64 KiB frame limit, no-op
+write suppression, a per-source rate limit (10/s, burst 20) and off-loop
+settings writes. Deferred (low): fan-out ordering for overlapping sets,
+panel re-`get` after a rejected set, `_joining` cleanup on cancellation.
+Tests: 245.
+

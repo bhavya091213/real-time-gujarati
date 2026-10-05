@@ -28,7 +28,8 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 
 | File | Role |
 |------|------|
-| `gujusub/server.py` | FastAPI app. Routes: `/` (mic page), `/display` (output page), `/ws` (audio in, events out), `/ws/view` (receive-only event broadcast). Flags: `--device cpu\|mps`, `--lang gu`, `--port 8765`, `--no-translate`, `--no-filter`. |
+| `gujusub/server.py` | FastAPI app. Routes: `/` (mic page), `/display` (output page), `/ws` (audio in, events out), `/ws/view` (receive-only: settings snapshot then events), `/ws/control` (JSON both ways: settings panel, status). Flags: `--device cpu\|mps`, `--lang gu`, `--port 8765`, `--no-translate`, `--no-filter`. |
+| `gujusub/settings.py` | `Settings` dataclass (22 display keys + `asr_mode`, `translate`, `conf_word_min`, `conf_utt_min`, `schema`), `validate`, `SettingsStore` (atomic JSON persist), `display_payload`/`control_payload`/`snapshot_payload`. |
 | `gujusub/asr_engine.py` | Wraps `ai4bharat/indic-conformer-600m-multilingual` (CTC). Lock-serialized; not thread-safe otherwise. |
 | `gujusub/model_dir.py` | Materialises a HF snapshot into real files (hardlinks) under `~/.cache/gujusub`; required by onnxruntime >= 1.24 (see gotchas). `GUJUSUB_MODEL_DIR` overrides the root. |
 | `gujusub/streaming.py` | VAD-gated window, re-decodes every `max(480 ms, 1.2 x last decode)`, commits common prefix of last two hypotheses. Beyond `max_window_s` (5 s), aligned committed words move to a prefix only when retained alignment can distinguish seam residue from repeated speech; otherwise trimming is deferred. 600 ms silence finalizes. 12 s hard cap on total utterance audio. |
@@ -37,7 +38,7 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 | `gujusub/fillers.py` | Two-tier filler suppression (ALWAYS / CONTEXTUAL / PHRASES). Pure text transform. |
 | `gujusub/translator.py` | CT2 model load + `translate()`. `looks_untranslated()` guard. |
 | `gujusub/it2_compat.py` | Shim so IndicTransToolkit imports under transformers 5.x. Must be imported before IndicTransToolkit. |
-| `gujusub/static/index.html` | Mic page: device selector (persisted), AudioWorklet → PCM16 → `/ws`, shows Gujarati + English. |
+| `gujusub/static/index.html` | Mic page: settings panel (`/ws/control`), live status strip, device selector (persisted), AudioWorklet → PCM16 → `/ws`, shows Gujarati + English. |
 | `gujusub/static/display.html` | Output page. Single file, no deps. See [broadcast-setup.md](broadcast-setup.md). |
 | `tools/mic_client.py` | Terminal mic client (sounddevice → `/ws`), prints captions. Debug tool. |
 | `tools/transcribe_file.py` | One-shot file transcription (`samples/test-guju.m4a`), optional `--translate`. |
@@ -69,6 +70,20 @@ finishes, the latest partial is **re-sent** with the same `type`,
 `utterance_id`, `committed` and `tail` and the new `translation`. Clients
 must treat repeated partials as idempotent updates. A `final` is sent exactly
 once, after its own translation, and nothing from that utterance follows it.
+
+Event field `lang` (`"gu"` | `"en"`, optional; missing means `gu`) picks the
+primary-line typeface on the display.
+
+## Control/view messages (since WS2)
+
+- `/ws/view` first message: `{"type":"settings", <22 display keys>, "schema":3}`;
+  later settings changes arrive as further display-only `settings` messages.
+- `/ws/control` on connect: `{"type":"settings", <all keys>, "defaults":{...}}`
+  then `{"type":"status", ...}` (asr, translate, lid, decode_ms, avg_decode_ms,
+  window_s, decodes, lag_s, backlog_s, utterances; once per second per mic
+  pipeline, idle with `asr:null` otherwise). In: `{"type":"get"}`,
+  `{"type":"set","settings":{...}}`. Failures reply `{"type":"error","message":...}`
+  and change nothing.
 
 ## Server pipeline (per /ws connection, `server._Pipeline`)
 

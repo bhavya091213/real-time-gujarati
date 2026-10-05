@@ -77,6 +77,8 @@
   .cap-block.lines-2 { height: calc(var(--size) * var(--lh) * 2); }
   .cap-block.lines-1 { height: calc(var(--size) * var(--lh) * 1); }
   .cap-block[hidden] { display: none; }
+  /* Primary block: Gujarati uses the configured stack, English a Latin stack. */
+  .cap-block.lang-en { font-family: var(--font), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
   .cap-block span {
     display: block;  /* so its height is a whole number of line boxes */
     -webkit-text-stroke: var(--stroke-w) var(--stroke-c);
@@ -109,62 +111,6 @@
     opacity: 0; pointer-events: none;
   }
 
-  /* ---- Settings panel ---- */
-  #panel {
-    position: fixed; top: 0; right: 0; bottom: 0;
-    width: 320px; max-width: 90vw; z-index: 30;
-    background: rgba(15,15,18,0.96);
-    color: #ddd;
-    border-left: 1px solid rgba(255,255,255,0.15);
-    padding: 16px; overflow-y: auto;
-    transform: translateX(100%);
-    transition: transform 0.25s ease;
-    font-size: 13px;
-  }
-  #panel.open { transform: translateX(0); }
-  #panel h2 { font-size: 15px; margin-bottom: 12px; color: #fff; }
-  #panel .group {
-    border-top: 1px solid rgba(255,255,255,0.1);
-    padding: 10px 0;
-  }
-  #panel .group h3 {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
-    color: #999; margin-bottom: 8px;
-  }
-  #panel .row {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 8px; margin-bottom: 8px;
-  }
-  #panel .row label { flex: 0 0 auto; }
-  #panel .row .val { color: #888; min-width: 42px; text-align: right; }
-  #panel input[type="range"] { flex: 1; min-width: 0; }
-  #panel input[type="text"], #panel input[type="number"], #panel select {
-    background: #222; color: #eee; border: 1px solid #444;
-    border-radius: 4px; padding: 4px 6px; font-size: 13px; max-width: 170px;
-  }
-  #panel input[type="text"].wide { width: 100%; max-width: none; }
-  #panel input[type="color"] {
-    width: 36px; height: 24px; padding: 0; border: 1px solid #444;
-    border-radius: 4px; background: none; cursor: pointer;
-  }
-  .swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-  .swatches button {
-    width: 32px; height: 24px; border-radius: 4px; cursor: pointer;
-    border: 2px solid #555;
-  }
-  .swatches button.active { border-color: #fff; }
-  .swatches .sw-transparent {
-    background:
-      linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%),
-      linear-gradient(45deg, #666 25%, #333 25%, #333 75%, #666 75%);
-    background-size: 10px 10px; background-position: 0 0, 5px 5px;
-  }
-  #panel .btns { display: flex; gap: 8px; margin-top: 12px; }
-  #panel .btns button {
-    flex: 1; padding: 8px; border-radius: 6px; cursor: pointer;
-    background: #2a2a30; color: #eee; border: 1px solid #555; font-size: 13px;
-  }
-  #panel .btns button:hover { background: #3a3a42; }
 </style>
 </head>
 <body>
@@ -173,108 +119,32 @@
   <div id="stage">
     <div id="caption">
       <div id="bar" hidden></div>
-      <div id="guBlock" class="cap-block lines-2" hidden><span id="guText"></span></div>
-      <div id="enBlock" class="cap-block lines-2"><span id="enText"></span></div>
+      <div id="primaryBlock" class="cap-block lang-gu lines-2" hidden><span id="primaryText"></span></div>
+      <div id="transBlock" class="cap-block lines-2"><span id="transText"></span></div>
     </div>
   </div>
 </div>
 
 <div id="chrome">
   <button id="fsBtn" title="Fullscreen (f)">&#x26F6;</button>
-  <button id="gearBtn" title="Settings (s)">&#x2699;&#xFE0E;</button>
 </div>
 <div id="dot"></div>
-
-<aside id="panel">
-  <h2>Display Settings</h2>
-
-  <div class="group">
-    <h3>Layout</h3>
-    <div class="row"><label>Aspect ratio</label>
-      <select id="c-aspect">
-        <option value="16:9">16:9</option><option value="4:3">4:3</option>
-        <option value="21:9">21:9</option><option value="1:1">1:1</option>
-        <option value="9:16">9:16</option>
-      </select></div>
-    <div class="row"><label>Content</label>
-      <select id="c-mode">
-        <option value="en">English only</option>
-        <option value="gu">Gujarati only</option>
-        <option value="both">Both</option>
-      </select></div>
-    <div class="row"><label>Stable text only</label><input type="checkbox" id="c-stable"></div>
-    <div class="row"><label>Clear after (s, 0=never)</label>
-      <input type="number" id="c-clear" min="0" max="600" step="1" style="width:64px"></div>
-  </div>
-
-  <div class="group">
-    <h3>Text</h3>
-    <div class="row"><input type="text" id="c-font" class="wide" title="Font family"></div>
-    <div class="row"><label>Size</label><input type="range" id="c-size" min="24" max="160" step="1"><span class="val" id="v-size"></span></div>
-    <div class="row"><label title="Text shrinks to fit the line limit, but never below this">Min size (auto-fit)</label><input type="range" id="c-minsize" min="16" max="160" step="1"><span class="val" id="v-minsize"></span></div>
-    <div class="row"><label>Weight</label>
-      <select id="c-weight">
-        <option>400</option><option>500</option><option>600</option>
-        <option>700</option><option>800</option><option>900</option>
-      </select></div>
-    <div class="row"><label>Line height</label><input type="range" id="c-lh" min="1.0" max="2.2" step="0.05"><span class="val" id="v-lh"></span></div>
-    <div class="row"><label>Letter spacing</label><input type="range" id="c-ls" min="-2" max="20" step="0.5"><span class="val" id="v-ls"></span></div>
-    <div class="row"><label>Transform</label>
-      <select id="c-tt"><option value="none">none</option><option value="uppercase">UPPERCASE</option></select></div>
-    <div class="row"><label>Text color</label><input type="color" id="c-color"></div>
-  </div>
-
-  <div class="group">
-    <h3>Outline</h3>
-    <div class="row"><label>Width</label><input type="range" id="c-ow" min="0" max="12" step="0.5"><span class="val" id="v-ow"></span></div>
-    <div class="row"><label>Color</label><input type="color" id="c-oc"></div>
-    <div class="row"><label>Use shadow instead of stroke</label><input type="checkbox" id="c-shadow"></div>
-  </div>
-
-  <div class="group">
-    <h3>Background</h3>
-    <div class="swatches" id="swatches">
-      <button data-bg="#000000" title="Black (luma key)" style="background:#000"></button>
-      <button data-bg="#00ff00" title="Green (chroma)" style="background:#0f0"></button>
-      <button data-bg="#0000ff" title="Blue" style="background:#00f"></button>
-      <button data-bg="#ff00ff" title="Magenta" style="background:#f0f"></button>
-      <button data-bg="transparent" title="Transparent (OBS alpha)" class="sw-transparent"></button>
-    </div>
-    <div class="row"><label>Custom</label><input type="color" id="c-bgcustom"></div>
-  </div>
-
-  <div class="group">
-    <h3>Position</h3>
-    <div class="row"><label>Align</label>
-      <select id="c-align"><option>left</option><option>center</option><option>right</option></select></div>
-    <div class="row"><label>H padding (%)</label><input type="range" id="c-pad" min="0" max="25" step="0.5"><span class="val" id="v-pad"></span></div>
-    <div class="row"><label>Bottom margin (%)</label><input type="range" id="c-bottom" min="0" max="50" step="0.5"><span class="val" id="v-bottom"></span></div>
-  </div>
-
-  <div class="group">
-    <h3>Caption bar</h3>
-    <div class="row"><label title="Vertical bar beside the text while captions are live">Show bar</label><input type="checkbox" id="c-bar"></div>
-    <div class="row"><label>Width</label><input type="range" id="c-barw" min="2" max="24" step="1"><span class="val" id="v-barw"></span></div>
-    <div class="row"><label>Color</label><input type="color" id="c-barc"></div>
-  </div>
-
-  <div class="btns">
-    <button id="copyUrlBtn">Copy URL</button>
-    <button id="resetBtn">Reset to defaults</button>
-  </div>
-</aside>
 
 <script>
 "use strict";
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var LS_KEY = "gujuSubDisplaySettings";
 
-  /* ---------------- Settings ---------------- */
-  var SCHEMA = 2;  // bump when a changed default should override stored settings
+  /* ---------------- Settings ----------------
+     gujusub/settings.py is the source of truth. The server pushes the full
+     display settings on /ws/view (first message, and on every change); this
+     page holds no UI for them and stores nothing locally.
+     DEFAULTS must match the server defaults, and SCHEMA the server schema.
+     Precedence: server-pushed > URL params (old OBS links) > DEFAULTS. */
+  var SCHEMA = 3;
   var DEFAULTS = {
     aspect: "16:9",          // stage aspect ratio
-    mode: "en",              // en | gu | both
+    mode: "translation",     // primary (ASR text) | translation | both
     stable: false,           // ignore tail (stable-only)
     clear: 6,                // seconds of silence before fade, 0 = never
     font: 'system-ui, "Noto Sans Gujarati", sans-serif',
@@ -283,7 +153,7 @@
     weight: 700,
     lh: 1.3,
     ls: 0,                   // px
-    tt: "none",              // none | uppercase
+    tt: "none",              // none | uppercase | lowercase | capitalize
     color: "#ffffff",
     ow: 0,                   // outline width px
     oc: "#000000",           // outline color
@@ -296,19 +166,14 @@
     barw: 8,                 // bar width px
     barc: "#ffffff"
   };
+  var LEGACY_MODE = { gu: "primary", en: "translation" };
+  var MODES = { primary: 1, translation: 1, both: 1 };
+  var urlSettings = {};
   var settings = Object.assign({}, DEFAULTS);
 
-  function loadFromStorage() {
-    try {
-      var raw = localStorage.getItem(LS_KEY);
-      if (!raw) return;
-      var obj = JSON.parse(raw);
-      if (!obj) return;
-      if (!(obj.schema >= 2)) obj.align = DEFAULTS.align;  // v2: center -> left
-      Object.keys(DEFAULTS).forEach(function (k) {
-        if (typeof obj[k] === typeof DEFAULTS[k]) settings[k] = obj[k];
-      });
-    } catch (e) { /* corrupt storage — ignore */ }
+  function normMode(v) {
+    if (LEGACY_MODE.hasOwnProperty(v)) v = LEGACY_MODE[v];
+    return MODES.hasOwnProperty(v) ? v : null;
   }
   function loadFromUrl() {
     var p = new URLSearchParams(location.search);
@@ -316,22 +181,26 @@
       if (!p.has(k)) return;
       var v = p.get(k);
       var t = typeof DEFAULTS[k];
-      if (t === "boolean") settings[k] = (v === "1" || v === "true");
-      else if (t === "number") { var n = parseFloat(v); if (isFinite(n)) settings[k] = n; }
-      else if (v !== null && v !== "") settings[k] = v;
+      if (k === "mode") { var m = normMode(v); if (m) urlSettings.mode = m; }
+      else if (t === "boolean") urlSettings[k] = (v === "1" || v === "true");
+      else if (t === "number") { var n = parseFloat(v); if (isFinite(n)) urlSettings[k] = n; }
+      else if (v !== "") urlSettings[k] = v;
     });
   }
-  function persist() {
-    var stored = Object.assign({ schema: SCHEMA }, settings);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(stored)); } catch (e) {}
-  }
-  function buildUrl() {
-    var p = new URLSearchParams();
+  // Overlay a server message on top of URL params and defaults.
+  var serverSettings = {};
+  function ingestServerSettings(msg) {
+    if (msg.schema > SCHEMA)
+      console.warn("server settings schema " + msg.schema + " > page schema " + SCHEMA +
+                   "; applying the keys this page understands");
     Object.keys(DEFAULTS).forEach(function (k) {
-      var v = settings[k];
-      p.set(k, typeof v === "boolean" ? (v ? "1" : "0") : String(v));
+      if (!(k in msg) || typeof msg[k] !== typeof DEFAULTS[k]) return;
+      if (k === "mode") { var m = normMode(msg.mode); if (m) serverSettings.mode = m; }
+      else serverSettings[k] = msg[k];
     });
-    return location.origin + location.pathname + "?" + p.toString();
+    settings = Object.assign({}, DEFAULTS, urlSettings, serverSettings);
+    applySettings();
+    render(true);
   }
 
   /* ---------------- Apply settings -> CSS vars & DOM ---------------- */
@@ -364,17 +233,6 @@
       r.setProperty("--stroke-w", settings.ow + "px");
       r.setProperty("--cap-shadow", "none");
     }
-    // Content mode: which blocks show, and their line clamp.
-    var guB = $("guBlock"), enB = $("enBlock");
-    var both = settings.mode === "both";
-    guB.hidden = settings.mode === "en";
-    enB.hidden = settings.mode === "gu";
-    guB.className = "cap-block " + (both ? "lines-1" : "lines-2");
-    enB.className = "cap-block " + (both ? "lines-1" : "lines-2");
-    // Swatch highlight
-    var sw = document.querySelectorAll("#swatches button");
-    for (var i = 0; i < sw.length; i++)
-      sw[i].classList.toggle("active", sw[i].getAttribute("data-bg") === settings.bg);
   }
   function buildShadow(w, c) {
     if (!w || w <= 0) return "none";
@@ -388,112 +246,6 @@
     return out.join(", ");
   }
 
-  function update(key, value) {
-    settings[key] = value;
-    persist();
-    applySettings();
-    render(true);
-  }
-
-  /* ---------------- Panel wiring ---------------- */
-  var panel = $("panel");
-  function syncForm() {
-    $("c-aspect").value = settings.aspect;
-    $("c-mode").value = settings.mode;
-    $("c-stable").checked = settings.stable;
-    $("c-clear").value = settings.clear;
-    $("c-font").value = settings.font;
-    $("c-size").value = settings.size;
-    $("c-minsize").value = settings.minsize;
-    $("c-weight").value = String(settings.weight);
-    $("c-lh").value = settings.lh;
-    $("c-ls").value = settings.ls;
-    $("c-tt").value = settings.tt;
-    $("c-color").value = settings.color;
-    $("c-ow").value = settings.ow;
-    $("c-oc").value = settings.oc;
-    $("c-shadow").checked = settings.shadow;
-    if (/^#[0-9a-fA-F]{6}$/.test(settings.bg)) $("c-bgcustom").value = settings.bg;
-    $("c-align").value = settings.align;
-    $("c-pad").value = settings.pad;
-    $("c-bottom").value = settings.bottom;
-    $("c-bar").checked = settings.bar;
-    $("c-barw").value = settings.barw;
-    $("c-barc").value = settings.barc;
-    syncVals();
-  }
-  function syncVals() {
-    $("v-size").textContent = settings.size + "px";
-    $("v-minsize").textContent = settings.minsize + "px";
-    $("v-lh").textContent = settings.lh.toFixed(2);
-    $("v-ls").textContent = settings.ls + "px";
-    $("v-ow").textContent = settings.ow + "px";
-    $("v-pad").textContent = settings.pad + "%";
-    $("v-bottom").textContent = settings.bottom + "%";
-    $("v-barw").textContent = settings.barw + "px";
-  }
-  function bind(id, key, parse) {
-    var el = $(id);
-    el.addEventListener("input", function () {
-      var v = el.type === "checkbox" ? el.checked : el.value;
-      update(key, parse ? parse(v) : v);
-      syncVals();
-    });
-  }
-  bind("c-aspect", "aspect");
-  bind("c-mode", "mode");
-  bind("c-stable", "stable");
-  bind("c-clear", "clear", function (v) { var n = parseFloat(v); return isFinite(n) && n >= 0 ? n : 0; });
-  bind("c-font", "font");
-  bind("c-size", "size", parseFloat);
-  bind("c-minsize", "minsize", parseFloat);
-  bind("c-weight", "weight", parseFloat);
-  bind("c-lh", "lh", parseFloat);
-  bind("c-ls", "ls", parseFloat);
-  bind("c-tt", "tt");
-  bind("c-color", "color");
-  bind("c-ow", "ow", parseFloat);
-  bind("c-oc", "oc");
-  bind("c-shadow", "shadow");
-  bind("c-bgcustom", "bg");
-  bind("c-align", "align");
-  bind("c-pad", "pad", parseFloat);
-  bind("c-bottom", "bottom", parseFloat);
-  bind("c-bar", "bar");
-  bind("c-barw", "barw", parseFloat);
-  bind("c-barc", "barc");
-
-  document.querySelectorAll("#swatches button").forEach(function (btn) {
-    btn.addEventListener("click", function () { update("bg", btn.getAttribute("data-bg")); });
-  });
-
-  $("copyUrlBtn").addEventListener("click", function () {
-    var url = buildUrl();
-    var btn = $("copyUrlBtn");
-    function done() {
-      btn.textContent = "Copied!";
-      setTimeout(function () { btn.textContent = "Copy URL"; }, 1200);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(done, function () { window.prompt("Copy this URL:", url); });
-    } else {
-      window.prompt("Copy this URL:", url);
-    }
-  });
-  $("resetBtn").addEventListener("click", function () {
-    settings = Object.assign({}, DEFAULTS);
-    persist();
-    applySettings();
-    syncForm();
-    render(true);
-  });
-
-  function togglePanel(force) {
-    panel.classList.toggle("open", force);
-    if (panel.classList.contains("open")) showChrome();
-  }
-  $("gearBtn").addEventListener("click", function () { togglePanel(); });
-
   /* ---------------- Fullscreen ---------------- */
   function toggleFullscreen() {
     if (document.fullscreenElement) {
@@ -504,15 +256,8 @@
   }
   $("fsBtn").addEventListener("click", toggleFullscreen);
   $("stage").addEventListener("dblclick", toggleFullscreen);
-
-  /* ---------------- Keyboard ---------------- */
   document.addEventListener("keydown", function (e) {
-    var tag = (e.target.tagName || "").toLowerCase();
-    var typing = tag === "input" || tag === "select" || tag === "textarea";
-    if (e.key === "Escape") { togglePanel(false); return; }
-    if (typing) return;
-    if (e.key === "s" || e.key === "S") togglePanel();
-    else if (e.key === "f" || e.key === "F") toggleFullscreen();
+    if (e.key === "f" || e.key === "F") toggleFullscreen();
   });
 
   /* ---------------- Auto-hiding chrome ---------------- */
@@ -521,8 +266,7 @@
     document.body.classList.remove("hide-chrome");
     clearTimeout(chromeTimer);
     chromeTimer = setTimeout(function () {
-      if (!panel.classList.contains("open"))
-        document.body.classList.add("hide-chrome");
+      document.body.classList.add("hide-chrome");
     }, 3000);
   }
   document.addEventListener("mousemove", showChrome);
@@ -530,25 +274,39 @@
   showChrome();
 
   /* ---------------- Caption state & rendering ---------------- */
-  var state = { uid: null, committed: "", tail: "", translation: "" };
+  var state = { uid: null, lang: "gu", committed: "", tail: "", translation: "" };
   var caption = $("caption");
   var clearTimer = null;
 
-  // Last text actually laid out; lets render() skip identical frames.
-  var lastGu = null, lastEn = null;
+  // Last text/layout actually rendered; lets render() skip identical frames.
+  // Both the primary text and the translation are compared, so a repeated
+  // partial with the same text but a new translation still re-renders.
+  var lastPrimary = null, lastTrans = null, lastLang = null;
 
   // force=true (settings/resize changes) re-fits even if the text is unchanged.
   function render(force) {
-    var gu = state.committed;
+    var primary = state.committed;
     if (!settings.stable && state.tail)
-      gu = gu ? gu + " " + state.tail : state.tail;
-    var en = state.translation;
-    if (!force && gu === lastGu && en === lastEn) return;
+      primary = primary ? primary + " " + state.tail : state.tail;
+    var trans = state.translation;
+    if (!force && primary === lastPrimary && trans === lastTrans &&
+        state.lang === lastLang) return;
+    // translation mode with nothing translated yet: show the primary text
+    // so the screen is never blank.
+    var both = settings.mode === "both";
+    var showTrans = both || (settings.mode === "translation" && trans !== "");
+    var showPrimary = both || settings.mode === "primary" ||
+                      (settings.mode === "translation" && trans === "");
+    var pB = $("primaryBlock"), tB = $("transBlock");
+    pB.hidden = !showPrimary;
+    tB.hidden = !showTrans;
+    pB.className = "cap-block lang-" + state.lang + " " + (both ? "lines-1" : "lines-2");
+    tB.className = "cap-block " + (both ? "lines-1" : "lines-2");
     // Block limits are CSS-fixed (N line boxes), read before dirtying the DOM.
     var limits = blockLimits();
-    lastGu = gu; lastEn = en;
-    $("guText").textContent = gu;
-    $("enText").textContent = en;
+    lastPrimary = primary; lastTrans = trans; lastLang = state.lang;
+    $("primaryText").textContent = primary;
+    $("transText").textContent = trans;
     fitText(limits);
   }
 
@@ -562,7 +320,7 @@
   }
 
   function blockLimits() {
-    return [$("guBlock"), $("enBlock")].map(function (block) {
+    return [$("primaryBlock"), $("transBlock")].map(function (block) {
       return block.hidden ? 0 : block.clientHeight + 0.5;
     });
   }
@@ -575,7 +333,7 @@
   function fitText(limits) {
     limits = limits || blockLimits();
     var textHeight = 0;
-    [$("guBlock"), $("enBlock")].forEach(function (block, idx) {
+    [$("primaryBlock"), $("transBlock")].forEach(function (block, idx) {
       if (block.hidden) return;
       var span = block.firstElementChild;
       var limit = limits[idx];
@@ -623,6 +381,7 @@
       state.tail = "";
       state.translation = "";
     }
+    state.lang = msg.lang === "en" ? "en" : "gu";  // missing lang = Gujarati
     if (typeof msg.committed === "string") state.committed = msg.committed;
     state.tail = (msg.type === "final") ? "" : (typeof msg.tail === "string" ? msg.tail : "");
     if (typeof msg.translation === "string")
@@ -649,7 +408,8 @@
       if (typeof ev.data !== "string") return;
       var msg;
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      handleEvent(msg);
+      if (msg && msg.type === "settings") ingestServerSettings(msg);
+      else handleEvent(msg);
     };
     ws.onclose = function () {
       dot.classList.remove("on");
@@ -665,11 +425,9 @@
   }
 
   /* ---------------- Init ---------------- */
-  loadFromStorage();
   loadFromUrl();
-  persist();
+  settings = Object.assign({}, DEFAULTS, urlSettings);
   applySettings();
-  syncForm();
   render(true);
   connect();
 })();

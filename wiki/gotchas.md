@@ -18,12 +18,15 @@ See decisions → pass-through guard. Diagnostic tell: Latin script and/or a
 trailing period in a "Gujarati" caption means it came from the *translator*,
 because the CTC ASR never emits punctuation or Latin letters.
 
-## Display page: saved settings beat new defaults
+## Settings: pitfalls (WS2)
 
-`localStorage` overrides `DEFAULTS`, and a "Copy URL" link overrides both.
-Changing a default in code does nothing for an existing browser. Bump
-`SCHEMA` in `display.html` and add a migration line in `loadFromStorage`, and
-tell the user to re-copy the OBS URL.
+- Page `DEFAULTS` (display.html, index.html fallback) must match `settings.py`
+  defaults; the server snapshot wins, but a mismatch shows as a flash on load.
+- `schema` is not settable (rejected by `set`); Reset strips it.
+- `asr_mode` `en`/`auto` are accepted by the server but run as `gu` (with a
+  one-time warning) until the English/auto engines land; only the panel disables them.
+- `status` messages are per mic connection and untagged: with several mics open
+  each pipeline sends its own, and the strip shows whichever arrived last.
 
 ## Display shows Gujarati when you expected English
 
@@ -111,3 +114,10 @@ tail, so `replay.py` and the server show events during pauses.
 `server.filtered()` copies `TranscriptEvent` with `dataclasses.replace`;
 rebuilding by hand drops any field added later.
 
+
+## Out-of-range saved settings silently revert to defaults
+
+`settings.py` clamps numeric display settings to the panel's ranges (size
+24–160, pad 0–25, bottom 0–50, outline 0–12, …). A `settings.json` value
+outside those ranges is dropped on load with a warning and the default is
+used, so an edited file can "lose" a value without an error on screen.

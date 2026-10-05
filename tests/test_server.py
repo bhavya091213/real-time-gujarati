@@ -2,12 +2,23 @@ import pytest
 from fastapi.testclient import TestClient
 
 from gujusub import server
+from gujusub.settings import SettingsStore
 from gujusub.streaming import TranscriptEvent
 
 
 @pytest.fixture
 def client():
     return TestClient(server.app)
+
+
+@pytest.fixture(autouse=True)
+def settings_store(monkeypatch, tmp_path):
+    """Every test gets a fresh store in tmp_path (never ~/.cache)."""
+    store = SettingsStore(tmp_path / "settings.json")
+    store.load()
+    monkeypatch.setattr(server, "store", store)
+    monkeypatch.setattr(server, "_control_buckets", {})  # fresh rate-limit state per test
+    return store
 
 
 def test_display_page_served(client):
@@ -32,6 +43,7 @@ def test_filtered_respects_no_filter(monkeypatch):
 def test_viewer_receives_broadcast(client):
     with client, client.websocket_connect("/ws/view") as viewer:
         assert len(server.viewers) == 1
+        assert viewer.receive_json()["type"] == "settings"  # snapshot first
         payload = {"type": "final", "utterance_id": 1, "committed": "hi", "tail": ""}
         client.portal.call(server.broadcast, payload)
         assert viewer.receive_json() == payload
@@ -58,6 +70,7 @@ def test_looks_untranslated(text, expected):
 
 import asyncio  # noqa: E402
 import dataclasses  # noqa: E402
+import json  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
 
@@ -277,6 +290,7 @@ def test_stale_translation_not_resent_after_final(client, wire):
 def test_events_broadcast_to_viewers(client, wire):
     wire(ScriptedTranscriber([[P(1, "a")]]), FakeTranslator())
     with client, client.websocket_connect("/ws/view") as viewer:
+        assert viewer.receive_json()["type"] == "settings"  # snapshot first
         with client.websocket_connect("/ws") as ws:
             ws.send_bytes(pcm())
             sent = ws.receive_json()
@@ -417,6 +431,98 @@ class RecordingViewer:
         self.sent.append(payload)
         if self.on_send is not None:
             self.on_send(self)
+
+
+def test_viewer_initialization_orders_concurrent_broadcast(
+        settings_store, monkeypatch):
+    class BlockingViewer:
+        client = "blocking viewer"
+
+        def __init__(self):
+            self.sent: list[dict] = []
+            self.snapshot_started = asyncio.Event()
+            self.release_snapshot = asyncio.Event()
+            self.disconnect = asyncio.Event()
+
+        async def accept(self):
+            pass
+
+        async def send_json(self, payload):
+            if not self.sent:
+                self.snapshot_started.set()
+                await self.release_snapshot.wait()
+            self.sent.append(payload)
+
+        async def receive_text(self):
+            await self.disconnect.wait()
+            raise WebSocketDisconnect()
+
+    final = {"type": "final", "utterance_id": 1, "committed": "hi", "tail": ""}
+    expected_snapshot = {
+        "type": "settings",
+        **server.display_payload(settings_store.get()),
+    }
+    viewer = BlockingViewer()
+    monkeypatch.setattr(server, "viewer_membership_lock", asyncio.Lock())
+
+    async def run():
+        view_task = asyncio.create_task(server.ws_view(viewer))
+        await asyncio.wait_for(viewer.snapshot_started.wait(), 2)
+        broadcast_task = asyncio.create_task(server.broadcast(final))
+        await asyncio.sleep(0)  # let broadcast reach the initialization boundary
+        viewer.release_snapshot.set()
+        await asyncio.wait_for(broadcast_task, 2)
+        viewer.disconnect.set()
+        await asyncio.wait_for(view_task, 2)
+
+    asyncio.run(run())
+
+    assert viewer.sent == [expected_snapshot, final]
+    assert viewer not in server.viewers
+
+
+def test_stalled_connecting_viewer_does_not_block_broadcast(monkeypatch):
+    monkeypatch.setattr(server, "VIEWER_INIT_TIMEOUT_S", 0.6)
+    monkeypatch.setattr(server, "viewer_membership_lock", asyncio.Lock())
+
+    class StalledViewer:
+        client = "stalled viewer"
+
+        def __init__(self):
+            self.never = asyncio.Event()
+            self.closed = False
+
+        async def accept(self):
+            pass
+
+        async def send_json(self, payload):
+            await self.never.wait()
+
+        async def receive_text(self):
+            await self.never.wait()
+
+        async def close(self):
+            self.closed = True
+
+    stalled, joined = StalledViewer(), RecordingViewer()
+
+    async def run():
+        server.viewers.add(joined)
+        try:
+            view_task = asyncio.create_task(server.ws_view(stalled))
+            await asyncio.sleep(0.05)  # stalled viewer is mid-settings-send
+            t0 = asyncio.get_running_loop().time()
+            await asyncio.wait_for(server.broadcast({"n": 1}), 0.5)
+            assert asyncio.get_running_loop().time() - t0 < 0.5
+            assert joined.sent == [{"n": 1}]
+            assert stalled not in server.viewers  # still connecting
+            await asyncio.wait_for(view_task, 2)  # timeout fires, handler ends
+            assert stalled not in server.viewers
+            assert stalled.closed
+        finally:
+            server.viewers.clear()
+
+    asyncio.run(run())
 
 
 def test_broadcast_survives_viewer_join_and_leave_mid_send():
@@ -617,3 +723,478 @@ def test_filler_only_final_drops_cached_translation(wire):
         return pipe
 
     assert asyncio.run(run()).translations == {}
+
+
+# --- settings: snapshot push, control socket, model-run flags -------------
+
+from gujusub.settings import Settings, control_payload, display_payload  # noqa: E402
+
+
+class FakeControlSocket:
+    """Small in-process control socket for deterministic protocol tests."""
+
+    def __init__(self, host="192.0.2.1", port=1000):
+        self.client = type("Client", (), {"host": host, "port": port})()
+        self.sent: list[dict] = []
+        self.closed_with: int | None = None
+
+    async def send_json(self, payload):
+        self.sent.append(payload)
+
+    async def close(self, code=1000):
+        self.closed_with = code
+
+
+def test_view_gets_settings_snapshot_before_events(client, wire, settings_store):
+    settings_store.update({"size": 50})
+    wire(ScriptedTranscriber([[P(1, "a")]]))
+    with client, client.websocket_connect("/ws/view") as viewer:
+        first = viewer.receive_json()
+        assert first == {"type": "settings", **display_payload(settings_store.get())}
+        assert first["size"] == 50 and "asr_mode" not in first
+        with client.websocket_connect("/ws") as ws:
+            ws.send_bytes(pcm())
+            assert viewer.receive_json() == ws.receive_json()
+
+
+def test_control_snapshot_and_idle_status_on_connect(client):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        snap = ctl.receive_json()
+        assert snap == {"type": "settings", **control_payload(Settings()),
+                        "defaults": control_payload(Settings())}
+        status = ctl.receive_json()
+        assert status["type"] == "status" and status["asr"] is None
+        ctl.send_json({"type": "get"})
+        assert ctl.receive_json() == snap
+    assert server.controls == set()
+
+
+def test_control_snapshot_carries_defaults(client):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        snap = ctl.receive_json()
+        assert snap["defaults"] == control_payload(Settings())
+        assert "defaults" not in control_payload(Settings())
+    with client, client.websocket_connect("/ws/view") as viewer:
+        assert "defaults" not in viewer.receive_json()
+
+
+def test_control_set_fans_out_and_persists(client, settings_store):
+    with client, client.websocket_connect("/ws/view") as viewer, \
+            client.websocket_connect("/ws/control") as a, \
+            client.websocket_connect("/ws/control") as b:
+        viewer.receive_json()
+        for ctl in (a, b):
+            ctl.receive_json()  # settings
+            ctl.receive_json()  # idle status
+        a.send_json({"type": "set", "settings": {"size": 40, "translate": False}})
+        ack = a.receive_json()
+        assert ack["type"] == "settings" and ack["size"] == 40
+        assert ack["translate"] is False
+        other = b.receive_json()
+        assert other == ack
+        shown = viewer.receive_json()
+        assert shown["type"] == "settings" and shown["size"] == 40
+        assert "translate" not in shown
+    assert settings_store.get().size == 40
+    assert SettingsStore(settings_store.path).load() == settings_store.get()
+
+
+@pytest.mark.parametrize("msg", [
+    {"type": "set", "settings": {"size": -1}},
+    {"type": "set", "settings": {"size": 1e100}},
+    {"type": "set", "settings": {"bogus": 1}},
+    {"type": "set", "settings": "size=1"},
+    {"type": "explode"},
+    ["not", "an", "object"],
+])
+def test_control_invalid_message_errors_and_changes_nothing(
+        client, settings_store, msg, monkeypatch):
+    control_fanout = []
+    viewer_fanout = []
+
+    async def record_control_fanout(payload, exclude=None):
+        control_fanout.append((payload, exclude))
+
+    async def record_viewer_fanout(payload):
+        viewer_fanout.append(payload)
+
+    monkeypatch.setattr(server, "send_controls", record_control_fanout)
+    monkeypatch.setattr(server, "broadcast", record_viewer_fanout)
+    with client, client.websocket_connect("/ws/control") as ctl:
+        ctl.receive_json()
+        ctl.receive_json()
+        ctl.send_json(msg)
+        err = ctl.receive_json()
+        assert err["type"] == "error" and err["message"]
+        ctl.send_json({"type": "get"})
+        assert ctl.receive_json()["type"] == "settings"  # socket still usable
+    assert settings_store.get() == Settings()
+    assert not settings_store.path.exists()
+    assert control_fanout == []
+    assert viewer_fanout == []
+
+
+def test_control_malformed_json_errors(client):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        ctl.receive_json()
+        ctl.receive_json()
+        ctl.send_text("{nope")
+        assert ctl.receive_json()["type"] == "error"
+
+
+def test_control_oversized_utf8_closes_1009_before_processing(
+        client, settings_store, monkeypatch):
+    calls = {"parse": 0, "update": 0, "controls": 0, "viewers": 0}
+
+    def forbidden_parse(_text):
+        calls["parse"] += 1
+        raise AssertionError("oversized control message was parsed")
+
+    def forbidden_update(_partial):
+        calls["update"] += 1
+        raise AssertionError("oversized control message reached the store")
+
+    async def forbidden_controls(_payload, exclude=None):
+        calls["controls"] += 1
+        raise AssertionError("oversized control message reached control fan-out")
+
+    async def forbidden_viewers(_payload):
+        calls["viewers"] += 1
+        raise AssertionError("oversized control message reached viewer fan-out")
+
+    with client, client.websocket_connect("/ws/control") as ctl:
+        ctl.receive_json()  # settings snapshot
+        ctl.receive_json()  # idle status
+        monkeypatch.setattr(server.json, "loads", forbidden_parse)
+        monkeypatch.setattr(settings_store, "update", forbidden_update)
+        monkeypatch.setattr(server, "send_controls", forbidden_controls)
+        monkeypatch.setattr(server, "broadcast", forbidden_viewers)
+        text = "é" * (server.CONTROL_MAX_MESSAGE_BYTES // 2 + 1)
+        assert len(text) <= server.CONTROL_MAX_MESSAGE_BYTES
+        assert len(text.encode("utf-8")) > server.CONTROL_MAX_MESSAGE_BYTES
+        ctl.send_text(text)
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ctl.receive_text()
+        assert exc.value.code == 1009
+
+    assert calls == {"parse": 0, "update": 0, "controls": 0, "viewers": 0}
+
+
+@pytest.mark.parametrize("msg", [
+    {"type": "get", "extra": True},
+    {"type": "set", "settings": {"size": 40}, "extra": True},
+])
+def test_control_rejects_extra_top_level_fields(
+        client, settings_store, monkeypatch, msg):
+    async def forbidden_fanout(*_args, **_kwargs):
+        raise AssertionError("invalid envelope was broadcast")
+
+    def forbidden_update(_partial):
+        raise AssertionError("invalid envelope reached the store")
+
+    monkeypatch.setattr(settings_store, "update", forbidden_update)
+    monkeypatch.setattr(server, "send_controls", forbidden_fanout)
+    monkeypatch.setattr(server, "broadcast", forbidden_fanout)
+    with client, client.websocket_connect("/ws/control") as ctl:
+        ctl.receive_json()
+        ctl.receive_json()
+        ctl.send_json(msg)
+        assert ctl.receive_json()["type"] == "error"
+        ctl.send_json({"type": "get"})
+        assert ctl.receive_json()["type"] == "settings"
+
+
+def test_control_set_rate_limit_is_shared_by_source_ip_and_refills(
+        monkeypatch):
+    class MemoryStore:
+        def __init__(self):
+            self.current = Settings()
+            self.updates: list[dict] = []
+
+        def get(self):
+            return self.current
+
+        def update(self, partial):
+            self.updates.append(partial)
+            self.current = self.current.with_updates(partial)
+            return self.current
+
+    memory_store = MemoryStore()
+    now = [1000.0]
+    control_fanout = []
+    viewer_fanout = []
+
+    async def record_controls(payload, exclude=None):
+        control_fanout.append((payload, exclude))
+
+    async def record_viewers(payload):
+        viewer_fanout.append(payload)
+
+    monkeypatch.setattr(server, "store", memory_store)
+    monkeypatch.setattr(server, "_control_clock", lambda: now[0])
+    monkeypatch.setattr(server, "_control_buckets", {})
+    monkeypatch.setattr(server, "send_controls", record_controls)
+    monkeypatch.setattr(server, "broadcast", record_viewers)
+    a = FakeControlSocket("198.51.100.7", 1001)
+    b = FakeControlSocket("198.51.100.7", 1002)
+
+    async def send(ws, size):
+        await server.handle_control(
+            ws, json.dumps({"type": "set", "settings": {"size": size}}))
+
+    async def run():
+        for i in range(server.CONTROL_SET_BURST):
+            await send(a if i % 2 == 0 else b, 25 + i)
+        await send(b, 99)
+        assert b.sent[-1]["type"] == "error"
+
+        now[0] += 1 / server.CONTROL_SET_RATE
+        await send(a, 100)
+        assert a.sent[-1]["type"] == "settings"
+        await send(b, 101)
+        assert b.sent[-1]["type"] == "error"
+
+    asyncio.run(run())
+
+    accepted = server.CONTROL_SET_BURST + 1
+    assert len(memory_store.updates) == accepted
+    assert len(control_fanout) == accepted
+    assert len(viewer_fanout) == accepted
+    assert memory_store.current.size == 100
+
+
+def test_control_noop_acknowledges_sender_without_fanout_or_save(
+        settings_store, monkeypatch):
+    control_fanout = []
+    viewer_fanout = []
+
+    async def record_controls(payload, exclude=None):
+        control_fanout.append((payload, exclude))
+
+    async def record_viewers(payload):
+        viewer_fanout.append(payload)
+
+    monkeypatch.setattr(server, "_control_buckets", {})
+    monkeypatch.setattr(server, "send_controls", record_controls)
+    monkeypatch.setattr(server, "broadcast", record_viewers)
+    ws = FakeControlSocket("203.0.113.10")
+
+    asyncio.run(server.handle_control(
+        ws, json.dumps({"type": "set", "settings": {"size": 64}})))
+
+    assert len(ws.sent) == 1
+    assert ws.sent[0]["type"] == "settings" and ws.sent[0]["size"] == 64
+    assert control_fanout == []
+    assert viewer_fanout == []
+    assert not settings_store.path.exists()
+
+
+def test_control_mutations_run_off_loop_and_are_serialized(monkeypatch):
+    class BlockingStore:
+        def __init__(self):
+            self.current = Settings()
+            self.thread_ids: list[int] = []
+            self.active = 0
+            self.max_active = 0
+            self.guard = threading.Lock()
+            self.first_started = threading.Event()
+            self.second_started = threading.Event()
+            self.release_first = threading.Event()
+
+        def get(self):
+            return self.current
+
+        def update(self, partial):
+            with self.guard:
+                self.thread_ids.append(threading.get_ident())
+                ordinal = len(self.thread_ids)
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+                (self.first_started if ordinal == 1 else self.second_started).set()
+            try:
+                if ordinal == 1 and not self.release_first.wait(1):
+                    raise TimeoutError("event loop could not release blocked save")
+                self.current = self.current.with_updates(partial)
+                return self.current
+            finally:
+                with self.guard:
+                    self.active -= 1
+
+    async def ignore_fanout(*_args, **_kwargs):
+        pass
+
+    blocking_store = BlockingStore()
+    monkeypatch.setattr(server, "store", blocking_store)
+    monkeypatch.setattr(server, "_control_buckets", {})
+    monkeypatch.setattr(server, "send_controls", ignore_fanout)
+    monkeypatch.setattr(server, "broadcast", ignore_fanout)
+    a = FakeControlSocket("203.0.113.20", 2001)
+    b = FakeControlSocket("203.0.113.21", 2002)
+
+    async def run():
+        loop_thread = threading.get_ident()
+        first = asyncio.create_task(server.handle_control(
+            a, json.dumps({"type": "set", "settings": {"size": 40}})))
+        await asyncio.wait_for(
+            asyncio.to_thread(blocking_store.first_started.wait, 0.5), 1)
+        second = asyncio.create_task(server.handle_control(
+            b, json.dumps({"type": "set", "settings": {"size": 41}})))
+        await asyncio.sleep(0.05)
+        assert not blocking_store.second_started.is_set()
+        blocking_store.release_first.set()
+        await asyncio.wait_for(asyncio.gather(first, second), 2)
+        return loop_thread
+
+    loop_thread = asyncio.run(run())
+
+    assert blocking_store.second_started.is_set()
+    assert blocking_store.max_active == 1
+    assert all(thread_id != loop_thread for thread_id in blocking_store.thread_ids)
+    assert blocking_store.current.size == 41
+
+
+def test_main_configures_explicit_websocket_message_limit(
+        settings_store, monkeypatch):
+    run_calls = []
+
+    class DummyEngine:
+        def __init__(self, **_kwargs):
+            pass
+
+        def warmup(self):
+            pass
+
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    monkeypatch.setattr(server, "ASREngine", DummyEngine)
+    monkeypatch.setattr(server, "engine", None)
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server.uvicorn, "run",
+                        lambda *args, **kwargs: run_calls.append((args, kwargs)))
+
+    server.main()
+
+    assert len(run_calls) == 1
+    assert run_calls[0][1]["ws_max_size"] == 64 * 1024
+
+
+def test_translate_off_never_calls_translator(client, wire, settings_store):
+    settings_store.update({"translate": False})
+    tr = FakeTranslator()
+    wire(ScriptedTranscriber([[P(1, "a", "x")], [P(1, "a b", "y")], [F(1, "a b")]]), tr)
+    with client, client.websocket_connect("/ws") as ws:
+        seen = []
+        for _ in range(3):
+            ws.send_bytes(pcm())
+            seen.append(ws.receive_json())
+    assert tr.calls == []
+    assert [m["translation"] for m in seen] == ["", "", ""]
+    assert seen[-1]["type"] == "final"
+
+
+def test_translate_flag_read_per_event(wire, settings_store):
+    tr = FakeTranslator()
+    wire(ScriptedTranscriber([[F(1, "a")], [F(2, "b")]]), tr)
+
+    async def run():
+        mic = FakeMic()
+        task = asyncio.create_task(server._Pipeline(mic).run())
+        mic.inbox.put_nowait(pcm())
+        await mic.wait_for(lambda m: m["utterance_id"] == 1)
+        settings_store.update({"translate": False})
+        mic.inbox.put_nowait(pcm())
+        await mic.wait_for(lambda m: m["utterance_id"] == 2)
+        mic.inbox.put_nowait(None)
+        await asyncio.wait_for(task, 2)
+        return mic.sent
+
+    sent = asyncio.run(run())
+    assert tr.calls == ["a"]
+    assert [m["translation"] for m in sent] == ["EN<a>", ""]
+
+
+def test_non_gu_asr_mode_warns_once_and_runs_gu(wire, settings_store, caplog):
+    settings_store.update({"asr_mode": "en"})
+    server._warned_modes.clear()
+    wire(ScriptedTranscriber([[P(1, "a")], [P(1, "a b")]]))
+
+    async def run():
+        mic = FakeMic()
+        task = asyncio.create_task(server._Pipeline(mic).run())
+        mic.inbox.put_nowait(pcm())
+        await mic.wait_for(lambda m: m["committed"] == "a")
+        mic.inbox.put_nowait(pcm())
+        await mic.wait_for(lambda m: m["committed"] == "a b")
+        mic.inbox.put_nowait(None)
+        await asyncio.wait_for(task, 2)
+
+    asyncio.run(run())
+    assert caplog.text.count("asr_mode 'en' not implemented") == 1
+
+
+class CountingTranscriber(ScriptedTranscriber):
+    decode_count = 3
+    last_decode_ms = 180.0
+    avg_decode_ms = 150.5
+    last_window_s = 4.0
+
+
+def test_status_shape_while_pipeline_active(monkeypatch, wire, settings_store):
+    monkeypatch.setattr(server, "STATUS_INTERVAL_S", 0.01)
+    wire(CountingTranscriber([[F(1, "a")]]), FakeTranslator())
+    ctl = RecordingViewer()
+    server.controls.add(ctl)
+
+    async def run():
+        mic = FakeMic()
+        task = asyncio.create_task(server._Pipeline(mic).run())
+        mic.inbox.put_nowait(pcm())
+        await mic.wait_for(lambda m: m["type"] == "final")
+        await asyncio.sleep(0.05)
+        mic.inbox.put_nowait(None)
+        await asyncio.wait_for(task, 2)
+
+    try:
+        asyncio.run(run())
+    finally:
+        server.controls.discard(ctl)
+    statuses = [m for m in ctl.sent if m["type"] == "status"]
+    assert statuses[-1] == server.idle_status()  # pipeline ended -> idle once
+    live = [m for m in statuses if m["asr"] is not None]
+    assert live
+    last = live[-1]
+    assert set(last) == {"type", "asr", "translate", "lid", "decode_ms",
+                         "avg_decode_ms", "window_s", "decodes", "lag_s",
+                         "backlog_s", "utterances"}
+    assert last["asr"] == "gu" and last["translate"] is True and last["lid"] is False
+    assert (last["decode_ms"], last["avg_decode_ms"]) == (180.0, 150.5)
+    assert (last["window_s"], last["decodes"]) == (4.0, 3)
+    assert last["utterances"] == 1
+    assert last["lag_s"] == last["backlog_s"] >= 0
+
+
+def test_backlog_counts_queued_audio(wire):
+    wire(ScriptedTranscriber())
+
+    async def run():
+        pipe = server._Pipeline(FakeMic())
+        pipe.enqueue(np.zeros(16000, dtype=np.float32))
+        pipe.enqueue(np.zeros(8000, dtype=np.float32))
+        return pipe.status()["backlog_s"]
+
+    assert asyncio.run(run()) == 1.5
+
+
+def test_status_reports_translate_off_without_translator(wire):
+    wire(CountingTranscriber())  # translator None, as with --no-translate
+
+    async def run():
+        return server._Pipeline(FakeMic()).status()
+
+    assert asyncio.run(run())["translate"] is False
+
+
+def test_idle_status_shape():
+    st = server.idle_status()
+    assert st["type"] == "status" and st["asr"] is None
+    assert st["translate"] is False and st["lid"] is False

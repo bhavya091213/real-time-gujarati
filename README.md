@@ -82,9 +82,12 @@ resolve from the repo root.
 
 ## Configuration
 
+The settings panel on the mic page (`/`) is the way to configure speech language, translation, and every caption style. Settings are stored on the server and pushed live to `/display`. Content modes are `primary` (ASR text), `translation`, and `both`.
+
 | Environment variable | Default | Meaning |
 |---|---|---|
 | `GUJUSUB_THREADS` | performance-core count (min 2) | ONNX Runtime / CTranslate2 thread count |
+| `GUJUSUB_SETTINGS` | `~/.cache/gujusub/settings.json` | Where the server persists panel settings |
 | `GUJUSUB_MODEL_DIR` | `~/.cache/gujusub` | Where the symlink-free ASR model copy lives |
 | `HF_HOME` | `~/.cache/huggingface` | Hugging Face hub cache (downloaded models) |
 
@@ -95,9 +98,9 @@ resolve from the repo root.
   symlinks.
 - **Audio input.** Open the mic page, choose the input in the device selector,
   click **Start mic**.
-- **Display page** (`/display`, add as an OBS browser source): press `s` for
-  settings, `f` for fullscreen; **Copy URL** bakes the current settings into
-  URL parameters so the OBS source reproduces them. See
+- **Display page** (`/display`, add as an OBS browser source): output only,
+  no panel; `f` for fullscreen. Old URL-parameter links still work as a
+  fallback but server settings win. See
   [`wiki/broadcast-setup.md`](wiki/broadcast-setup.md) for the OBS recipe.
 - **Performance.** Threads default to the performance cores. On a Mac mini
   running OBS on the same machine, lower `--threads` if OBS drops frames.

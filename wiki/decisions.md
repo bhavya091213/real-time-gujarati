@@ -64,10 +64,7 @@ backoff so they survive server restarts during a long event.
 - **Caption bar**: optional vertical bar left of the text, height = height of
   text currently on screen, fades with the text. Signals "these are live
   captions" on the keyed feed.
-- **Settings precedence**: URL params > localStorage > defaults. "Copy URL"
-  serialises everything so OBS can load a fully configured page. A `schema`
-  number in localStorage lets a changed default override stored values once
-  (v2 forced `align` to left).
+- **Settings precedence**: superseded by WS2 (see below); now `DEFAULTS < URL params < server`.
 - **Chrome auto-hides** (gear, fullscreen, status dot, cursor) after 3 s so
   captures are clean; the status dot never shows in an idle capture.
 
@@ -111,3 +108,19 @@ localStorage. Changing the device while streaming restarts the capture
   block instead of 1-9; one render per frame at most).
 - **Word-level confidence** is exposed by `Transcript.words` but unused; it
   is there for later trimming/commit decisions.
+
+## Settings on the server + control socket (WS2, 2026-10-05)
+
+- Display/ASR settings live in `gujusub/settings.py` (validated dataclass,
+  JSON file at `~/.cache/gujusub/settings.json`, env `GUJUSUB_SETTINGS`). The
+  server is the source of truth; the page `DEFAULTS` constants must match
+  `settings.py`. This replaces localStorage + "Copy URL" on `/display`.
+- Why: an OBS browser source cannot be clicked, the operator wants one tab, and
+  settings should survive restarts. The mic page edits settings over `/ws/control`;
+  the server persists and pushes display-only `settings` messages to `/ws/view`.
+- Precedence on the display: `DEFAULTS < URL params (legacy fallback) < server`.
+- `translate` (bool) decides which models run (D16): off means no translator
+  calls at all, not just a hidden line. `--no-translate` still forces it off.
+- Content mode renamed `primary | translation | both` (old `gu`/`en` migrate to
+  `primary`/`translation`); default is `translation`.
+- `/ws/control` snapshot carries `defaults` so Reset never drifts from the server.

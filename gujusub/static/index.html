@@ -15,6 +15,28 @@
   .tail { color: #888; }
   .translation { color: #7fd97f; font-size: 1.4rem; }
   #controls { padding: 1rem 2rem; }
+  #livestatus { margin-left: 1rem; color: #666; font-size: .9rem; }
+  #livestatus.active { color: #9c9; }
+  #settings { margin: 0 2rem 1rem; border: 1px solid #333; border-radius: .5rem; background: #181818; font-size: .9rem; }
+  #settings > summary { cursor: pointer; padding: .6rem 1rem; color: #ccc; }
+  #settings .body { padding: 0 1rem 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+  #settings fieldset { border: 1px solid #2c2c2c; border-radius: .4rem; margin: 0; padding: .5rem .8rem; }
+  #settings legend { color: #aaa; padding: 0 .3rem; }
+  #settings .row { display: flex; align-items: center; gap: .5rem; margin: .35rem 0; }
+  #settings .row label { flex: 0 0 auto; min-width: 7rem; }
+  #settings .row input[type=range] { flex: 1; min-width: 0; }
+  #settings .row input[type=text] { flex: 1; min-width: 0; }
+  #settings .row .val { color: #888; min-width: 3rem; text-align: right; }
+  #settings select, #settings input[type=text], #settings input[type=number] {
+    background: #222; color: #eee; border: 1px solid #444; border-radius: .3rem; padding: .2rem .4rem; font-size: .9rem; }
+  #settings .note { color: #888; font-size: .8rem; margin: .2rem 0; }
+  #settings .err { color: #f88; min-height: 1.1em; padding: 0 1rem .5rem; font-size: .85rem; grid-column: 1 / -1; }
+  #settings .swatches { display: flex; gap: .4rem; margin: .35rem 0; }
+  #settings .swatches button { width: 1.6rem; height: 1.6rem; padding: 0; border: 2px solid #555; border-radius: .3rem; }
+  #settings .swatches button.sel { border-color: #fff; }
+  #settings .swatches .tp { background: repeating-conic-gradient(#888 0 25%, #ccc 0 50%) 0 0/10px 10px; }
+  #settings .row.off { opacity: .5; }
+  #resetBtn { font-size: .9rem; padding: .3rem 1rem; background: #333; color: #eee; }
   button { font-size: 1.1rem; padding: .5rem 1.5rem; border-radius: .5rem;
            border: none; cursor: pointer; }
   #status { margin-left: 1rem; color: #888; }
@@ -28,7 +50,13 @@
   <button id="btn">Start mic</button>
   <select id="mic" title="Audio input"><option value="">Default microphone</option></select>
   <span id="status">idle</span>
+  <span id="livestatus" title="Server pipeline status">server: connecting…</span>
 </div>
+<details id="settings">
+  <summary>Settings <span id="ctlstate" style="color:#888"></span></summary>
+  <div class="body" id="settingsBody"></div>
+  <div class="err" id="settingsErr"></div>
+</details>
 <script>
 const SAMPLE_RATE = 16000;
 const captionsEl = document.getElementById("captions");
@@ -103,7 +131,7 @@ function onEvent(e) {
 
 async function start() {
   if (running) stop();  // restarting with a different input
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = new WebSocket(`${WS_PROTO}://${location.host}/ws`);
   ws.onmessage = onEvent;
   ws.onclose = () => stop("server closed");
   await new Promise(r => ws.onopen = r);
@@ -138,6 +166,245 @@ function stop(reason) {
 }
 
 btn.onclick = () => running ? stop() : start().catch(e => stop(e.message));
+// ---------------------------------------------------------------------------
+// Settings panel: always-on /ws/control client, independent of the mic.
+// ---------------------------------------------------------------------------
+const WS_PROTO = location.protocol === "https:" ? "wss" : "ws";
+const PANEL_KEY = "gujuSubPanelOpen";
+const DEBOUNCE_MS = 150, STATUS_MS = 1000;
+const GREY_COLOUR = /^#[0-9a-fA-F]{6}$/;
+// Fallback for Reset when the snapshot has no `defaults`.
+const DEFAULTS = {
+  asr_mode: "gu", translate: true, conf_word_min: 0, conf_utt_min: 0,
+  aspect: "16:9", mode: "translation", stable: false, clear: 6,
+  font: 'system-ui, "Noto Sans Gujarati", sans-serif', size: 64, minsize: 36,
+  weight: 700, lh: 1.3, ls: 0, tt: "none", color: "#ffffff", ow: 0,
+  oc: "#000000", shadow: false, bg: "#000000", align: "left", pad: 5,
+  bottom: 8, bar: true, barw: 8, barc: "#ffffff",
+};
+const LEGACY_MODE = { en: "translation", gu: "primary" };
+const ASR_LABEL = { gu: "Gujarati", en: "English", auto: "Auto" };
+
+// type: select | range | check | color | number | text
+const SECTIONS = [
+  ["Mode", [
+    { k: "asr_mode", t: "select", l: "Speech language", opts: [
+      ["gu", "Gujarati"], ["en", "English", "coming soon"], ["auto", "Auto", "coming soon"]] },
+    { k: "translate", t: "check", l: "Translate to English" },
+  ]],
+  ["Confidence", [
+    { k: "conf_word_min", t: "range", l: "Word min", min: 0, max: 1, step: 0.05 },
+    { k: "conf_utt_min", t: "range", l: "Utterance min", min: 0, max: 1, step: 0.05 },
+    { note: "Takes effect in a later release." },
+  ]],
+  ["Layout", [
+    { k: "aspect", t: "select", l: "Aspect ratio", opts: ["16:9", "4:3", "21:9", "1:1", "9:16"].map(v => [v, v]) },
+    { k: "mode", t: "select", l: "Content", opts: [
+      ["primary", "ASR text"], ["translation", "Translation"], ["both", "Both"]] },
+    { k: "stable", t: "check", l: "Stable text only" },
+    { k: "clear", t: "number", l: "Clear after (s, 0=never)", min: 0, max: 600, step: 1 },
+  ]],
+  ["Text", [
+    { k: "font", t: "text", l: "Font family" },
+    { k: "size", t: "range", l: "Size", min: 24, max: 160, step: 1 },
+    { k: "minsize", t: "range", l: "Min size (auto-fit)", min: 16, max: 160, step: 1 },
+    { k: "weight", t: "select", l: "Weight", num: true, opts: [400, 500, 600, 700, 800, 900].map(v => [v, String(v)]) },
+    { k: "lh", t: "range", l: "Line height", min: 1.0, max: 2.2, step: 0.05 },
+    { k: "ls", t: "range", l: "Letter spacing", min: -2, max: 20, step: 0.5 },
+    { k: "tt", t: "select", l: "Transform", opts: [["none", "none"], ["uppercase", "UPPERCASE"]] },
+    { k: "color", t: "color", l: "Text color" },
+  ]],
+  ["Outline", [
+    { k: "ow", t: "range", l: "Width", min: 0, max: 12, step: 0.5 },
+    { k: "oc", t: "color", l: "Color" },
+    { k: "shadow", t: "check", l: "Shadow instead of stroke" },
+  ]],
+  ["Background", [
+    { k: "bg", t: "swatches" },
+    { k: "bg", t: "color", l: "Custom" },
+  ]],
+  ["Position", [
+    { k: "align", t: "select", l: "Align", opts: [["left", "left"], ["center", "center"], ["right", "right"]] },
+    { k: "pad", t: "range", l: "H padding (%)", min: 0, max: 25, step: 0.5 },
+    { k: "bottom", t: "range", l: "Bottom margin (%)", min: 0, max: 50, step: 0.5 },
+  ]],
+  ["Caption bar", [
+    { k: "bar", t: "check", l: "Show bar" },
+    { k: "barw", t: "range", l: "Width", min: 2, max: 24, step: 1 },
+    { k: "barc", t: "color", l: "Color" },
+  ]],
+];
+const SWATCHES = [["#000000", "Black (luma key)"], ["#00ff00", "Green (chroma)"],
+  ["#0000ff", "Blue"], ["#ff00ff", "Magenta"], ["transparent", "Transparent (OBS alpha)"]];
+
+const settingsEl = document.getElementById("settings");
+const bodyEl = document.getElementById("settingsBody");
+const errEl = document.getElementById("settingsErr");
+const ctlStateEl = document.getElementById("ctlstate");
+const liveEl2 = document.getElementById("livestatus");
+const fields = {};        // key -> [{el, spec, rowEl}]
+let current = {};         // last snapshot from server
+let ctl = null, ctlDelay = 500, sendTimers = {};
+
+function el(tag, props, ...kids) {
+  const e = Object.assign(document.createElement(tag), props || {});
+  kids.forEach(k => e.append(k));
+  return e;
+}
+
+function readValue(spec, input) {
+  if (spec.t === "check") return input.checked;
+  if (spec.t === "range" || spec.t === "number") return Number(input.value);
+  if (spec.t === "select" && spec.num) return Number(input.value);
+  return input.value;
+}
+
+function sendSet(partial) {
+  if (!ctl || ctl.readyState !== WebSocket.OPEN) { errEl.textContent = "Not connected to server."; return; }
+  errEl.textContent = "";
+  ctl.send(JSON.stringify({ type: "set", settings: partial }));
+}
+
+function onChange(spec, input, row) {
+  const val = readValue(spec, input);
+  if (spec.t === "range") {
+    row.querySelector(".val").textContent = val;
+    clearTimeout(sendTimers[spec.k]);
+    sendTimers[spec.k] = setTimeout(() => sendSet({ [spec.k]: val }), DEBOUNCE_MS);
+  } else if (spec.t === "text" || spec.t === "number") {
+    clearTimeout(sendTimers[spec.k]);
+    sendTimers[spec.k] = setTimeout(() => sendSet({ [spec.k]: val }), DEBOUNCE_MS * 2);
+  } else {
+    sendSet({ [spec.k]: val });
+  }
+}
+
+function buildControl(spec) {
+  if (spec.note) return el("div", { className: "note", textContent: spec.note });
+  const row = el("div", { className: "row" });
+  const entry = { spec, row };
+  if (spec.t === "swatches") {
+    row.className = "swatches";
+    entry.btns = SWATCHES.map(([v, title]) => {
+      const b = el("button", { title, type: "button" });
+      b.dataset.bg = v;
+      if (v === "transparent") b.classList.add("tp"); else b.style.background = v;
+      b.onclick = () => sendSet({ bg: v });
+      row.append(b);
+      return b;
+    });
+  } else {
+    const id = `s-${spec.k}${spec.t === "color" && spec.k === "bg" ? "-custom" : ""}`;
+    row.append(el("label", { htmlFor: id, textContent: spec.l }));
+    let input;
+    if (spec.t === "select") {
+      input = el("select");
+      spec.opts.forEach(([v, text, soon]) => {
+        const o = new Option(soon ? `${text} (coming soon)` : text, v);
+        if (soon) { o.disabled = true; o.title = "Coming soon"; }
+        input.add(o);
+      });
+    } else {
+      input = el("input");
+      input.type = { range: "range", check: "checkbox", color: "color", number: "number", text: "text" }[spec.t];
+      if (spec.t === "range" || spec.t === "number") { input.min = spec.min; input.max = spec.max; input.step = spec.step; }
+      if (spec.t === "number") input.style.width = "64px";
+    }
+    input.id = id;
+    input.addEventListener(spec.t === "range" || spec.t === "text" || spec.t === "number" ? "input" : "change",
+      () => onChange(spec, input, row));
+    row.append(input);
+    if (spec.t === "range") row.append(el("span", { className: "val" }));
+    entry.input = input;
+  }
+  (fields[spec.k] = fields[spec.k] || []).push(entry);
+  return row;
+}
+
+function buildPanel() {
+  SECTIONS.forEach(([title, specs]) => {
+    const fs = el("fieldset", null, el("legend", { textContent: title }));
+    specs.forEach(s => fs.append(buildControl(s)));
+    bodyEl.append(fs);
+  });
+  const reset = el("button", { id: "resetBtn", type: "button", textContent: "Reset to defaults" });
+  reset.onclick = () => {
+    const { schema, ...vals } = (current && current.defaults) || DEFAULTS;  // schema is read-only
+    sendSet(vals);
+  };
+  bodyEl.append(el("fieldset", null, el("legend", { textContent: "Reset" }), reset));
+}
+
+function applySnapshot(snap) {
+  current = snap;
+  const view = { ...snap };
+  if (LEGACY_MODE[view.mode]) view.mode = LEGACY_MODE[view.mode];
+  Object.keys(fields).forEach(k => {
+    if (!(k in view)) return;
+    fields[k].forEach(({ spec, input, row, btns }) => {
+      const v = view[k];
+      if (btns) { btns.forEach(b => b.classList.toggle("sel", b.dataset.bg === v)); return; }
+      if (input === document.activeElement && spec.t !== "select") return;  // don't fight the user
+      if (spec.t === "check") input.checked = !!v;
+      else if (spec.t === "color") input.value = GREY_COLOUR.test(v) ? v : "#000000";
+      else input.value = v;
+      if (spec.t === "range") row.querySelector(".val").textContent = v;
+    });
+  });
+  // Translate is meaningless unless the ASR language is Gujarati.
+  const tr = fields.translate[0];
+  const gu = view.asr_mode === "gu";
+  tr.input.disabled = !gu;
+  tr.row.classList.toggle("off", !gu);
+  tr.row.title = gu ? "" : "Translation is only used with Gujarati speech";
+  if (!gu) tr.input.checked = false;
+}
+
+let lastStatus = null, statusTimer = null, lastRender = 0;
+function renderStatus() {
+  statusTimer = null; lastRender = Date.now();
+  const s = lastStatus;
+  if (!s || s.asr == null) {
+    liveEl2.classList.remove("active");
+    liveEl2.textContent = ctl && ctl.readyState === WebSocket.OPEN ? "server: idle (no mic active)" : "server: disconnected";
+    return;
+  }
+  liveEl2.classList.add("active");
+  const ms = v => (typeof v === "number" ? Math.round(v) : "–");
+  const sec = v => (typeof v === "number" ? v.toFixed(1) : "–");
+  liveEl2.textContent = `ASR: ${ASR_LABEL[s.asr] || s.asr} · Translate: ${s.translate ? "on" : "off"}` +
+    ` · LID: ${s.lid ? "on" : "off"} · decode ${ms(s.decode_ms)} ms (avg ${ms(s.avg_decode_ms)})` +
+    ` · lag ${sec(s.lag_s)} s · utt ${s.utterances ?? 0}`;
+}
+function onStatus(s) {
+  lastStatus = s;
+  const wait = STATUS_MS - (Date.now() - lastRender);
+  if (wait <= 0) renderStatus();
+  else if (!statusTimer) statusTimer = setTimeout(renderStatus, wait);
+}
+
+function connectControl() {
+  ctl = new WebSocket(`${WS_PROTO}://${location.host}/ws/control`);
+  ctl.onopen = () => { ctlDelay = 500; ctlStateEl.textContent = ""; };
+  ctl.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.type === "settings") { errEl.textContent = ""; applySnapshot(m); }
+    else if (m.type === "status") onStatus(m);
+    else if (m.type === "error") errEl.textContent = m.message || "Server rejected the change.";
+  };
+  ctl.onclose = () => {
+    ctlStateEl.textContent = "(disconnected, retrying…)";
+    lastStatus = null; renderStatus();
+    setTimeout(connectControl, ctlDelay);
+    ctlDelay = Math.min(ctlDelay * 2, 8000);
+  };
+  ctl.onerror = () => ctl.close();
+}
+
+buildPanel();
+settingsEl.open = localStorage.getItem(PANEL_KEY) === "1";
+settingsEl.addEventListener("toggle", () => localStorage.setItem(PANEL_KEY, settingsEl.open ? "1" : "0"));
+connectControl();
 </script>
 </body>
 </html>
