@@ -1,0 +1,7664 @@
+{
+  "meta": {
+    "style": "BAPS house style (no diacritics)",
+    "compiled": "2026-10-05",
+    "merged_from": [
+      "part-A.json",
+      "part-B.json"
+    ],
+    "sources": [
+      "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "https://en.wikipedia.org/wiki/Swaminarayan",
+      "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj",
+      "https://en.wikipedia.org/wiki/Akshar_Purushottam_Upasana",
+      "https://en.wikipedia.org/wiki/Vachanamrut",
+      "https://en.wikipedia.org/wiki/Gunatitanand_Swami",
+      "https://londonmandir.baps.org/faqs/",
+      "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    ],
+    "search_evidence": [
+      "https://www.baps.org/Glossary.aspx",
+      "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx",
+      "https://londonmandir.baps.org/worship/swaminarayan-arti/",
+      "https://kids.baps.org/kidscreation/result/creation171.htm",
+      "https://www.baps.org/News?view=all"
+    ],
+    "provenance": "baps.org pages returned HTTP 403 to direct fetch; their content was seen only in web-search result excerpts (listed in search_evidence). verified=true means the spelling was seen in a fetched page (sources) or a baps.org search excerpt (source field gives the URL). verified=false = compiled from model knowledge.",
+    "matcher_note": "safe=false entries must only be rewritten when matched text differs from canonical in more than case."
+  },
+  "entries": [
+    {
+      "canonical": "Aabhar",
+      "variants": [
+        "aabhar",
+        "abhar",
+        "aabhaar",
+        "abhaar"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Ashirwad",
+      "variants": [
+        "ashirwad",
+        "aashirwad",
+        "ashirvad",
+        "ashirvaad",
+        "aashirvad"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Bal Mandal",
+      "variants": [
+        "bal mandal",
+        "baal mandal",
+        "bal mandals"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Balak",
+      "variants": [
+        "balak",
+        "baalak",
+        "balaks",
+        "balaka"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Balika",
+      "variants": [
+        "balika",
+        "baalika",
+        "balikas",
+        "balikaa"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Ben",
+      "variants": [
+        "ben",
+        "behen",
+        "bahen",
+        "behn"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Beta",
+      "variants": [
+        "betaa",
+        "betaji",
+        "beta"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Bhagat",
+      "variants": [
+        "bhagat",
+        "bhakt",
+        "bhaktaa",
+        "bhagats"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Bhagwan",
+      "variants": [
+        "bhagwan",
+        "bhagvan",
+        "bhagavan",
+        "bhagwaan"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Bhai",
+      "variants": [
+        "bhai",
+        "bhaai",
+        "bhaiya",
+        "bhaiyaa"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Charan",
+      "variants": [
+        "charan",
+        "charans",
+        "charana",
+        "charn"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Dada",
+      "variants": [
+        "dada",
+        "daada",
+        "dadaji",
+        "dadajee"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Dhanyawad",
+      "variants": [
+        "dhanyawad",
+        "dhanyavad",
+        "dhanyavaad",
+        "dhanyabad"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Dikra",
+      "variants": [
+        "dikra",
+        "dikro",
+        "dikraa",
+        "dikri"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Foi",
+      "variants": [
+        "foi",
+        "fooi",
+        "phui",
+        "fui"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Hari",
+      "variants": [
+        "hari",
+        "haree",
+        "harey"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Haribhakto",
+      "variants": [
+        "haribhakto",
+        "haribhakta",
+        "haribhakt",
+        "hari bhakto",
+        "haribhaktos"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Jamva",
+      "variants": [
+        "jamva",
+        "jamvu",
+        "jamwa",
+        "jamwaa"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Kaka",
+      "variants": [
+        "kaka",
+        "kakaa",
+        "kakaji",
+        "kaaka"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Kaki",
+      "variants": [
+        "kaki",
+        "kakee",
+        "kakiji",
+        "kaaki"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Karyakar",
+      "variants": [
+        "karyakar",
+        "karyakars",
+        "karyakaar",
+        "karyakartas"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Kishor",
+      "variants": [
+        "kishor",
+        "kishore",
+        "kishors",
+        "kishoar"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Kishor Mandal",
+      "variants": [
+        "kishor mandal",
+        "kishore mandal",
+        "kishor mandals"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Kishori",
+      "variants": [
+        "kishori",
+        "kishoree",
+        "kishoris",
+        "kishorri"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Mahila Mandal",
+      "variants": [
+        "mahila mandal",
+        "mahilla mandal",
+        "mahila mandals"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Mandal",
+      "variants": [
+        "mandal",
+        "mandals",
+        "mandall",
+        "mandaal"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Mandir",
+      "variants": [
+        "mandir",
+        "mandirs",
+        "mandeer",
+        "mandire"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Masi",
+      "variants": [
+        "masi",
+        "maasi",
+        "masee",
+        "mausi"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Murti",
+      "variants": [
+        "murti",
+        "murthi",
+        "murtis",
+        "moorti"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Namaste",
+      "variants": [
+        "namaste",
+        "namastey",
+        "namasthe",
+        "namaskar"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Narayan",
+      "variants": [
+        "narayan",
+        "narayana",
+        "naraayan",
+        "narayen"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Padharo",
+      "variants": [
+        "padharo",
+        "padharyo",
+        "padhaaro",
+        "padharavo"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Parampara",
+      "variants": [
+        "parampara",
+        "paramparaa",
+        "parampra",
+        "parmpara"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Parshad",
+      "variants": [
+        "parshad",
+        "parshads",
+        "parsad",
+        "paarshad"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Prabhu",
+      "variants": [
+        "prabhu",
+        "prabhoo",
+        "prabu",
+        "prabhuji"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Pujari",
+      "variants": [
+        "pujari",
+        "poojari",
+        "pujaris",
+        "poojaris"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Sabha",
+      "variants": [
+        "sabha",
+        "sabhaa",
+        "sabhas",
+        "subha"
+      ],
+      "category": "common-word",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Sadhu",
+      "variants": [
+        "sadhu",
+        "sadhus",
+        "saadhu",
+        "sadhoo"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "safe": false
+    },
+    {
+      "canonical": "Samaj",
+      "variants": [
+        "samaj",
+        "samaaj",
+        "samaja",
+        "samajh"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Sanchalak",
+      "variants": [
+        "sanchalak",
+        "sanchaalak",
+        "sanchalaks",
+        "sanchalaka"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Sanskruti",
+      "variants": [
+        "sanskruti",
+        "sanskriti",
+        "sanskrti",
+        "sanskruthi"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Sant",
+      "variants": [
+        "sant",
+        "sants"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "safe": false
+    },
+    {
+      "canonical": "Santo",
+      "variants": [
+        "santo",
+        "santos",
+        "sanths"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Satra",
+      "variants": [
+        "satra",
+        "satrr",
+        "satraa"
+      ],
+      "category": "common-word",
+      "note": "Satsang session or conclave",
+      "verified": false
+    },
+    {
+      "canonical": "Satsangi",
+      "variants": [
+        "satsangi",
+        "satsangee",
+        "satsangis",
+        "satsangy"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Sevak",
+      "variants": [
+        "sevak",
+        "sevaks",
+        "sewak",
+        "sevaak"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Shubhechha",
+      "variants": [
+        "shubhechha",
+        "shubhecha",
+        "shubh echha",
+        "shubhechchha"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Swami",
+      "variants": [
+        "swami",
+        "swamy",
+        "swaami"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "safe": false
+    },
+    {
+      "canonical": "Swayamsevak",
+      "variants": [
+        "swayamsevak",
+        "swayam sevak",
+        "swayamsevaks",
+        "svayamsevak"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Swayamsevika",
+      "variants": [
+        "swayamsevika",
+        "swayam sevika",
+        "swayamsevikas",
+        "svayamsevika"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Vandan",
+      "variants": [
+        "vandan",
+        "vandana",
+        "vandhan",
+        "vandaan"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Yuvak",
+      "variants": [
+        "yuvak",
+        "yuvaks",
+        "yuvaak",
+        "yuwak"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Yuvak Mandal",
+      "variants": [
+        "yuvak mandal",
+        "yuvak mandall",
+        "yuvaak mandal"
+      ],
+      "category": "common-word",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Yuvati",
+      "variants": [
+        "yuvati",
+        "yuvatee",
+        "yuvatis",
+        "yuwati"
+      ],
+      "category": "common-word",
+      "verified": false
+    },
+    {
+      "canonical": "Adhik Maas",
+      "variants": [
+        "adhik maas",
+        "adhik mas",
+        "adhik maas month",
+        "purushottam maas",
+        "purushottam mas"
+      ],
+      "category": "concept",
+      "note": "Intercalary month",
+      "verified": false
+    },
+    {
+      "canonical": "Agna",
+      "variants": [
+        "agna",
+        "aagna",
+        "agya",
+        "aajna"
+      ],
+      "category": "concept",
+      "note": "Commandment",
+      "verified": false
+    },
+    {
+      "canonical": "Ahankar",
+      "variants": [
+        "ahankar",
+        "ahamkar",
+        "ahankaar",
+        "ahamkaar"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Ahimsa",
+      "variants": [
+        "ahimsa",
+        "ahinsa",
+        "ahimsaa"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Akshar",
+      "variants": [
+        "akshar",
+        "aksar",
+        "akshara"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshar Muktas",
+      "variants": [
+        "akshar muktas",
+        "akshar mukta",
+        "aksharmuktas"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://www.baps.org/Glossary.aspx"
+    },
+    {
+      "canonical": "Akshar Purush",
+      "variants": [
+        "akshar purush",
+        "maha purush",
+        "mul purush"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://www.baps.org/Glossary.aspx"
+    },
+    {
+      "canonical": "Akshar-Purushottam Darshan",
+      "variants": [
+        "akshar-purushottam darshan",
+        "akshar purushottam darshan",
+        "akshar purushottam darshun",
+        "akshar purshottam darshan"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshar-Purushottam Upasana",
+      "variants": [
+        "akshar-purushottam upasana",
+        "akshar purushottam upasana",
+        "akshar purushottam upasna"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Aksharbrahman",
+      "variants": [
+        "aksharbrahma",
+        "akshar brahma",
+        "aksharbrahm",
+        "akshar brahman",
+        "aksharabrahman",
+        "aksharbrahman"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Aksharrup",
+      "variants": [
+        "aksharrup",
+        "akshar rup",
+        "aksharup",
+        "aksharroop"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://www.baps.org/Glossary.aspx"
+    },
+    {
+      "canonical": "Anadi Mukta",
+      "variants": [
+        "anadi mukta",
+        "anadi muktas",
+        "anaadi mukta"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Antahkaran",
+      "variants": [
+        "antahkaran",
+        "antahkarana"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://www.baps.org/Glossary.aspx"
+    },
+    {
+      "canonical": "Atma",
+      "variants": [
+        "atma",
+        "aatma",
+        "atman",
+        "atmaa"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Atmiyata",
+      "variants": [
+        "atmiyata",
+        "atmiyataa",
+        "aatmiyata",
+        "atmiyta"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Avatar-Avatari",
+      "variants": [
+        "avatar-avatari",
+        "avatar avatari",
+        "avatari",
+        "avatara avatari"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Bhakti",
+      "variants": [
+        "bhakti",
+        "bhakthi",
+        "bhakty",
+        "bhaakti"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Brahmacharya",
+      "variants": [
+        "brahmacharya",
+        "brahmcharya",
+        "brahmacharyam",
+        "brahmachary"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Brahmaswarup",
+      "variants": [
+        "brahmaswarup",
+        "brahmaswaroop",
+        "brahma swarup",
+        "brahmaswarupa",
+        "brahmswarup",
+        "brahmarup"
+      ],
+      "category": "concept",
+      "note": "Prefix for deceased gurus",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Brahmavidya",
+      "variants": [
+        "brahmavidya",
+        "brahma vidya",
+        "brahmavidhya"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Chaitanya",
+      "variants": [
+        "chaitanya",
+        "chaitanyam",
+        "chaitany",
+        "chaitanyaa"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Dasanudas",
+      "variants": [
+        "dasanudas",
+        "dasanudaas",
+        "dasanu das",
+        "daasanudaas"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Dasatva",
+      "variants": [
+        "dasatva",
+        "dasatv",
+        "dasatwa",
+        "dasatvam"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Dharma",
+      "variants": [
+        "dharma",
+        "dharm",
+        "dharmma"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/",
+      "safe": false
+    },
+    {
+      "canonical": "Divyabhav",
+      "variants": [
+        "divyabhav",
+        "divya bhav",
+        "divyabhava",
+        "divyabhaav"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ekantik Bhakta",
+      "variants": [
+        "ekantik bhakta",
+        "ekantik bhakt",
+        "ekantik bhakto",
+        "ekantik bhakti"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Ekantik Dharma",
+      "variants": [
+        "ekantik dharma",
+        "ekantik dharm",
+        "ekantika dharma",
+        "aikantik dharma"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ekantik Satpurush",
+      "variants": [
+        "ekantik satpurush",
+        "ekantik sat purush",
+        "ekantika satpurusha"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Gnan",
+      "variants": [
+        "gnan",
+        "gyan",
+        "jnan",
+        "gyaan"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Gunatit",
+      "variants": [
+        "gunatit",
+        "gunateet",
+        "gunatita",
+        "gunaateet"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Gunatit Guru",
+      "variants": [
+        "gunatit guru",
+        "gunateet guru",
+        "gunatita guru"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Guru Parampara",
+      "variants": [
+        "guru parampara",
+        "guru paramparaa",
+        "guru parampra",
+        "guru parmpara"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Ishwar",
+      "variants": [
+        "ishwar",
+        "ishvar",
+        "eshwar",
+        "ishwara"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Jiva",
+      "variants": [
+        "jiva",
+        "jeeva",
+        "jeev",
+        "jivas"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Jivatma",
+      "variants": [
+        "jivatma",
+        "jeevatma",
+        "jivatman",
+        "jeevaatma"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Kalyan",
+      "variants": [
+        "kalyan",
+        "kalyaan",
+        "kalyana",
+        "kalyanam"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Kam Krodh Lobh",
+      "variants": [
+        "kam krodh lobh",
+        "kama krodha lobha",
+        "kaam krodh lobh"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Karma",
+      "variants": [
+        "karma",
+        "karm",
+        "karmas"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/",
+      "safe": false
+    },
+    {
+      "canonical": "Kartik",
+      "variants": [
+        "kartik month",
+        "kartak month",
+        "kartik maas",
+        "kartik mas",
+        "kartik"
+      ],
+      "category": "concept",
+      "note": "Hindu month",
+      "verified": false
+    },
+    {
+      "canonical": "Kusang",
+      "variants": [
+        "kusang",
+        "kusanga",
+        "kusung"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Mahima",
+      "variants": [
+        "mahima",
+        "mahimaa",
+        "mahimah"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Maya",
+      "variants": [
+        "maya",
+        "maaya",
+        "maayaa"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya",
+      "safe": false
+    },
+    {
+      "canonical": "Moksha",
+      "variants": [
+        "moksha",
+        "moksh",
+        "mokshah",
+        "muksha"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Mukta",
+      "variants": [
+        "mukta",
+        "muktas",
+        "mukht",
+        "muktaa"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Murti Sukh",
+      "variants": [
+        "murti sukh",
+        "murti sukha",
+        "murthi sukh",
+        "murtisukh"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Nirakar",
+      "variants": [
+        "nirakar",
+        "niraakar",
+        "nirakaar"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Nirdosh Buddhi",
+      "variants": [
+        "nirdosh buddhi",
+        "nirdosh buddhee",
+        "nirdosha buddhi",
+        "nirdosh budhi"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Nirlobh",
+      "variants": [
+        "nirlobh",
+        "nirlobha",
+        "nirlobhi"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Nirman",
+      "variants": [
+        "nirman",
+        "nirmaan",
+        "nirmani",
+        "nirmaani"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Nishchay",
+      "variants": [
+        "nishchay",
+        "nischay",
+        "nishchaya",
+        "nischai"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Nishkam",
+      "variants": [
+        "nishkam",
+        "nishkaam",
+        "nishkama",
+        "nishkamaa"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Nishtha",
+      "variants": [
+        "nishtha",
+        "nishta",
+        "nishthaa",
+        "nishtaa"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Nissneh",
+      "variants": [
+        "nissneh",
+        "nisneh",
+        "nissnehi",
+        "nisnehi"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Nisswad",
+      "variants": [
+        "nisvad",
+        "nisvaad",
+        "nisswad",
+        "nissvad",
+        "niswad",
+        "nishswad",
+        "nisswadi"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Niyam",
+      "variants": [
+        "niyam",
+        "niyams",
+        "niyama"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Panch Vartman",
+      "variants": [
+        "panch vartman",
+        "panch vartaman",
+        "pancha vartman",
+        "panch vartmaan"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Pap",
+      "variants": [
+        "pap",
+        "paap"
+      ],
+      "category": "concept",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Parabrahman",
+      "variants": [
+        "parabrahma",
+        "para brahma",
+        "parabrahm",
+        "parabrahman",
+        "para brahman"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Param Ekantik",
+      "variants": [
+        "param ekantik",
+        "parama ekantik",
+        "param ekantika"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Paramatma",
+      "variants": [
+        "paramatma",
+        "parmatma",
+        "paramatman",
+        "parmaatma"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Pragat",
+      "variants": [
+        "pragat",
+        "pragata",
+        "pragut",
+        "prakat"
+      ],
+      "category": "concept",
+      "note": "Manifest",
+      "verified": false
+    },
+    {
+      "canonical": "Prakruti",
+      "variants": [
+        "prakruti",
+        "prakriti",
+        "prakrti",
+        "prakruthi"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Prarabdha",
+      "variants": [
+        "prarabdha",
+        "prarabdh",
+        "prarabdhaa",
+        "prarabdham"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Punya",
+      "variants": [
+        "punya",
+        "punyas",
+        "punay"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Purush",
+      "variants": [
+        "purush",
+        "purusha",
+        "purusa"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Purushottam",
+      "variants": [
+        "purushottam",
+        "purushotam",
+        "purshottam",
+        "purusottam"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Sadhak",
+      "variants": [
+        "sadhak",
+        "saadhak",
+        "sadhaka"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Sadhana",
+      "variants": [
+        "sadhana",
+        "sadhanaa",
+        "sadhna",
+        "saadhana"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Sakar",
+      "variants": [
+        "sakar",
+        "saakar",
+        "sakaar"
+      ],
+      "category": "concept",
+      "note": "God has a form",
+      "verified": false
+    },
+    {
+      "canonical": "Sakshatkar",
+      "variants": [
+        "sakshatkar",
+        "sakshatkaar",
+        "sakshatkara",
+        "saakshatkar"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Samadhi",
+      "variants": [
+        "samadhi",
+        "samaadhi",
+        "samadhee",
+        "samadi"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Samarpan",
+      "variants": [
+        "samarpan",
+        "samarpana",
+        "samarpaan",
+        "samarpann"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Sampradaya",
+      "variants": [
+        "sampradaya",
+        "sampraday",
+        "sampradai",
+        "sampradayik"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Samsara",
+      "variants": [
+        "samsara",
+        "sansar",
+        "sansara",
+        "samsar"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Sat-Chit-Anand",
+      "variants": [
+        "sat-chit-anand",
+        "sat chit anand",
+        "sachchidanand",
+        "satchitanand"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Satpurush",
+      "variants": [
+        "satpurush",
+        "sat purush",
+        "satpurusha",
+        "satpursh"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Satsang",
+      "variants": [
+        "satsang",
+        "satsanga",
+        "satsung",
+        "sat sang"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Shraddha",
+      "variants": [
+        "shraddha",
+        "shradha",
+        "shraddhaa",
+        "sraddha"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Shravan Maas",
+      "variants": [
+        "shravan maas",
+        "shravan mas",
+        "shravan month",
+        "sravan maas"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Suhradbhav",
+      "variants": [
+        "suhradbhav",
+        "suhradbhava",
+        "suhrad bhav",
+        "suhradbhaav"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Trigun",
+      "variants": [
+        "trigun",
+        "triguna",
+        "trigunas",
+        "trigoon"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Tyag",
+      "variants": [
+        "tyag",
+        "tyaga",
+        "tyaag",
+        "tyagi"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Upasana",
+      "variants": [
+        "upasana",
+        "upasna",
+        "upaasana"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Vairagya",
+      "variants": [
+        "vairagya",
+        "vairagy",
+        "vairaagya",
+        "vairagyam"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Vartman",
+      "variants": [
+        "vartman",
+        "vartaman",
+        "vartmaan",
+        "vartamaan"
+      ],
+      "category": "concept",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Vedant",
+      "variants": [
+        "vedant",
+        "vedanta",
+        "vedaanta",
+        "vedaant"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Vikram Samvat",
+      "variants": [
+        "vikram samvat",
+        "vikram sanvat",
+        "vikram samvant",
+        "vikrama samvat"
+      ],
+      "category": "concept",
+      "note": "Hindu calendar era",
+      "verified": false
+    },
+    {
+      "canonical": "Vishwas",
+      "variants": [
+        "vishwas",
+        "vishvas",
+        "vishwaas",
+        "vishwaasa"
+      ],
+      "category": "concept",
+      "verified": false
+    },
+    {
+      "canonical": "Akshar Purushottam Maharaj",
+      "variants": [
+        "akshar purushottam maharaj",
+        "akshar purushottam",
+        "aksharpurushottam maharaj",
+        "akshar-purushottam maharaj"
+      ],
+      "category": "deity",
+      "note": "Akshar and Purushottam",
+      "verified": false
+    },
+    {
+      "canonical": "Ambaji",
+      "variants": [
+        "ambaji",
+        "amba ji",
+        "ambaji maa",
+        "ambe maa"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Brahma",
+      "variants": [
+        "brahma",
+        "brahmaji",
+        "bhagwan brahma"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Buddha",
+      "variants": [
+        "buddha",
+        "budh avatar",
+        "bhagwan buddha"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Dattatreya",
+      "variants": [
+        "dattatreya",
+        "dattatray",
+        "datta treya",
+        "dattatrey"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Durga",
+      "variants": [
+        "durga",
+        "durgaji",
+        "durga maa",
+        "durga mata"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Dwarkadhish",
+      "variants": [
+        "dwarkadhish",
+        "dwarkadheesh",
+        "dwarka dhish"
+      ],
+      "category": "deity",
+      "note": "Krishna at Dwarka",
+      "verified": false
+    },
+    {
+      "canonical": "Ganapati",
+      "variants": [
+        "ganapati",
+        "ganpati",
+        "ganesh",
+        "ganesha",
+        "ganeshji",
+        "ganapathi"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Gopinathji Maharaj",
+      "variants": [
+        "gopinathji maharaj",
+        "gopinath ji maharaj",
+        "gopinathji",
+        "gopinathjee maharaj"
+      ],
+      "category": "deity",
+      "note": "Murti at Gadhada",
+      "verified": false
+    },
+    {
+      "canonical": "Hanumanji",
+      "variants": [
+        "hanumanji",
+        "hanuman",
+        "hanumaan",
+        "hanumanjee",
+        "hanuman ji",
+        "hanumaanji"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Harikrishna Maharaj",
+      "variants": [
+        "harikrishna maharaj",
+        "hari krishna maharaj",
+        "harikrishn maharaj",
+        "harikrushna maharaj"
+      ],
+      "category": "deity",
+      "note": "Murti form",
+      "verified": false
+    },
+    {
+      "canonical": "Indra",
+      "variants": [
+        "indra",
+        "indradev",
+        "indra dev"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Jagannath",
+      "variants": [
+        "jagannath",
+        "jagannatha",
+        "jaganath",
+        "jagannathji"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Kalki",
+      "variants": [
+        "kalki",
+        "kalki avatar",
+        "kalkee",
+        "kalki avtar"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Kashtabhanjan Dev",
+      "variants": [
+        "kashtabhanjan dev",
+        "kashtbhanjan dev",
+        "kashtabhanjan",
+        "kashtbhanjan hanuman"
+      ],
+      "category": "deity",
+      "note": "Hanuman at Sarangpur",
+      "verified": false
+    },
+    {
+      "canonical": "Krishna",
+      "variants": [
+        "krishna",
+        "krushna",
+        "krishn",
+        "shri krishna",
+        "shree krishna",
+        "bhagwan krishna"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Kurma",
+      "variants": [
+        "kurma",
+        "kurma avatar",
+        "kurmavatar",
+        "kachchhap avatar"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Lakshmi",
+      "variants": [
+        "lakshmi",
+        "laxmi",
+        "lakshmiji",
+        "laxmiji",
+        "lakshmee"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Lakshmi Narayan Dev",
+      "variants": [
+        "lakshmi narayan dev",
+        "laxmi narayan dev",
+        "lakshminarayan dev",
+        "laxminarayan dev",
+        "lakshmi narayan"
+      ],
+      "category": "deity",
+      "note": "Presiding deity of Vadtal diocese",
+      "verified": false
+    },
+    {
+      "canonical": "Matsya",
+      "variants": [
+        "matsya",
+        "matsya avatar",
+        "matsyavatar",
+        "matsya avtar"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Nar Narayan Dev",
+      "variants": [
+        "nar narayan dev",
+        "narnarayan dev",
+        "nar narayan",
+        "narnarayan",
+        "nara narayana dev"
+      ],
+      "category": "deity",
+      "note": "Presiding deity of Ahmedabad diocese",
+      "verified": false
+    },
+    {
+      "canonical": "Narasimha",
+      "variants": [
+        "narasimha",
+        "narsimha",
+        "narasingha",
+        "nrisimha",
+        "narasimha avatar"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Parshuram",
+      "variants": [
+        "parshuram",
+        "parashuram",
+        "parasuram",
+        "parshuraam"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Parvati",
+      "variants": [
+        "parvati",
+        "parvathi",
+        "parvatiji",
+        "parvati maa"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Purushottam Narayan",
+      "variants": [
+        "purushottam narayan",
+        "purushottam narayana",
+        "parabrahma purushottam narayan",
+        "purushottam narain"
+      ],
+      "category": "deity",
+      "note": "Supreme God",
+      "verified": false
+    },
+    {
+      "canonical": "Radha",
+      "variants": [
+        "radha",
+        "radhaji",
+        "raadha",
+        "radhika"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Radha Krishna Dev",
+      "variants": [
+        "radha krishna dev",
+        "radhakrishna dev",
+        "radha krishna",
+        "radhakrishna",
+        "radha krushna dev"
+      ],
+      "category": "deity",
+      "note": "Murti at Swaminarayan mandirs",
+      "verified": false
+    },
+    {
+      "canonical": "Saraswati",
+      "variants": [
+        "saraswati",
+        "sarasvati",
+        "saraswathi",
+        "saraswati maa"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Shiv",
+      "variants": [
+        "shiv",
+        "shiva",
+        "shivji",
+        "mahadev",
+        "shankar"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Shri Ram",
+      "variants": [
+        "shri ram",
+        "shree ram",
+        "sri ram",
+        "bhagwan ram",
+        "ramchandra",
+        "raam"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Sita",
+      "variants": [
+        "sita",
+        "seeta",
+        "sitaji",
+        "sita maa",
+        "sita mata"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Surya",
+      "variants": [
+        "surya",
+        "suryanarayan",
+        "surya dev",
+        "surya narayan"
+      ],
+      "category": "deity",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Vamandev",
+      "variants": [
+        "vamandev",
+        "vaman dev",
+        "vamana",
+        "vaman avatar"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Varaha",
+      "variants": [
+        "varaha",
+        "varah avatar",
+        "varah",
+        "varaha avatar"
+      ],
+      "category": "deity",
+      "note": "Avatar",
+      "verified": false
+    },
+    {
+      "canonical": "Vishnu",
+      "variants": [
+        "vishnu",
+        "vishnoo",
+        "bhagwan vishnu"
+      ],
+      "category": "deity",
+      "verified": false
+    },
+    {
+      "canonical": "Akshaya Tritiya",
+      "variants": [
+        "akshaya tritiya",
+        "akshay tritiya",
+        "akha teej",
+        "akshay trutiya"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Annakut",
+      "variants": [
+        "annakut",
+        "annakoot",
+        "anna kut",
+        "annakuta",
+        "annkut",
+        "anna koot"
+      ],
+      "category": "festival",
+      "note": "Day after Diwali",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Bhagatji Maharaj Jayanti",
+      "variants": [
+        "bhagatji maharaj jayanti",
+        "bhagatji jayanti",
+        "bhagatji janma jayanti",
+        "bhagatji maharaj janmajayanti"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Bhai Beej",
+      "variants": [
+        "bhai beej",
+        "bhai bij",
+        "bhaibeej",
+        "bhai dooj"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Cultural Festival of India",
+      "variants": [
+        "cultural festival of india",
+        "festival of india cultural",
+        "cultural festival india"
+      ],
+      "category": "festival",
+      "note": "BAPS cultural event",
+      "verified": false
+    },
+    {
+      "canonical": "Dhanteras",
+      "variants": [
+        "dhanteras",
+        "dhan teras",
+        "dhanteras puja",
+        "dhantrayodashi"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Diwali",
+      "variants": [
+        "diwali",
+        "deepavali",
+        "divali",
+        "dipavali"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Dussehra",
+      "variants": [
+        "dussehra",
+        "dasara",
+        "dashera",
+        "vijayadashami",
+        "dusshera"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Festival of Inspiration",
+      "variants": [
+        "festival of inspiration",
+        "festival of inspirations",
+        "baps festival of inspiration"
+      ],
+      "category": "festival",
+      "note": "BAPS event series",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Fuldol",
+      "variants": [
+        "fuldol",
+        "phooldol",
+        "fuldolotsav",
+        "phool dol"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Ganesh Chaturthi",
+      "variants": [
+        "ganesh chaturthi",
+        "ganesh chaturthee",
+        "ganeshotsav",
+        "ganesh utsav"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Gita Jayanti",
+      "variants": [
+        "gita jayanti",
+        "geeta jayanti",
+        "gita jayanthi",
+        "geeta jayanthi"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Gunatitanand Swami Jayanti",
+      "variants": [
+        "gunatitanand swami jayanti",
+        "gunatitanand jayanti",
+        "gunatit jayanti",
+        "gunatitanand swami janma jayanti"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Guru Purnima",
+      "variants": [
+        "guru purnima",
+        "gurupurnima",
+        "guru poornima",
+        "guru purnimaa"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Hanuman Jayanti",
+      "variants": [
+        "hanuman jayanti",
+        "hanuman jayanthi",
+        "hanumaan jayanti",
+        "hanuman janmotsav"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Hari Jayanti",
+      "variants": [
+        "hari jayanti"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Hindolo Utsav",
+      "variants": [
+        "hindolo utsav",
+        "hindola utsav"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Hindu New Year",
+      "variants": [
+        "hindu new year",
+        "bestu varas",
+        "bestu varsh",
+        "gujarati new year"
+      ],
+      "category": "festival",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Holi",
+      "variants": [
+        "holi utsav",
+        "holi dhuleti",
+        "dhuleti",
+        "holi"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Jal Jhilani Ekadashi",
+      "variants": [
+        "jal jhilani ekadashi",
+        "jal jhilni ekadashi",
+        "jalajhilani ekadashi"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Janmashtami",
+      "variants": [
+        "janmashtami",
+        "janmastami",
+        "krishna janmashtami",
+        "janmashtmi"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Kali Chaudas",
+      "variants": [
+        "kali chaudas",
+        "kali chaturdashi",
+        "kalichaudas",
+        "narak chaturdashi"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Kartik Purnima",
+      "variants": [
+        "kartik purnima",
+        "kartak purnima",
+        "kartik poornima",
+        "kartik poonam"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Labh Pancham",
+      "variants": [
+        "labh pancham",
+        "laabh pancham",
+        "labhpancham",
+        "labh panchami"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Maha Shivratri",
+      "variants": [
+        "maha shivratri",
+        "mahashivratri",
+        "maha shivaratri",
+        "shivratri",
+        "shivaratri"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Mahant Swami Maharaj Jayanti",
+      "variants": [
+        "mahant swami maharaj jayanti",
+        "mahant swami jayanti",
+        "mahant swami janma jayanti",
+        "mahant swami maharaj janmajayanti"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Makar Sankranti",
+      "variants": [
+        "makar sankranti",
+        "makar sankrant",
+        "sankranti"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Mandir Mahotsav",
+      "variants": [
+        "mandir mahotsav",
+        "mandir mahotsava",
+        "mandir utsav",
+        "mandir inauguration mahotsav"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Murti Pratishtha Mahotsav",
+      "variants": [
+        "murti pratishtha mahotsav",
+        "pratishtha mahotsav",
+        "murti pratistha mahotsav",
+        "pratishtha"
+      ],
+      "category": "festival",
+      "note": "Consecration ceremony",
+      "verified": false
+    },
+    {
+      "canonical": "Navratri",
+      "variants": [
+        "navratri",
+        "navratra",
+        "navaratri"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Nirjala Ekadashi",
+      "variants": [
+        "nirjala ekadashi",
+        "nirjala ekadasi",
+        "nirjala agiyaras",
+        "nirjala ekadashee"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Nrusinh Jayanti",
+      "variants": [
+        "nrusinh jayanti",
+        "narsinh jayanti",
+        "narasimha jayanti"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Nutan Varsh",
+      "variants": [
+        "nutan varsh",
+        "nutan varsha",
+        "nutan varshabhinandan"
+      ],
+      "category": "festival",
+      "note": "New Year",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Patotsav",
+      "variants": [
+        "patotsav",
+        "patotsava",
+        "pattotsav",
+        "patot sav"
+      ],
+      "category": "festival",
+      "note": "Mandir anniversary",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Poshi Poornima",
+      "variants": [
+        "poshi poornima",
+        "poshi purnima"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Prabodhini Ekadashi",
+      "variants": [
+        "prabodhini ekadashi",
+        "prabodhini ekadasi",
+        "dev uthi ekadashi",
+        "prabodhini agiyaras"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Pramukh Swami Maharaj Jayanti",
+      "variants": [
+        "pramukh swami maharaj jayanti",
+        "pramukh swami jayanti",
+        "pramukh swami janma jayanti",
+        "pramukh swami maharaj janmajayanti"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Pramukh Varni Din",
+      "variants": [
+        "pramukh varni din",
+        "pramukh varni diwas"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Pushpadolotsav",
+      "variants": [
+        "pushpadolotsav",
+        "pushpa dolotsav",
+        "pushpadol utsav",
+        "pushp dolotsav"
+      ],
+      "category": "festival",
+      "note": "Also called Fuldol",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Raksha Bandhan",
+      "variants": [
+        "raksha bandhan",
+        "rakshabandhan",
+        "rakhi purnima",
+        "raksha bandan"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Ram Navami",
+      "variants": [
+        "ram navmi",
+        "ram navami",
+        "ramnavmi",
+        "rama navami",
+        "ram nom",
+        "ram nawmi"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Rath Yatra",
+      "variants": [
+        "rath yatra",
+        "rathyatra",
+        "ratha yatra",
+        "rathyatraa"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Sharad Purnima",
+      "variants": [
+        "sharad purnima",
+        "sharad poonam",
+        "sharadpurnima",
+        "sharad poornima"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Shastriji Maharaj Jayanti",
+      "variants": [
+        "shastriji maharaj jayanti",
+        "shastriji jayanti",
+        "shastriji janma jayanti",
+        "shastriji maharaj janmajayanti"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Shatabdi Mahotsav",
+      "variants": [
+        "shatabdi mahotsav",
+        "shatabdi mahotsava",
+        "pramukh swami maharaj shatabdi mahotsav",
+        "centenary celebration",
+        "shatabdi utsav"
+      ],
+      "category": "festival",
+      "note": "Pramukh Swami Maharaj Centenary Celebration, Ahmedabad Dec 2022 - Jan 2023",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Jayanti",
+      "variants": [
+        "swaminarayan jayanti",
+        "swaminarayan jayanthi",
+        "swaminarayan janma jayanti",
+        "swaminarayan jayanti utsav"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Tulsi Vivah",
+      "variants": [
+        "tulsi vivah",
+        "tulsi vivaah",
+        "tulsi vivah utsav",
+        "tulasi vivah"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Uttarayan",
+      "variants": [
+        "uttarayan"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Vasant Panchami",
+      "variants": [
+        "vasant panchami",
+        "basant panchami",
+        "vasant panchmi",
+        "vasantpanchami"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Yogi Jayanti",
+      "variants": [
+        "yogi jayanti"
+      ],
+      "category": "festival",
+      "verified": true,
+      "source": "https://www.baps.org/cultureandheritage/Traditions/AnnualCelebrationsandFestivals.aspx"
+    },
+    {
+      "canonical": "Yogiji Maharaj Jayanti",
+      "variants": [
+        "yogiji maharaj jayanti",
+        "yogiji jayanti",
+        "yogiji janma jayanti",
+        "yogiji maharaj janmajayanti"
+      ],
+      "category": "festival",
+      "verified": false
+    },
+    {
+      "canonical": "Barfi",
+      "variants": [
+        "barfi",
+        "burfi",
+        "barphi",
+        "burfee"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Basundi",
+      "variants": [
+        "basundi",
+        "basundee",
+        "basoondi"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Bhakhri",
+      "variants": [
+        "bhakhri",
+        "bhakri",
+        "bhakhari",
+        "bhakhree"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Chaas",
+      "variants": [
+        "chaas",
+        "chhas",
+        "chaash",
+        "chaass"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Chikki",
+      "variants": [
+        "chikki",
+        "chiki",
+        "chikkee",
+        "chikkis"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Churma",
+      "variants": [
+        "churma",
+        "churmaa",
+        "churmo",
+        "churmu"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Dabeli",
+      "variants": [
+        "dabeli",
+        "dabelee",
+        "dabeley",
+        "dabheli"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Dal Bhat",
+      "variants": [
+        "dal bhat",
+        "dal bhaat",
+        "daal bhat",
+        "dhal bhat"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Dhokla",
+      "variants": [
+        "dhokla",
+        "dhokala",
+        "dhoklaa"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Dudhpak",
+      "variants": [
+        "dudhpak",
+        "doodhpak",
+        "dudh pak",
+        "doodh paak"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Fafda",
+      "variants": [
+        "fafda",
+        "fafdaa",
+        "phaphda"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Gathiya",
+      "variants": [
+        "gathiya",
+        "ganthiya",
+        "ganthia",
+        "gathia"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Gulab Jamun",
+      "variants": [
+        "gulab jamun",
+        "gulabjamun",
+        "gulab jamoon",
+        "gulab jaman"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Halwa",
+      "variants": [
+        "halwa",
+        "halva",
+        "halua",
+        "haluwa"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Handvo",
+      "variants": [
+        "handvo",
+        "handwa",
+        "handava",
+        "handavo"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Jalebi",
+      "variants": [
+        "jalebi",
+        "jilebi",
+        "jalebee"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Kachori",
+      "variants": [
+        "kachori",
+        "kachauri",
+        "kachodi",
+        "kachoree"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Kadhi",
+      "variants": [
+        "kadhi",
+        "kadi",
+        "karhi"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Keri no Ras",
+      "variants": [
+        "keri no ras",
+        "kerino ras",
+        "amras",
+        "aamras"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Khakhra",
+      "variants": [
+        "khakhra",
+        "khakhara",
+        "khakra"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Khaman",
+      "variants": [
+        "khaman",
+        "khamman",
+        "khamaan",
+        "khaman dhokla"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Khandvi",
+      "variants": [
+        "khandvi",
+        "khandavi",
+        "khandwi"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Kheer",
+      "variants": [
+        "kheer",
+        "khir",
+        "kheerr"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Khichdi",
+      "variants": [
+        "khichdi",
+        "khichri",
+        "kichdi",
+        "khichadi"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Ladu",
+      "variants": [
+        "ladu",
+        "laddu",
+        "ladoo",
+        "laddoo"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Mahaprasad",
+      "variants": [
+        "mahaprasad",
+        "maha prasad",
+        "mahaprasada",
+        "mahaprasadam"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Malpua",
+      "variants": [
+        "malpua",
+        "malpuwa",
+        "malpoa",
+        "malpooa"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Mesub",
+      "variants": [
+        "mesub",
+        "mesoob",
+        "mesu"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Mishri",
+      "variants": [
+        "mishri",
+        "misri",
+        "mishree"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Mohanthal",
+      "variants": [
+        "mohanthal",
+        "mohan thal",
+        "mohanthaal",
+        "mohantal"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Muthiya",
+      "variants": [
+        "muthiya",
+        "muthia",
+        "muthiyaa",
+        "muthiyas"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Panchamrut",
+      "variants": [
+        "panchamrut",
+        "panchamrit",
+        "panchamrutam",
+        "panchamrita"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Panjri",
+      "variants": [
+        "panjri",
+        "panjiri",
+        "punjri"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Papad",
+      "variants": [
+        "papad",
+        "papadam",
+        "papadi",
+        "pappad"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Patra",
+      "variants": [
+        "patra",
+        "patrel",
+        "patarvel",
+        "patravel"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Penda",
+      "variants": [
+        "penda",
+        "peda",
+        "pedha"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Prasad",
+      "variants": [
+        "prasad",
+        "prasaad",
+        "prasada",
+        "prasadam"
+      ],
+      "category": "food",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Puri",
+      "variants": [
+        "puri",
+        "poori",
+        "pooree"
+      ],
+      "category": "food",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Ras Malai",
+      "variants": [
+        "ras malai",
+        "rasmalai",
+        "rasamalai",
+        "ras malaai"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Rasgulla",
+      "variants": [
+        "rasgulla",
+        "rasagulla",
+        "rasgoola",
+        "rosogolla"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Rasoi",
+      "variants": [
+        "rasoi",
+        "rasoee",
+        "rasoyi",
+        "rasoya"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Rotli",
+      "variants": [
+        "rotli",
+        "rotlee",
+        "rotla"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Sambharo",
+      "variants": [
+        "sambharo",
+        "sambhara",
+        "sambaro",
+        "sambhaaro"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Sev",
+      "variants": [
+        "sev",
+        "sevu"
+      ],
+      "category": "food",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Shaak",
+      "variants": [
+        "shaak",
+        "shak",
+        "saak",
+        "shaaka"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Shakkarpara",
+      "variants": [
+        "shakkarpara",
+        "sakkarpara",
+        "shakarpara",
+        "shakkar para"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Sheero",
+      "variants": [
+        "sheero",
+        "sheera",
+        "shiro",
+        "shira"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Shrikhand",
+      "variants": [
+        "shrikhand",
+        "srikhand",
+        "shreekhand",
+        "shri khand"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Sukhdi",
+      "variants": [
+        "sukhdi",
+        "sukhadi",
+        "sukhri",
+        "sukhdee"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Thali",
+      "variants": [
+        "thali",
+        "thaali",
+        "thalee"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Thepla",
+      "variants": [
+        "thepla",
+        "theplas",
+        "thepala"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Undhiyu",
+      "variants": [
+        "undhiyu",
+        "undhiyo",
+        "undhiyoo",
+        "undhia"
+      ],
+      "category": "food",
+      "verified": false
+    },
+    {
+      "canonical": "Bhagatji Maharaj",
+      "variants": [
+        "bhagatji maharaj",
+        "bhagatji",
+        "bhagatjee maharaj",
+        "bhagat ji maharaj",
+        "bhagatjee"
+      ],
+      "category": "guru",
+      "note": "2nd guru",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Gunatitanand_Swami"
+    },
+    {
+      "canonical": "Bhagwan Swaminarayan",
+      "variants": [
+        "bhagwan swaminarayan",
+        "bhagwan swami narayan",
+        "bhagvan swaminarayan",
+        "bhagavan swaminarayan"
+      ],
+      "category": "guru",
+      "note": "Supreme God per BAPS",
+      "verified": false
+    },
+    {
+      "canonical": "Ghanshyam Maharaj",
+      "variants": [
+        "ghanshyam maharaj",
+        "ghanshyam",
+        "ghanshyam maharaaj",
+        "ganshyam maharaj",
+        "ghan shyam maharaj"
+      ],
+      "category": "guru",
+      "note": "Childhood name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Gunatitanand Swami",
+      "variants": [
+        "gunatitanand swami",
+        "gunatitanand swamy",
+        "gunatit anand swami",
+        "gunatitanand",
+        "gunatitanad swami",
+        "gunatitanand swamiji"
+      ],
+      "category": "guru",
+      "note": "1st guru; Aksharbrahman",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Keshavjivandas Swami",
+      "variants": [
+        "keshavjivandas swami",
+        "keshavjivan das swami",
+        "keshavjivandas",
+        "keshav jivan das swami"
+      ],
+      "category": "guru",
+      "note": "Mahant Swami's sadhu name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Mahant Swami Maharaj",
+      "variants": [
+        "mahant swami maharaj",
+        "mahant swami",
+        "mahanth swami maharaj",
+        "mahant swamy",
+        "mahant swami maharaaj",
+        "mahantswami maharaj"
+      ],
+      "category": "guru",
+      "note": "6th guru and current president",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Narayanswarupdas Swami",
+      "variants": [
+        "narayanswarupdas swami",
+        "narayan swarup das swami",
+        "narayanswarup das swami",
+        "narayanswaroopdas swami"
+      ],
+      "category": "guru",
+      "note": "Pramukh Swami's sadhu name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Nilkanth Varni",
+      "variants": [
+        "neelkanth varni",
+        "nilkanth varni",
+        "neelkanth varny",
+        "nilkanth varny",
+        "neelkanth",
+        "nilkanth",
+        "neelkanthvarni"
+      ],
+      "category": "guru",
+      "note": "Name during 7-year pilgrimage",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Pramukh Swami Maharaj",
+      "variants": [
+        "pramukh swami maharaj",
+        "pramuk swami",
+        "pramukh swamy",
+        "pramukh swami maharaaj",
+        "pramukh swami",
+        "pramukhswami maharaj"
+      ],
+      "category": "guru",
+      "note": "5th guru",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Sahajanand Swami",
+      "variants": [
+        "sahajanand swami",
+        "sahajanand swamy",
+        "sahajananda swami",
+        "sahajanand",
+        "sahaj anand swami"
+      ],
+      "category": "guru",
+      "note": "Name after diksha",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Shastriji Maharaj",
+      "variants": [
+        "shastriji maharaj",
+        "shastriji",
+        "shastri ji maharaj",
+        "shastreeji maharaj",
+        "shastrijee maharaj",
+        "shastri maharaj"
+      ],
+      "category": "guru",
+      "note": "3rd guru; founded BAPS 1907",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Shriji Maharaj",
+      "variants": [
+        "shriji maharaj",
+        "shreeji maharaj",
+        "shree ji maharaj",
+        "sriji maharaj",
+        "shrijimaharaj",
+        "shrijee maharaj"
+      ],
+      "category": "guru",
+      "note": "Reverent name for Bhagwan Swaminarayan",
+      "verified": true,
+      "source": "https://kids.baps.org/kidscreation/result/creation171.htm"
+    },
+    {
+      "canonical": "Yogiji Maharaj",
+      "variants": [
+        "yogiji maharaj",
+        "yogiji",
+        "yogi ji maharaj",
+        "yogijee maharaj",
+        "yogiji maharaaj"
+      ],
+      "category": "guru",
+      "note": "4th guru",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Acharya",
+      "variants": [
+        "acharya",
+        "acharyashri",
+        "aacharya",
+        "acharya maharaj",
+        "acharyaji"
+      ],
+      "category": "honorific",
+      "note": "Head of a diocese",
+      "verified": false
+    },
+    {
+      "canonical": "Bapa",
+      "variants": [
+        "bapaji",
+        "bapa ji",
+        "baapa",
+        "bapa maharaj",
+        "bapa",
+        "bapaa",
+        "bapji"
+      ],
+      "category": "honorific",
+      "note": "Affectionate title",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Guruhari",
+      "variants": [
+        "guruhari",
+        "guru hari",
+        "guruhari maharaj",
+        "guruharee",
+        "guruhari ji"
+      ],
+      "category": "honorific",
+      "note": "Mahant Swami Maharaj",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Kothari",
+      "variants": [
+        "kothari",
+        "kothari swami ji"
+      ],
+      "category": "honorific",
+      "note": "Temple head; also surname",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj",
+      "safe": false
+    },
+    {
+      "canonical": "Mahant",
+      "variants": [
+        "mahanth",
+        "mahant ji",
+        "mahaant",
+        "mahant swami ji",
+        "mahanta",
+        "mahant",
+        "mahants"
+      ],
+      "category": "honorific",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "safe": false
+    },
+    {
+      "canonical": "Maharaj",
+      "variants": [
+        "maharaaj",
+        "maharajshri",
+        "maharaj shri",
+        "mahaaraj",
+        "maharaj ji",
+        "maharaj",
+        "maharaja"
+      ],
+      "category": "honorific",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Param Pujya",
+      "variants": [
+        "param pujya",
+        "param poojya",
+        "parampujya",
+        "param pujay",
+        "paramapujya",
+        "parama pujya",
+        "param pujyaa"
+      ],
+      "category": "honorific",
+      "verified": false
+    },
+    {
+      "canonical": "Paramhansa",
+      "variants": [
+        "paramhansa",
+        "paramhans",
+        "paramahamsa",
+        "param hansa",
+        "paramahansa"
+      ],
+      "category": "honorific",
+      "note": "The 500 Paramhansas initiated by Bhagwan Swaminarayan",
+      "verified": false
+    },
+    {
+      "canonical": "Pramukh",
+      "variants": [
+        "pramukh",
+        "pramuk",
+        "pramookh",
+        "pramukh ji",
+        "pramukhji"
+      ],
+      "category": "honorific",
+      "note": "President",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Pujya",
+      "variants": [
+        "pujya",
+        "poojya",
+        "pujay",
+        "poojay",
+        "pujyaa",
+        "pujy"
+      ],
+      "category": "honorific",
+      "note": "Revered",
+      "verified": false
+    },
+    {
+      "canonical": "Sadguru",
+      "variants": [
+        "sadguru",
+        "sadhguru",
+        "sat guru",
+        "sadguru swami",
+        "sadgur"
+      ],
+      "category": "honorific",
+      "verified": false
+    },
+    {
+      "canonical": "Shri",
+      "variants": [
+        "shree",
+        "sri",
+        "shrii",
+        "shri ji",
+        "shri"
+      ],
+      "category": "honorific",
+      "note": "Auspicious prefix",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "safe": false
+    },
+    {
+      "canonical": "Shriji",
+      "variants": [
+        "shriji",
+        "shreeji",
+        "sriji",
+        "shrijee"
+      ],
+      "category": "honorific",
+      "verified": false
+    },
+    {
+      "canonical": "Swamibapa",
+      "variants": [
+        "swamibapa",
+        "swami bapa",
+        "swamibapaa",
+        "swami bapa yogiji"
+      ],
+      "category": "honorific",
+      "note": "Yogiji Maharaj",
+      "verified": false
+    },
+    {
+      "canonical": "Swamiji",
+      "variants": [
+        "swamiji",
+        "swamijee",
+        "swami ji",
+        "swamy ji",
+        "swaamiji"
+      ],
+      "category": "honorific",
+      "verified": false
+    },
+    {
+      "canonical": "Swamishri",
+      "variants": [
+        "swamishri",
+        "swami shri",
+        "swamishree",
+        "swamisri",
+        "swamishri maharaj",
+        "swamiji shri"
+      ],
+      "category": "honorific",
+      "note": "Reverent title of the BAPS guru",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshardham Gandhinagar",
+      "variants": [
+        "akshardham gandhinagar",
+        "gandhinagar akshardham",
+        "swaminarayan akshardham gandhinagar",
+        "akshardham gujarat"
+      ],
+      "category": "mandir",
+      "note": "1992",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshardham New Delhi",
+      "variants": [
+        "akshardham new delhi",
+        "akshardham delhi",
+        "delhi akshardham",
+        "swaminarayan akshardham delhi"
+      ],
+      "category": "mandir",
+      "note": "2005",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshardham Robbinsville",
+      "variants": [
+        "akshardham robbinsville",
+        "akshardham new jersey",
+        "akshardham nj",
+        "robbinsville akshardham",
+        "akshardham usa"
+      ],
+      "category": "mandir",
+      "note": "Opened 2023",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Atlanta Mandir",
+      "variants": [
+        "atlanta mandir",
+        "lilburn mandir",
+        "baps atlanta"
+      ],
+      "category": "mandir",
+      "note": "Lilburn GA",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Auckland Mandir",
+      "variants": [
+        "auckland mandir",
+        "baps auckland",
+        "auckland swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "New Zealand",
+      "verified": false
+    },
+    {
+      "canonical": "BAPS Hindu Mandir Abu Dhabi",
+      "variants": [
+        "baps hindu mandir abu dhabi",
+        "abu dhabi mandir",
+        "abu dhabi hindu mandir",
+        "baps abu dhabi"
+      ],
+      "category": "mandir",
+      "note": "Inaugurated 2024",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Birmingham Mandir",
+      "variants": [
+        "birmingham mandir",
+        "baps birmingham",
+        "birmingham shri swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "UK",
+      "verified": false
+    },
+    {
+      "canonical": "Bolton Mandir",
+      "variants": [
+        "bolton mandir",
+        "baps bolton",
+        "bolton shri swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "UK",
+      "verified": false
+    },
+    {
+      "canonical": "Brisbane Mandir",
+      "variants": [
+        "brisbane mandir",
+        "baps brisbane",
+        "brisbane swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Australia",
+      "verified": false
+    },
+    {
+      "canonical": "Chicago Mandir",
+      "variants": [
+        "chicago mandir",
+        "bartlett mandir",
+        "baps chicago"
+      ],
+      "category": "mandir",
+      "note": "Bartlett IL",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Chino Hills Mandir",
+      "variants": [
+        "chino hills mandir"
+      ],
+      "category": "mandir",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Dar es Salaam Mandir",
+      "variants": [
+        "dar es salaam mandir",
+        "baps dar es salaam",
+        "dar mandir"
+      ],
+      "category": "mandir",
+      "note": "Tanzania",
+      "verified": false
+    },
+    {
+      "canonical": "Edison Mandir",
+      "variants": [
+        "edison mandir",
+        "baps edison",
+        "edison new jersey mandir"
+      ],
+      "category": "mandir",
+      "note": "NJ",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Flushing Mandir",
+      "variants": [
+        "flushing mandir",
+        "new york mandir",
+        "baps new york",
+        "baps flushing"
+      ],
+      "category": "mandir",
+      "note": "Queens NY",
+      "verified": false
+    },
+    {
+      "canonical": "Hari Mandir",
+      "variants": [
+        "hari mandir",
+        "hari mandirs"
+      ],
+      "category": "mandir",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Houston Mandir",
+      "variants": [
+        "houston mandir",
+        "stafford mandir",
+        "baps houston"
+      ],
+      "category": "mandir",
+      "note": "Stafford TX",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Johannesburg Mandir",
+      "variants": [
+        "johannesburg mandir",
+        "lenasia mandir",
+        "baps johannesburg"
+      ],
+      "category": "mandir",
+      "note": "South Africa",
+      "verified": false
+    },
+    {
+      "canonical": "Kampala Mandir",
+      "variants": [
+        "kampala mandir",
+        "baps kampala",
+        "kampala swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Uganda",
+      "verified": false
+    },
+    {
+      "canonical": "Leicester Mandir",
+      "variants": [
+        "leicester mandir",
+        "baps leicester",
+        "leicester shri swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "UK",
+      "verified": false
+    },
+    {
+      "canonical": "Los Angeles Mandir",
+      "variants": [
+        "los angeles mandir",
+        "baps los angeles",
+        "chino hills"
+      ],
+      "category": "mandir",
+      "note": "Chino Hills CA",
+      "verified": false
+    },
+    {
+      "canonical": "Melbourne Mandir",
+      "variants": [
+        "melbourne mandir",
+        "baps melbourne",
+        "melbourne swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Australia",
+      "verified": false
+    },
+    {
+      "canonical": "Mombasa Mandir",
+      "variants": [
+        "mombasa mandir",
+        "baps mombasa",
+        "mombasa swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Kenya",
+      "verified": false
+    },
+    {
+      "canonical": "Nairobi Mandir",
+      "variants": [
+        "nairobi mandir",
+        "baps nairobi",
+        "nairobi swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Kenya",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Neasden Mandir",
+      "variants": [
+        "neasden mandir",
+        "neasden",
+        "london mandir"
+      ],
+      "category": "mandir",
+      "note": "BAPS Shri Swaminarayan Mandir London, 1995",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Perth Mandir",
+      "variants": [
+        "perth mandir",
+        "baps perth",
+        "perth swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Australia",
+      "verified": false
+    },
+    {
+      "canonical": "Shikharbaddha Mandir",
+      "variants": [
+        "shikharbaddha mandir",
+        "shikharbaddha mandirs",
+        "shikhar baddha mandir",
+        "shikharbadh mandir"
+      ],
+      "category": "mandir",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Sydney Mandir",
+      "variants": [
+        "sydney mandir",
+        "baps sydney",
+        "sydney swaminarayan mandir"
+      ],
+      "category": "mandir",
+      "note": "Australia",
+      "verified": false
+    },
+    {
+      "canonical": "Toronto Mandir",
+      "variants": [
+        "toronto mandir",
+        "etobicoke mandir",
+        "baps toronto"
+      ],
+      "category": "mandir",
+      "note": "Canada",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ahmedabad Gadi",
+      "variants": [
+        "ahmedabad gadi",
+        "amdavad gadi",
+        "ahmedabad gaadi",
+        "nar narayan dev gadi"
+      ],
+      "category": "organisation",
+      "verified": false
+    },
+    {
+      "canonical": "BAPS",
+      "variants": [
+        "baps",
+        "b a p s",
+        "bap s",
+        "baps swaminarayan",
+        "baaps"
+      ],
+      "category": "organisation",
+      "note": "Bochasanwasi Akshar Purushottam Swaminarayan Sanstha",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "BAPS Care International",
+      "variants": [
+        "baps care international",
+        "baps care",
+        "baps care int",
+        "baps care intl"
+      ],
+      "category": "organisation",
+      "verified": false
+    },
+    {
+      "canonical": "BAPS Charities",
+      "variants": [
+        "baps charities",
+        "baps charity",
+        "baps charitees",
+        "baps charities usa"
+      ],
+      "category": "organisation",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Bochasanwasi Akshar Purushottam Swaminarayan Sanstha",
+      "variants": [
+        "bochasanwasi akshar purushottam swaminarayan sanstha",
+        "bochasanwasi akshar purushottam swaminarayan sansthan",
+        "bochasanwasi shri akshar purushottam swaminarayan sanstha",
+        "bochasanwasi akshar purushottam sanstha"
+      ],
+      "category": "organisation",
+      "note": "Full name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Parliament of the World's Religions",
+      "variants": [
+        "parliament of the world's religions",
+        "parliament of world religions",
+        "parliament of the worlds religions",
+        "world parliament of religions"
+      ],
+      "category": "organisation",
+      "verified": false
+    },
+    {
+      "canonical": "Sanstha",
+      "variants": [
+        "sanstha",
+        "sansthaa",
+        "sanstaa",
+        "sansthan"
+      ],
+      "category": "organisation",
+      "note": "Institution; BAPS",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Aksharpith",
+      "variants": [
+        "swaminarayan aksharpith",
+        "swaminarayan akshar pith",
+        "aksharpith",
+        "akshar pith",
+        "swaminarayan aksharpeeth"
+      ],
+      "category": "organisation",
+      "note": "BAPS publishing",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Swaminarayan Gadi",
+      "variants": [
+        "swaminarayan gadi",
+        "swaminarayan gaadi",
+        "swaminarayan gaddi"
+      ],
+      "category": "organisation",
+      "note": "Seat of acharya",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Sampradaya",
+      "variants": [
+        "swaminarayan sampradaya",
+        "swaminarayan sampraday",
+        "swaminarayan sampradaay",
+        "swaminarayan sect",
+        "swaminarayan fellowship"
+      ],
+      "category": "organisation",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Swaminarayan Vidyamandir",
+      "variants": [
+        "swaminarayan vidyamandir",
+        "swaminarayan vidya mandir",
+        "vidyamandir",
+        "swaminarayan vidyaamandir"
+      ],
+      "category": "organisation",
+      "note": "BAPS schools",
+      "verified": false
+    },
+    {
+      "canonical": "Vadtal Gadi",
+      "variants": [
+        "vadtal gadi",
+        "vadtal gaadi",
+        "vadtal gaddi",
+        "vadtal diocese"
+      ],
+      "category": "organisation",
+      "verified": false
+    },
+    {
+      "canonical": "Yogi Divine Society",
+      "variants": [
+        "yogi divine society",
+        "yogi divine soceity",
+        "yogi divine",
+        "yds society"
+      ],
+      "category": "organisation",
+      "verified": false
+    },
+    {
+      "canonical": "Abdul Kalam",
+      "variants": [
+        "abdul kalam",
+        "apj abdul kalam",
+        "a p j abdul kalam",
+        "dr kalam"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Abji Bapashri",
+      "variants": [
+        "abji bapashri",
+        "abji bapashree",
+        "abjibapashri",
+        "abji bapa shri"
+      ],
+      "category": "person",
+      "note": "Gadhada devotee",
+      "verified": false
+    },
+    {
+      "canonical": "Ahilya",
+      "variants": [
+        "ahilya",
+        "ahalya",
+        "ahilyaa",
+        "ahilya devi"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Akrur",
+      "variants": [
+        "akrur",
+        "akrura",
+        "akroor",
+        "akrurji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Ambarish",
+      "variants": [
+        "ambarish",
+        "ambarisha",
+        "ambrish",
+        "raja ambarish"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Arjun",
+      "variants": [
+        "arjun",
+        "arjuna",
+        "arjoon",
+        "arjun pandav"
+      ],
+      "category": "person",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Atal Bihari Vajpayee",
+      "variants": [
+        "atal bihari vajpayee",
+        "atalji",
+        "vajpayee",
+        "atal bihari vajpai"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Ayodhyaprasadji Maharaj",
+      "variants": [
+        "ayodhyaprasadji maharaj",
+        "ayodhyaprasad ji maharaj",
+        "ayodhyaprasadji",
+        "ayodhya prasadji maharaj",
+        "ayodhyaprasad"
+      ],
+      "category": "person",
+      "note": "Nephew; acharya of Ahmedabad",
+      "verified": false
+    },
+    {
+      "canonical": "Balram",
+      "variants": [
+        "balram",
+        "balaram",
+        "baldev",
+        "balarama"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Bhaktimata",
+      "variants": [
+        "bhaktimata",
+        "bhakti mata",
+        "bhaktimaata",
+        "bhaktimata ji"
+      ],
+      "category": "person",
+      "note": "Mother of Bhagwan Swaminarayan",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Bhishma",
+      "variants": [
+        "bhishma",
+        "bheeshma",
+        "bhishm",
+        "bhishma pitamah"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Chaitanya Mahaprabhu",
+      "variants": [
+        "chaitanya mahaprabhu",
+        "caitanya mahaprabhu",
+        "chaitanya prabhu"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Dada Khachar",
+      "variants": [
+        "dada khachar",
+        "dada kachar",
+        "dadakhachar",
+        "dada khachhar"
+      ],
+      "category": "person",
+      "note": "Gadhada devotee",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Dashrath",
+      "variants": [
+        "dashrath",
+        "dasharatha",
+        "dasrath",
+        "dashrath raja"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Dayanand Saraswati",
+      "variants": [
+        "dayanand saraswati",
+        "swami dayanand",
+        "dayananda saraswati",
+        "dayanand saraswatee"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Devaki",
+      "variants": [
+        "devaki",
+        "devakee",
+        "devaki maa",
+        "devki"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Dharmadev",
+      "variants": [
+        "dharmadev",
+        "dharma dev",
+        "dharmadeva",
+        "dharmdev"
+      ],
+      "category": "person",
+      "note": "Father of Bhagwan Swaminarayan",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Dhruv",
+      "variants": [
+        "dhruv",
+        "dhruva",
+        "dhruv bhagat",
+        "dhruv maharaj"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Draupadi",
+      "variants": [
+        "draupadi",
+        "draupadee",
+        "droupadi",
+        "draupadi devi"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Hiranyakashipu",
+      "variants": [
+        "hiranyakashipu",
+        "hiranyakashyap",
+        "hiranyakashipu raja",
+        "hirnakashyap"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Ichharam",
+      "variants": [
+        "ichharam",
+        "ichcharam",
+        "icchharam",
+        "ichha ram",
+        "ichchharam"
+      ],
+      "category": "person",
+      "note": "Brother of Bhagwan Swaminarayan",
+      "verified": false
+    },
+    {
+      "canonical": "Janak",
+      "variants": [
+        "janak",
+        "janaka",
+        "raja janak",
+        "janak maharaj"
+      ],
+      "category": "person",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Jivuba",
+      "variants": [
+        "jivuba",
+        "jeevuba",
+        "jivoo ba",
+        "jivu ba"
+      ],
+      "category": "person",
+      "note": "Dada Khachar's daughter",
+      "verified": false
+    },
+    {
+      "canonical": "Joban Pagi",
+      "variants": [
+        "joban pagi",
+        "joban pagee",
+        "jobanpagi",
+        "joban paagi"
+      ],
+      "category": "person",
+      "note": "Dacoit turned devotee",
+      "verified": false
+    },
+    {
+      "canonical": "Kabir",
+      "variants": [
+        "kabir",
+        "kabeer",
+        "sant kabir",
+        "kabir das"
+      ],
+      "category": "person",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Kans",
+      "variants": [
+        "kans",
+        "kansa",
+        "kans raja",
+        "kamsa"
+      ],
+      "category": "person",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Karna",
+      "variants": [
+        "karna",
+        "karan pandav",
+        "karn",
+        "daanveer karna"
+      ],
+      "category": "person",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Kaushalya",
+      "variants": [
+        "kaushalya",
+        "kausalya",
+        "kaushalya maa",
+        "koshalya"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Kunti",
+      "variants": [
+        "kunti",
+        "kuntee",
+        "kunti maa",
+        "kunthi"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Laduba",
+      "variants": [
+        "laduba",
+        "ladu ba",
+        "laaduba",
+        "ladoo ba"
+      ],
+      "category": "person",
+      "note": "Dada Khachar's daughter",
+      "verified": false
+    },
+    {
+      "canonical": "Lakshman",
+      "variants": [
+        "lakshman",
+        "laxman",
+        "lakshmana",
+        "laxmanji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Madhvacharya",
+      "variants": [
+        "madhvacharya",
+        "madhva acharya",
+        "madhwacharya",
+        "madhvacharyaji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Mahatma Gandhi",
+      "variants": [
+        "mahatma gandhi",
+        "gandhiji",
+        "mohandas gandhi",
+        "gandhi bapu"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Mayaram Bhatt",
+      "variants": [
+        "mayaram bhatt",
+        "maya ram bhatt",
+        "mayaram bhat",
+        "mayarambhatt"
+      ],
+      "category": "person",
+      "note": "Early devotee",
+      "verified": false
+    },
+    {
+      "canonical": "Mirabai",
+      "variants": [
+        "mirabai",
+        "meerabai",
+        "meera bai",
+        "mira bai"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Mulji Sharma",
+      "variants": [
+        "mulji sharma",
+        "mulji",
+        "mooljee sharma",
+        "mulji sarma"
+      ],
+      "category": "person",
+      "note": "Gunatitanand Swami's birth name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Narad",
+      "variants": [
+        "narad",
+        "narada",
+        "narad muni",
+        "naradji"
+      ],
+      "category": "person",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Narendra Modi",
+      "variants": [
+        "narendra modi",
+        "narendrabhai modi",
+        "prime minister modi",
+        "modiji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Narsinh Mehta",
+      "variants": [
+        "narsinh mehta",
+        "narsingh mehta",
+        "narsi mehta",
+        "narsinh mehta bhagat"
+      ],
+      "category": "person",
+      "note": "Gujarati poet-saint",
+      "verified": false
+    },
+    {
+      "canonical": "Parikshit",
+      "variants": [
+        "parikshit",
+        "parikshita",
+        "pariksit",
+        "raja parikshit"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Prahlad",
+      "variants": [
+        "prahlad",
+        "prahlada",
+        "prahalad",
+        "prahladji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Raghuvirji Maharaj",
+      "variants": [
+        "raghuvirji maharaj",
+        "raghuvir ji maharaj",
+        "raghuvirjee maharaj",
+        "raghuvirji"
+      ],
+      "category": "person",
+      "note": "Nephew; acharya of Vadtal",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Gunatitanand_Swami"
+    },
+    {
+      "canonical": "Ramakrishna Paramhansa",
+      "variants": [
+        "ramakrishna paramhansa",
+        "ramakrishna paramahamsa",
+        "ramkrishna paramhans",
+        "sri ramakrishna"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Ramanand Swami",
+      "variants": [
+        "ramanand swami",
+        "ramananda swami",
+        "ramanand swamy",
+        "ramanand swamiji"
+      ],
+      "category": "person",
+      "note": "Guru of Neelkanth Varni",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ramanujacharya",
+      "variants": [
+        "ramanujacharya",
+        "ramanuj acharya",
+        "ramanujacharyaji",
+        "ramanujacharia"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Ravan",
+      "variants": [
+        "ravan",
+        "ravana",
+        "raavan",
+        "ravan raja"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Rukmini",
+      "variants": [
+        "rukmini",
+        "rukmani",
+        "rukminiji",
+        "rukmini devi"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Sardar Patel",
+      "variants": [
+        "sardar patel",
+        "sardar vallabhbhai patel",
+        "vallabhbhai patel",
+        "sardar vallabhai patel"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Shabri",
+      "variants": [
+        "shabri",
+        "shabari",
+        "sabari",
+        "shabri maa"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Shankaracharya",
+      "variants": [
+        "shankaracharya",
+        "adi shankaracharya",
+        "shankaracharyaji",
+        "shankar acharya"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Shantilal Patel",
+      "variants": [
+        "shantilal patel",
+        "shantilal",
+        "shanti lal patel",
+        "shantilal bhai"
+      ],
+      "category": "person",
+      "note": "Pramukh Swami's birth name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Shastri Yagnapurushdas",
+      "variants": [
+        "shastri yagnapurushdas",
+        "yagnapurushdas swami",
+        "yagnapurush das",
+        "yagnapurushdas",
+        "shastri yagna purush das"
+      ],
+      "category": "person",
+      "note": "Shastriji Maharaj's sadhu name",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Shukdevji",
+      "variants": [
+        "shukdevji",
+        "shukdev",
+        "shukdeoji",
+        "shukadeva"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Sudama",
+      "variants": [
+        "sudama",
+        "sudaama",
+        "sudama bhakta",
+        "sudamaji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Sundarji Suthar",
+      "variants": [
+        "sundarji suthar",
+        "sundar ji suthar",
+        "sundarjee suthar",
+        "sundarji sutar"
+      ],
+      "category": "person",
+      "note": "Devotee of Bhagwan Swaminarayan",
+      "verified": false
+    },
+    {
+      "canonical": "Surdas",
+      "variants": [
+        "surdas",
+        "sur das",
+        "soordas",
+        "sant surdas"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Swami Vivekananda",
+      "variants": [
+        "swami vivekananda",
+        "vivekanand",
+        "vivekananda",
+        "swami vivekanand"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Tulsidas",
+      "variants": [
+        "tulsidas",
+        "tulsi das",
+        "goswami tulsidas",
+        "tulsidasji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Uddhav",
+      "variants": [
+        "uddhav",
+        "uddhava",
+        "udhav",
+        "uddhavji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Vallabhacharya",
+      "variants": [
+        "vallabhacharya",
+        "vallabh acharya",
+        "vallabhacharyaji",
+        "vallabhacharia"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Valmiki",
+      "variants": [
+        "valmiki",
+        "valmeeki",
+        "valmik",
+        "maharshi valmiki"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Vasudev",
+      "variants": [
+        "vasudev",
+        "vasudeva",
+        "vasudev ji",
+        "vasudeo"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Vibhishan",
+      "variants": [
+        "vibhishan",
+        "vibhishana",
+        "vibheeshan",
+        "vibhisan"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Vidur",
+      "variants": [
+        "vidur",
+        "vidura",
+        "vidur ji",
+        "vidurji"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Vyas",
+      "variants": [
+        "vyas",
+        "vyasa",
+        "ved vyas",
+        "vedvyas",
+        "maharshi vyas"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Yashoda",
+      "variants": [
+        "yashoda",
+        "yasoda",
+        "yashodaji",
+        "yashoda maiya"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Yudhishthir",
+      "variants": [
+        "yudhishthir",
+        "yudhishthira",
+        "yudhisthir",
+        "yudhishtir"
+      ],
+      "category": "person",
+      "verified": false
+    },
+    {
+      "canonical": "Akshar Purushottam Maharaj ni Jay",
+      "variants": [
+        "akshar purushottam maharaj ni jay",
+        "akshar purushottam maharaj ni jai",
+        "akshar purushottam maharaj nee jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Atithi Devo Bhava",
+      "variants": [
+        "atithi devo bhava",
+        "atithi devo bhavah",
+        "athithi devo bhava",
+        "atithidevo bhava"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Bhagatji Maharaj ni Jay",
+      "variants": [
+        "bhagatji maharaj ni jay",
+        "bhagatji maharaj ni jai",
+        "bhagat ji maharaj ni jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Bolo Swaminarayan Bhagwan ki Jai",
+      "variants": [
+        "bolo swaminarayan bhagwan ki jai",
+        "bolo swaminarayan bhagwan ki jay",
+        "swaminarayan bhagwan ki jai",
+        "swaminarayan bhagwan ki jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Dhanya Dhanya",
+      "variants": [
+        "dhanya dhanya",
+        "dhanya dhanya ho",
+        "dhanya dhanya hai",
+        "dhanya dhanyaa"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Gunatitanand Swami ni Jay",
+      "variants": [
+        "gunatitanand swami ni jay",
+        "gunatitanand swami ni jai",
+        "gunatitanand swami nee jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Har Har Mahadev",
+      "variants": [
+        "har har mahadev",
+        "har har mahaadev",
+        "hara hara mahadeva",
+        "har har mahadeva"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Hare Krishna",
+      "variants": [
+        "hare krishna",
+        "hare krishna hare rama",
+        "hare krsna",
+        "hare krishnaa"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Hari Om Tat Sat",
+      "variants": [
+        "hari om tat sat",
+        "hari aum tat sat",
+        "hari om tatsat",
+        "hari om tat sath"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Hey Prabhu",
+      "variants": [
+        "hey prabhu",
+        "he prabhu",
+        "hey prabhoo",
+        "hey prabu"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Jai Naad",
+      "variants": [
+        "jai naad",
+        "jay naad",
+        "jai nad"
+      ],
+      "category": "phrase",
+      "note": "Ordered chant of Jai to the guru parampara",
+      "verified": false
+    },
+    {
+      "canonical": "Jai Shri Krishna",
+      "variants": [
+        "jai shri krishna",
+        "jay shri krishna",
+        "jai sri krishna",
+        "jay shree krishna"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Jai Shri Ram",
+      "variants": [
+        "jai shri ram",
+        "jay shri ram",
+        "jai sri ram",
+        "jay shree ram"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Jai Swaminarayan",
+      "variants": [
+        "jai swaminarayan",
+        "jay swaminarayan",
+        "jai swami narayan",
+        "jai swaminarayana",
+        "jaya swaminarayan",
+        "jay swaminarayana",
+        "jai swaminaaraayan",
+        "jay swaminarayn",
+        "jai swaminarain",
+        "jay swami narayan"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Kem Cho",
+      "variants": [
+        "kem cho",
+        "kem chho",
+        "kem chhe",
+        "kem cho majama"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Mahant Swami Maharaj ni Jay",
+      "variants": [
+        "mahant swami maharaj ni jay",
+        "mahant swami maharaj ni jai",
+        "mahant swami maharaj nee jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Majama",
+      "variants": [
+        "majama",
+        "maja ma",
+        "majaama",
+        "majamaa"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Matru Devo Bhava",
+      "variants": [
+        "matru devo bhava",
+        "matri devo bhava",
+        "matru devo bhavah",
+        "maatru devo bhava"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Narayan Narayan",
+      "variants": [
+        "narayan narayan",
+        "narayana narayana",
+        "narayan narayana",
+        "naraayan naraayan"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Om Namah Shivaya",
+      "variants": [
+        "om namah shivaya",
+        "om namah shivay",
+        "om namaha shivaya",
+        "aum namah shivaya"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Om Namo Narayanaya",
+      "variants": [
+        "om namo narayanaya",
+        "om namo narayana",
+        "om namo narayanay",
+        "aum namo narayanaya"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Om Shanti",
+      "variants": [
+        "om shanti",
+        "om shaanti",
+        "om shantih",
+        "aum shanti"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Pramukh Swami Maharaj ni Jay",
+      "variants": [
+        "pramukh swami maharaj ni jay",
+        "pramukh swami maharaj ni jai",
+        "pramukh swami maharaj nee jay",
+        "pramukh swami maharaaj ni jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Radhe Krishna",
+      "variants": [
+        "radhe krishna",
+        "radhey krishna",
+        "radhe krsna",
+        "radhe krishnaa"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Ram Ram",
+      "variants": [
+        "ram ram",
+        "raam raam",
+        "rama rama",
+        "ram raam"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Sarve Bhavantu Sukhinah",
+      "variants": [
+        "sarve bhavantu sukhinah",
+        "sarve bhavantu sukhina",
+        "sarve bhavantu sukhinaha",
+        "sarvey bhavantu sukhinah"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Satyam Shivam Sundaram",
+      "variants": [
+        "satyam shivam sundaram",
+        "satyam shivam sunderam",
+        "satyam sivam sundaram",
+        "satyam shivam sundram"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Shanti Shanti Shanti",
+      "variants": [
+        "shanti shanti shanti",
+        "shaanti shaanti shaanti",
+        "shantih shantih shantih",
+        "santi santi santi"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Shastriji Maharaj ni Jay",
+      "variants": [
+        "shastriji maharaj ni jay",
+        "shastriji maharaj ni jai",
+        "shastri ji maharaj ni jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Shriji Maharaj ni Jay",
+      "variants": [
+        "shriji maharaj ni jay",
+        "shriji maharaj ni jai",
+        "shreeji maharaj ni jay",
+        "shriji maharaj nee jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Shubh Prabhat",
+      "variants": [
+        "shubh prabhat",
+        "shubha prabhat",
+        "shubh prabhaat",
+        "subh prabhat"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Shubh Ratri",
+      "variants": [
+        "shubh ratri",
+        "shubha ratri",
+        "shubh raatri",
+        "shubh ratree"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Bapa",
+      "variants": [
+        "swaminarayan bapa",
+        "swaminarayan baapa",
+        "swaminarayan bapaa"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Dhun",
+      "variants": [
+        "swaminarayan dhun",
+        "swaminarayan dhoon",
+        "swaminarayan swaminarayan",
+        "swaminarayan dhunn"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Swamishri ni Jay",
+      "variants": [
+        "swamishri ni jay",
+        "swamishri ni jai",
+        "swamishree ni jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Vasudhaiva Kutumbakam",
+      "variants": [
+        "vasudhaiva kutumbakam",
+        "vasudhaiva kutumbhakam",
+        "vasudaiva kutumbakam",
+        "vasudheva kutumbakam"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Yogiji Maharaj ni Jay",
+      "variants": [
+        "yogiji maharaj ni jay",
+        "yogiji maharaj ni jai",
+        "yogi ji maharaj ni jay"
+      ],
+      "category": "phrase",
+      "verified": false
+    },
+    {
+      "canonical": "Ahmedabad",
+      "variants": [
+        "ahmedabad",
+        "amdavad",
+        "ahmadabad",
+        "ahmedavad",
+        "amadavad"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshar Deri",
+      "variants": [
+        "akshar deri",
+        "aksharderi",
+        "akshar dehri",
+        "akshar deree"
+      ],
+      "category": "place",
+      "note": "Gunatitanand Swami cremation site, Gondal",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Akshardham",
+      "variants": [
+        "akshardham",
+        "akshar dham",
+        "akshardhaam",
+        "akshardham mandir"
+      ],
+      "category": "place",
+      "note": "Divine abode; also name of monuments",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ambli Vali Pol",
+      "variants": [
+        "ambli vali pol",
+        "ambli vadi pol",
+        "ambli-vali pol"
+      ],
+      "category": "place",
+      "note": "Ahmedabad pol associated with Shastriji Maharaj",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Anand",
+      "variants": [
+        "anand gujarat",
+        "anand town",
+        "anand district",
+        "anand"
+      ],
+      "category": "place",
+      "note": "City in Gujarat",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Atladra",
+      "variants": [
+        "atladra",
+        "atladara",
+        "atladraa",
+        "atlandra"
+      ],
+      "category": "place",
+      "note": "Pramukh Swami's early associations",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Ayodhya",
+      "variants": [
+        "ayodhya",
+        "ayodhaya",
+        "ayodhyaa",
+        "ayodhya dham"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Badrinath",
+      "variants": [
+        "badrinath",
+        "badrinaath",
+        "badri nath",
+        "badrinarayan"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Bharat",
+      "variants": [
+        "bharat",
+        "bharath",
+        "bharat desh",
+        "bharatvarsh"
+      ],
+      "category": "place",
+      "note": "India",
+      "verified": false
+    },
+    {
+      "canonical": "Bhavnagar",
+      "variants": [
+        "bhavnagar",
+        "bhavnager",
+        "bhaavnagar"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Bhuj",
+      "variants": [
+        "bhuj",
+        "bhuj mandir",
+        "bhooj"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Bochasan",
+      "variants": [
+        "bochasan",
+        "bochasanwasi",
+        "bochasan gam",
+        "bochasaan"
+      ],
+      "category": "place",
+      "note": "BAPS namesake",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Gunatitanand_Swami"
+    },
+    {
+      "canonical": "Chansad",
+      "variants": [
+        "chansad",
+        "chansaad",
+        "chhansad",
+        "chaansad"
+      ],
+      "category": "place",
+      "note": "Pramukh Swami's birthplace",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Chhapaiya",
+      "variants": [
+        "chhapaiya",
+        "chhapaya",
+        "chhapia",
+        "chapaiya",
+        "chhappaiya"
+      ],
+      "category": "place",
+      "note": "Birthplace of Bhagwan Swaminarayan",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Dholera",
+      "variants": [
+        "dholera",
+        "dholaira",
+        "dholeraa",
+        "dholera gam"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Dwarka",
+      "variants": [
+        "dwarka",
+        "dwaraka",
+        "dvarka",
+        "dwarka dham"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Gadhada",
+      "variants": [
+        "gadhada",
+        "gadhpur",
+        "gadhda",
+        "gadada",
+        "gadhdha"
+      ],
+      "category": "place",
+      "note": "Gadhpur; Vachanamrut sermons",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Gandhinagar",
+      "variants": [
+        "gandhinagar",
+        "gandhi nagar",
+        "gandhinagaar"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ganga",
+      "variants": [
+        "ganga",
+        "ganges",
+        "gangaji",
+        "ganga maiya"
+      ],
+      "category": "place",
+      "note": "River",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Girnar",
+      "variants": [
+        "girnar",
+        "girnaar",
+        "girnar hill",
+        "mount girnar"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Gondal",
+      "variants": [
+        "gondal",
+        "gondaal",
+        "gondal mandir",
+        "gondhal"
+      ],
+      "category": "place",
+      "note": "Akshar Deri",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Pramukh_Swami_Maharaj"
+    },
+    {
+      "canonical": "Gujarat",
+      "variants": [
+        "gujarat",
+        "gujrat",
+        "gujarath",
+        "gujraat"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Haridwar",
+      "variants": [
+        "haridwar",
+        "hardwar",
+        "haridwaar",
+        "hari dwar"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Himalaya",
+      "variants": [
+        "himalaya",
+        "himalayas",
+        "himaalaya",
+        "himalay"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Jagannath Puri",
+      "variants": [
+        "jagannath puri",
+        "jagannathpuri",
+        "puri jagannath",
+        "jaganath puri"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Jamnagar",
+      "variants": [
+        "jamnagar",
+        "jamnager",
+        "jaamnagar"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Jetalpur",
+      "variants": [
+        "jetalpur",
+        "jetpur",
+        "jetalapur",
+        "jetalpur gam"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Junagadh",
+      "variants": [
+        "junagadh",
+        "junagarh",
+        "junagadha",
+        "junagad"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Kalupur",
+      "variants": [
+        "kalupur",
+        "kalupura",
+        "kaalupur",
+        "kalupur mandir"
+      ],
+      "category": "place",
+      "note": "Ahmedabad mandir",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Kariyani",
+      "variants": [
+        "kariyani",
+        "kariyaani",
+        "kariani",
+        "kariyani gam"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Kashi",
+      "variants": [
+        "kashi",
+        "varanasi",
+        "banaras",
+        "benares",
+        "kaashi"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha",
+      "safe": false
+    },
+    {
+      "canonical": "Kedarnath",
+      "variants": [
+        "kedarnath",
+        "kedarnaath",
+        "kedar nath",
+        "kedarnath dham"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Kutch",
+      "variants": [
+        "kutch",
+        "kachchh",
+        "kachh",
+        "kuchh"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Loj",
+      "variants": [
+        "loj",
+        "loj gam",
+        "loje",
+        "loj village"
+      ],
+      "category": "place",
+      "note": "Muktanand Swami Mandir",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Mahelav",
+      "variants": [
+        "mahelav",
+        "mahelaav",
+        "mahelaw",
+        "mahelav gam"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Mangrol",
+      "variants": [
+        "mangrol",
+        "mangarol",
+        "mangrol gam",
+        "mangrole"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Mathura",
+      "variants": [
+        "mathura",
+        "mathuraa",
+        "mathurapuri"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Mumbai",
+      "variants": [
+        "mumbai",
+        "bombay",
+        "mumbay"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Nadiad",
+      "variants": [
+        "nadiad",
+        "nadiyad",
+        "nadiaad"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Narmada",
+      "variants": [
+        "narmada",
+        "narmadaa",
+        "narmada river",
+        "narmada maa"
+      ],
+      "category": "place",
+      "note": "River",
+      "verified": false
+    },
+    {
+      "canonical": "Nashik",
+      "variants": [
+        "nashik",
+        "nasik",
+        "nashikk"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Panchala",
+      "variants": [
+        "panchala",
+        "panchaala",
+        "panchal",
+        "panchala gam"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Pandharpur",
+      "variants": [
+        "pandharpur",
+        "pandharpoor",
+        "pandarpur",
+        "pandharpura"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Prayagraj",
+      "variants": [
+        "prayagraj",
+        "prayag",
+        "allahabad",
+        "prayagraaj"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Rajkot",
+      "variants": [
+        "rajkot",
+        "rajkott",
+        "raajkot"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Rameshwaram",
+      "variants": [
+        "rameshwaram",
+        "rameswaram",
+        "rameshvaram",
+        "rameshwar"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Rishikesh",
+      "variants": [
+        "rishikesh",
+        "hrishikesh",
+        "rushikesh",
+        "rishikesha"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Sarangpur",
+      "variants": [
+        "sarangpur",
+        "sarangapur",
+        "saarangpur",
+        "salangpur",
+        "sarangpur mandir"
+      ],
+      "category": "place",
+      "note": "Kashtabhanjan Dev",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Saurashtra",
+      "variants": [
+        "saurashtra",
+        "sourashtra",
+        "saurastra",
+        "kathiawad"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Shahibaug",
+      "variants": [
+        "shahibaug",
+        "shahibag",
+        "shahi baug",
+        "shaahibaug",
+        "shahibaugh"
+      ],
+      "category": "place",
+      "note": "Ahmedabad BAPS campus",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Shayona",
+      "variants": [
+        "shayona"
+      ],
+      "category": "place",
+      "note": "Mandir vegetarian restaurant name",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Sokhda",
+      "variants": [
+        "sokhda",
+        "sokhada",
+        "sokada",
+        "sokhda haridham"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Somnath",
+      "variants": [
+        "somnath",
+        "somnaath",
+        "somnath mandir"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Surat",
+      "variants": [
+        "surat",
+        "soorat",
+        "surat mandir"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Nagar",
+      "variants": [
+        "swaminarayan nagar",
+        "swaminarayan nagar ahmedabad",
+        "pramukh swami nagar",
+        "swaminarayannagar"
+      ],
+      "category": "place",
+      "note": "Festival grounds name used for Shatabdi Mahotsav",
+      "verified": false
+    },
+    {
+      "canonical": "Tirupati",
+      "variants": [
+        "tirupati",
+        "tirupathi",
+        "tirupatee",
+        "tirumala"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Ujjain",
+      "variants": [
+        "ujjain",
+        "ujjaini",
+        "ujain",
+        "ujjayini"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Vadodara",
+      "variants": [
+        "vadodara",
+        "baroda",
+        "vadodra"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Vadtal",
+      "variants": [
+        "vadtal",
+        "vadthal",
+        "vadtaal",
+        "vadtal dham"
+      ],
+      "category": "place",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Vrindavan",
+      "variants": [
+        "vrindavan",
+        "vrundavan",
+        "brindavan",
+        "vrindaavan"
+      ],
+      "category": "place",
+      "verified": false
+    },
+    {
+      "canonical": "Yamuna",
+      "variants": [
+        "yamuna",
+        "jamuna",
+        "yamunaji",
+        "yamuna river"
+      ],
+      "category": "place",
+      "note": "River",
+      "verified": false
+    },
+    {
+      "canonical": "Abhishek",
+      "variants": [
+        "abhishek",
+        "abhisheka",
+        "abhishekam"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Arti",
+      "variants": [
+        "arti",
+        "aarti",
+        "aarthi",
+        "arati"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Bhagwati Diksha",
+      "variants": [
+        "bhagwati diksha",
+        "bhagvati diksha",
+        "bhagwati deeksha"
+      ],
+      "category": "ritual",
+      "note": "Sadhu initiation",
+      "verified": false
+    },
+    {
+      "canonical": "Bhajan",
+      "variants": [
+        "bhajan",
+        "bhajans",
+        "bhajana"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Chandan",
+      "variants": [
+        "chandan",
+        "chandana",
+        "chandhan"
+      ],
+      "category": "ritual",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Chandlo",
+      "variants": [
+        "chandlo",
+        "chandalo",
+        "chandla"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Charan Raj",
+      "variants": [
+        "charan raj",
+        "charanraj",
+        "charan raaj"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Charanamrut",
+      "variants": [
+        "charanamrut",
+        "charnamrut",
+        "charanamrit",
+        "charan amrut"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Chaturmas",
+      "variants": [
+        "chaturmas",
+        "chaturmaas",
+        "chaaturmas",
+        "chaturmas vrat",
+        "chaturmasa"
+      ],
+      "category": "ritual",
+      "note": "Four-month period of observances",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Chopda Pujan",
+      "variants": [
+        "chopda pujan",
+        "chopda poojan",
+        "chopra pujan"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Dandvat Pranam",
+      "variants": [
+        "dandvat pranam",
+        "dandvat",
+        "dandavat pranam",
+        "dandwat pranam"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Darshan",
+      "variants": [
+        "darshan",
+        "darshun",
+        "darsan",
+        "darshanam"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Deepak",
+      "variants": [
+        "deepak",
+        "dipak",
+        "deepaka"
+      ],
+      "category": "ritual",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Dhoop",
+      "variants": [
+        "dhoop",
+        "dhup",
+        "dhupa"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Dhun",
+      "variants": [
+        "dhun",
+        "dhoon",
+        "dhunn"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Dhyan",
+      "variants": [
+        "dhyan",
+        "dhyaan",
+        "dhyana"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Diksha",
+      "variants": [
+        "diksha",
+        "deeksha",
+        "diksa"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Diva",
+      "variants": [
+        "diva",
+        "deevo",
+        "divo",
+        "divas"
+      ],
+      "category": "ritual",
+      "note": "Oil lamp",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Ekadashi",
+      "variants": [
+        "ekadashi",
+        "ekadasi",
+        "agiyaras",
+        "ekadashee",
+        "ekadasee"
+      ],
+      "category": "ritual",
+      "note": "11th lunar day fast",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Ghanta",
+      "variants": [
+        "ghanta",
+        "ghanti",
+        "ghantaa"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Ghar Sabha",
+      "variants": [
+        "ghar sabha",
+        "ghar sabhaa",
+        "gharsabha"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Havan",
+      "variants": [
+        "havan",
+        "hawan",
+        "havana"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Hindola",
+      "variants": [
+        "hindola",
+        "hindolo",
+        "hindolaa"
+      ],
+      "category": "ritual",
+      "note": "Swing festival worship",
+      "verified": false
+    },
+    {
+      "canonical": "Jap",
+      "variants": [
+        "jap",
+        "japa",
+        "jaap"
+      ],
+      "category": "ritual",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Jhalar",
+      "variants": [
+        "jhalar",
+        "jhaalar",
+        "jhalr"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Kanthi",
+      "variants": [
+        "kanthi",
+        "kanthee",
+        "kanthis"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Katha",
+      "variants": [
+        "katha",
+        "kathaa",
+        "kathas"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Kirtan",
+      "variants": [
+        "kirtan",
+        "keertan",
+        "kirtana",
+        "kirtans"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Kumkum",
+      "variants": [
+        "kumkum",
+        "kunkum",
+        "kumkuma"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Mahabhishek",
+      "variants": [
+        "mahabhishek",
+        "maha abhishek",
+        "mahabhisheka"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Mahapuja",
+      "variants": [
+        "mahapuja",
+        "maha puja",
+        "mahapooja",
+        "mahapujas"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Mahayagna",
+      "variants": [
+        "mahayagna",
+        "maha yagna",
+        "mahayagya",
+        "mahayajna"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Mala",
+      "variants": [
+        "mala",
+        "maala",
+        "malas"
+      ],
+      "category": "ritual",
+      "note": "Prayer beads",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Mangala Arti",
+      "variants": [
+        "mangala arti",
+        "mangla arti",
+        "mangala aarti",
+        "mangla aarti"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Manjira",
+      "variants": [
+        "manjira",
+        "majira",
+        "manjeera"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Mansi Puja",
+      "variants": [
+        "mansi puja",
+        "manasi puja",
+        "mansi pooja",
+        "manas puja"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Mrudang",
+      "variants": [
+        "mrudang",
+        "mridang",
+        "mrudanga"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Mukhpath",
+      "variants": [
+        "mukhpath",
+        "mukh path",
+        "mukhapath"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Murti Pratishtha",
+      "variants": [
+        "murti pratishtha",
+        "murti pratistha",
+        "murti pratishta",
+        "murthi pratishtha"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Nagar Yatra",
+      "variants": [
+        "nagar yatra",
+        "nagaryatra",
+        "nagar yaatra"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Nilkanth Abhishek",
+      "variants": [
+        "nilkanth abhishek",
+        "nilkanth varni abhishek",
+        "neelkanth abhishek"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Nitya Niyam",
+      "variants": [
+        "nitya niyam",
+        "nityaniyam",
+        "nitya niyams",
+        "nithya niyam"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Nitya Puja",
+      "variants": [
+        "nitya puja",
+        "nitya pooja",
+        "nithya puja"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Pad Pujan",
+      "variants": [
+        "pad pujan",
+        "padpujan",
+        "pad poojan",
+        "paad pujan"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Padhramani",
+      "variants": [
+        "padhramani",
+        "padhramni",
+        "padharamni",
+        "padhramanee"
+      ],
+      "category": "ritual",
+      "note": "Sacred home visit",
+      "verified": false
+    },
+    {
+      "canonical": "Parayan",
+      "variants": [
+        "parayan",
+        "parayana",
+        "paarayan",
+        "parayans"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Parshad Diksha",
+      "variants": [
+        "parshad diksha",
+        "parshad deeksha",
+        "parsad diksha"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Pothi Pujan",
+      "variants": [
+        "pothi pujan",
+        "pothi poojan",
+        "pothee pujan"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Pradakshina",
+      "variants": [
+        "pradakshina",
+        "pradakshana",
+        "pradaxina"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Pran Pratishtha",
+      "variants": [
+        "pran pratishtha",
+        "pran pratistha",
+        "praan pratishtha",
+        "prana pratishta",
+        "pran pratishta",
+        "prana pratishtha"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Pranam",
+      "variants": [
+        "pranam",
+        "pranaam",
+        "pranams"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Prarthana",
+      "variants": [
+        "prarthana",
+        "prarthna",
+        "prarthanaa"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Puja",
+      "variants": [
+        "puja",
+        "pooja",
+        "pujaa",
+        "poojas"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Pujan",
+      "variants": [
+        "pujan",
+        "poojan",
+        "pujana"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Pushpanjali",
+      "variants": [
+        "pushpanjali",
+        "pushpanjalee",
+        "pushpa anjali"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Samaiyo",
+      "variants": [
+        "samaiyo",
+        "samayo",
+        "samaiya",
+        "samaiyu"
+      ],
+      "category": "ritual",
+      "note": "Festival or grand assembly",
+      "verified": false
+    },
+    {
+      "canonical": "Sandhya Arti",
+      "variants": [
+        "sandhya arti",
+        "sandhya aarti",
+        "sandhya aarthi"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Sanskar",
+      "variants": [
+        "sanskar",
+        "sanskaar",
+        "sanskars"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Sashtang Dandvat Pranam",
+      "variants": [
+        "sashtang dandvat pranam",
+        "sashtang pranam",
+        "shashtang dandvat"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Satsang Pariksha",
+      "variants": [
+        "satsang pariksha",
+        "satsang parikshaa",
+        "satsang exam",
+        "satsang pariksha exam",
+        "satsang pariksa"
+      ],
+      "category": "ritual",
+      "note": "Annual BAPS exam",
+      "verified": false
+    },
+    {
+      "canonical": "Satsang Sabha",
+      "variants": [
+        "satsang sabha",
+        "satsang sabhaa",
+        "satsang sabhas"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Seva",
+      "variants": [
+        "seva",
+        "sewa",
+        "sevaa"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Shangar",
+      "variants": [
+        "shangar"
+      ],
+      "category": "ritual",
+      "note": "Decoration of the murtis",
+      "verified": false
+    },
+    {
+      "canonical": "Shangar Arti",
+      "variants": [
+        "shangar arti",
+        "shringar arti",
+        "shangar aarti",
+        "shanagar arti"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Shankh",
+      "variants": [
+        "shankh",
+        "shankha",
+        "sankh"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Shayan Arti",
+      "variants": [
+        "shayan arti",
+        "shayan aarti",
+        "shayana arti"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Shibir",
+      "variants": [
+        "shibir",
+        "shivir",
+        "shibeer"
+      ],
+      "category": "ritual",
+      "note": "Camp or retreat",
+      "verified": false
+    },
+    {
+      "canonical": "Shobha Yatra",
+      "variants": [
+        "shobha yatra",
+        "shobhayatra",
+        "shobha yaatra"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Sinhasan",
+      "variants": [
+        "sinhasan",
+        "simhasan",
+        "singhasan"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Arti",
+      "variants": [
+        "swaminarayan arti",
+        "shri swaminarayan arti",
+        "jay swaminarayan jay akshar purushottam"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Thal",
+      "variants": [
+        "thal",
+        "thaal"
+      ],
+      "category": "ritual",
+      "note": "Food offering to the murti",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Tilak Chandlo",
+      "variants": [
+        "tilak chandlo",
+        "tilak chandalo",
+        "tilak chandla"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Tulsi",
+      "variants": [
+        "tulsi",
+        "tulasi",
+        "tulsee"
+      ],
+      "category": "ritual",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Upvas",
+      "variants": [
+        "upvas",
+        "upavas",
+        "upwas"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Vrat",
+      "variants": [
+        "vrat",
+        "vrata",
+        "vrut"
+      ],
+      "category": "ritual",
+      "verified": false
+    },
+    {
+      "canonical": "Yagna",
+      "variants": [
+        "yagna",
+        "yagya",
+        "yajna",
+        "yagnas"
+      ],
+      "category": "ritual",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Adbhutanand Swami",
+      "variants": [
+        "adbhutanand swami",
+        "adbhutananda swami",
+        "adbhutanand swamy",
+        "adbhutanand"
+      ],
+      "category": "saint",
+      "note": "Paramhansa",
+      "verified": false
+    },
+    {
+      "canonical": "Aksharvatsaldas Swami",
+      "variants": [
+        "aksharvatsaldas swami",
+        "akshar vatsal das swami",
+        "aksharvatsal swami",
+        "aksharvatsaldas"
+      ],
+      "category": "saint",
+      "note": "Senior BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Amrutvijaydas Swami",
+      "variants": [
+        "amrutvijaydas swami",
+        "amrut vijay das swami",
+        "amrutvijay swami",
+        "amrutvijaydas"
+      ],
+      "category": "saint",
+      "note": "BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Anandswarupdas Swami",
+      "variants": [
+        "anandswarupdas swami",
+        "anand swarup das swami",
+        "anandswarup swami",
+        "anandswaroopdas swami"
+      ],
+      "category": "saint",
+      "note": "Senior BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Atmaswarupdas Swami",
+      "variants": [
+        "atmaswarupdas swami",
+        "atmaswarup swami",
+        "atma swarup das swami",
+        "atmaswaroopdas swami"
+      ],
+      "category": "saint",
+      "note": "BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Bhadreshdas Swami",
+      "variants": [
+        "bhadreshdas swami",
+        "bhadresh swami",
+        "bhadresh das swami",
+        "bhadreshdas swamy"
+      ],
+      "category": "saint",
+      "note": "Sanskrit scholar",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Bhagwatcharandas Swami",
+      "variants": [
+        "bhagwatcharandas swami",
+        "bhagwat charan das swami",
+        "bhagvatcharandas swami",
+        "bhagwatcharandas"
+      ],
+      "category": "saint",
+      "note": "Sadguru",
+      "verified": false
+    },
+    {
+      "canonical": "Brahmanand Swami",
+      "variants": [
+        "brahmanand swami",
+        "brahmananda swami",
+        "brahmanand swamy",
+        "brahmanand"
+      ],
+      "category": "saint",
+      "note": "Poet-saint Paramhansa",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Brahmaviharidas Swami",
+      "variants": [
+        "brahmaviharidas swami",
+        "brahmavihari swami",
+        "brahma vihari das swami",
+        "brahmavihari das swami"
+      ],
+      "category": "saint",
+      "note": "BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Devanand Swami",
+      "variants": [
+        "devanand swami",
+        "devananda swami",
+        "devanand swamy",
+        "dev anand swami"
+      ],
+      "category": "saint",
+      "note": "Paramhansa",
+      "verified": false
+    },
+    {
+      "canonical": "Doctor Swami",
+      "variants": [
+        "doctor swami",
+        "dr swami",
+        "doctor swamy",
+        "doctorswami"
+      ],
+      "category": "saint",
+      "note": "Atmaswarupdas? Well-known BAPS sadhu; verify",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Gnanvatsaldas Swami",
+      "variants": [
+        "gnanvatsaldas swami",
+        "gyanvatsaldas swami",
+        "gnanvatsal swami",
+        "gyanvatsal swami"
+      ],
+      "category": "saint",
+      "note": "Senior BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Gopalanand Swami",
+      "variants": [
+        "gopalanand swami",
+        "gopalananda swami",
+        "gopalanand swamy",
+        "gopalanand"
+      ],
+      "category": "saint",
+      "note": "Paramhansa",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Ishwarcharandas Swami",
+      "variants": [
+        "ishwarcharandas swami",
+        "ishwarcharan swami",
+        "ishwar charan das swami",
+        "ishvarcharandas swami"
+      ],
+      "category": "saint",
+      "note": "Senior BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Kothari Swami",
+      "variants": [
+        "kothari swami",
+        "kothari swamy",
+        "kothari swamiji",
+        "kothari swaami"
+      ],
+      "category": "saint",
+      "note": "Bhaktipriyadas Swami",
+      "verified": false
+    },
+    {
+      "canonical": "Muktanand Swami",
+      "variants": [
+        "muktanand swami",
+        "muktananda swami",
+        "muktanand swamy",
+        "muktanand"
+      ],
+      "category": "saint",
+      "note": "Paramhansa",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Mukundcharandas Swami",
+      "variants": [
+        "mukundcharandas swami",
+        "mukundcharan swami",
+        "mukund charan das swami",
+        "mukundcharandas"
+      ],
+      "category": "saint",
+      "note": "BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Nirgundas Swami",
+      "variants": [
+        "nirgundas swami",
+        "nirgun das swami",
+        "nirgundas swamy",
+        "nirgundas"
+      ],
+      "category": "saint",
+      "note": "Sadguru",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Nishkulanand Swami",
+      "variants": [
+        "nishkulanand swami",
+        "nishkulananda swami",
+        "nishkulanand swamy",
+        "nishkulanand",
+        "nishkulanad swami"
+      ],
+      "category": "saint",
+      "note": "Author of Bhaktachintamani",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Nityanand Swami",
+      "variants": [
+        "nityanand swami",
+        "nityananda swami",
+        "nityanand swamy",
+        "nityanand"
+      ],
+      "category": "saint",
+      "note": "Paramhansa",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Paramtattvadas Swami",
+      "variants": [
+        "paramtattvadas swami",
+        "param tattva das swami",
+        "paramtattva swami",
+        "paramtattvadas"
+      ],
+      "category": "saint",
+      "note": "Scholar",
+      "verified": false
+    },
+    {
+      "canonical": "Premanand Swami",
+      "variants": [
+        "premanand swami",
+        "premananda swami",
+        "premanand swamy",
+        "premanand"
+      ],
+      "category": "saint",
+      "note": "Poet-saint Paramhansa",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Shatanand Swami",
+      "variants": [
+        "shatanand swami",
+        "shatanand muni",
+        "satanand swami"
+      ],
+      "category": "saint",
+      "note": "Author of Satsangi Jivan",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan"
+    },
+    {
+      "canonical": "Shukanand Swami",
+      "variants": [
+        "shukanand swami",
+        "shuk anand swami",
+        "shukanand swamy",
+        "shukanand"
+      ],
+      "category": "saint",
+      "note": "Paramhansa",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Vachanamrut"
+    },
+    {
+      "canonical": "Swayamprakashdas Swami",
+      "variants": [
+        "swayamprakashdas swami",
+        "swayamprakash swami",
+        "swayam prakash das swami",
+        "swayamprakashdas"
+      ],
+      "category": "saint",
+      "note": "BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Tyagvallabhdas Swami",
+      "variants": [
+        "tyagvallabhdas swami",
+        "tyagvallabh swami",
+        "tyag vallabh swami",
+        "tyagvallabh das swami"
+      ],
+      "category": "saint",
+      "note": "Senior BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Viveksagardas Swami",
+      "variants": [
+        "viveksagardas swami",
+        "viveksagar swami",
+        "vivek sagar swami",
+        "viveksagar das swami"
+      ],
+      "category": "saint",
+      "note": "Senior BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Yogvivekdas Swami",
+      "variants": [
+        "yogvivekdas swami",
+        "yogvivek swami",
+        "yog vivek das swami",
+        "yogvivekdas"
+      ],
+      "category": "saint",
+      "note": "BAPS sadhu",
+      "verified": false
+    },
+    {
+      "canonical": "Amdavad Vachanamrut",
+      "variants": [
+        "amdavad vachanamrut",
+        "amdavad vachnamrut",
+        "amdavad prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Bhagavad Gita",
+      "variants": [
+        "bhagavad gita",
+        "bhagwad gita",
+        "bhagavad geeta",
+        "bhagwat geeta",
+        "bhagvad gita"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Bhaktachintamani",
+      "variants": [
+        "bhaktachintamani",
+        "bhakta chintamani",
+        "bhaktachintamany",
+        "bhakt chintamani"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Brahmasutras",
+      "variants": [
+        "brahmasutras",
+        "brahma sutras",
+        "brahmasutra",
+        "brahma sutra"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Chesta",
+      "variants": [
+        "chesta",
+        "cheshta",
+        "chestaa"
+      ],
+      "category": "scripture",
+      "note": "Daily activities of Shriji Maharaj recital",
+      "verified": false
+    },
+    {
+      "canonical": "Dharmamrut",
+      "variants": [
+        "dharmamrut",
+        "dharmamrit",
+        "dharma amrut"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Dharmashastras",
+      "variants": [
+        "dharmashastras",
+        "dharmashastra",
+        "dharma shastras",
+        "dharma shaastra"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Doha",
+      "variants": [
+        "doha",
+        "dohra",
+        "dohas"
+      ],
+      "category": "scripture",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Gadhada I",
+      "variants": [
+        "gadhada i",
+        "gadhada pratham",
+        "gadhada first",
+        "gadhada one"
+      ],
+      "category": "scripture",
+      "note": "Vachanamrut section",
+      "verified": false
+    },
+    {
+      "canonical": "Gadhada II",
+      "variants": [
+        "gadhada ii",
+        "gadhada madhya",
+        "gadhada middle",
+        "gadhada two"
+      ],
+      "category": "scripture",
+      "note": "Vachanamrut section",
+      "verified": false
+    },
+    {
+      "canonical": "Gadhada III",
+      "variants": [
+        "gadhada iii",
+        "gadhada antya",
+        "gadhada last",
+        "gadhada three"
+      ],
+      "category": "scripture",
+      "note": "Vachanamrut section",
+      "verified": false
+    },
+    {
+      "canonical": "Harililakalpataru",
+      "variants": [
+        "harililakalpataru",
+        "harililakalpatru",
+        "harili la kalpataru",
+        "hari lila kalpataru"
+      ],
+      "category": "scripture",
+      "note": "Sanskrit biography of Bhagwan Swaminarayan",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Harililamrut",
+      "variants": [
+        "harililamrut",
+        "hari lila amrut",
+        "harilila amrit",
+        "hari leela amrut"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Itihas",
+      "variants": [
+        "itihas",
+        "itihaas",
+        "itihasa"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Jetalpur Vachanamrut",
+      "variants": [
+        "jetalpur vachanamrut",
+        "jetalpur vachnamrut",
+        "jetalpur prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Kariyani Vachanamrut",
+      "variants": [
+        "kariyani vachanamrut",
+        "kariyani vachnamrut",
+        "kariyani prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Kirtan Kaustubhmala",
+      "variants": [
+        "kirtan kaustubhmala",
+        "kirtan kaustubhamala",
+        "kirtan kaustubh mala"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Kirtan Muktavali",
+      "variants": [
+        "kirtan muktavali",
+        "kirtan muktaavali",
+        "keertan muktavali"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Loya Vachanamrut",
+      "variants": [
+        "loya vachanamrut",
+        "loya vachnamrut",
+        "loya prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Mahabharat",
+      "variants": [
+        "mahabharat",
+        "mahabharata",
+        "mahabharatha"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Mantra",
+      "variants": [
+        "mantra",
+        "mantras",
+        "mantr"
+      ],
+      "category": "scripture",
+      "verified": false,
+      "safe": false
+    },
+    {
+      "canonical": "Nishkulanand Kavya",
+      "variants": [
+        "nishkulanand kavya",
+        "nishkulanand kavy",
+        "nishkulanand kavyas"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Panchala Vachanamrut",
+      "variants": [
+        "panchala vachanamrut",
+        "panchala vachnamrut",
+        "panchala prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Pothi",
+      "variants": [
+        "pothi",
+        "pothee",
+        "pothis"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Prakaran",
+      "variants": [
+        "prakaran",
+        "prakarana",
+        "prakaranam"
+      ],
+      "category": "scripture",
+      "note": "Section of Vachanamrut",
+      "verified": false
+    },
+    {
+      "canonical": "Puranas",
+      "variants": [
+        "puranas",
+        "purans",
+        "puraanas"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Purushottam Bolya Prite",
+      "variants": [
+        "purushottam bolya prite",
+        "purushottam bolya preete",
+        "purushottam bolya priti"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Ramayan",
+      "variants": [
+        "ramayan",
+        "ramayana",
+        "ramayanam"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Sarangpur Vachanamrut",
+      "variants": [
+        "sarangpur vachanamrut",
+        "sarangpur vachnamrut",
+        "sarangpur prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Sat Shastra",
+      "variants": [
+        "sat shastra",
+        "satshastra",
+        "sat shaastra"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Satsang Diksha",
+      "variants": [
+        "satsang diksha",
+        "satsang diksa",
+        "satsang deeksha"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://www.baps.org/News?view=all"
+    },
+    {
+      "canonical": "Satsangi Jivan",
+      "variants": [
+        "satsangi jivan",
+        "satsangi jeevan",
+        "satsangijivan",
+        "satsangi jivanam"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Swaminarayan_Sampradaya"
+    },
+    {
+      "canonical": "Shastra",
+      "variants": [
+        "shastra",
+        "shastras",
+        "shaastra"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Shikshapatri",
+      "variants": [
+        "shikshapatri",
+        "shikshapatree",
+        "shiksha patri",
+        "sikshapatri"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Shlok",
+      "variants": [
+        "shlok",
+        "shloka",
+        "shlokas",
+        "sloka"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Shrimad Bhagavatam",
+      "variants": [
+        "shrimad bhagavatam",
+        "srimad bhagavatam",
+        "shrimad bhagwat",
+        "bhagavata purana",
+        "shreemad bhagvatam"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Shruti",
+      "variants": [
+        "shruti",
+        "shrutis",
+        "shrooti"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Smruti",
+      "variants": [
+        "smruti",
+        "smriti",
+        "smrti"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Bhashyam",
+      "variants": [
+        "swaminarayan bhashyam",
+        "swaminarayan bhashya",
+        "swaminarayan bhasyam"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Swaminarayan Mahamantra",
+      "variants": [
+        "swaminarayan mahamantra",
+        "swaminarayan maha mantra",
+        "swaminarayan mantra"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Swaminarayan Siddhanta Sudha",
+      "variants": [
+        "swaminarayan siddhanta sudha",
+        "siddhanta sudha",
+        "swaminarayan siddhant sudha"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Swamini Vato",
+      "variants": [
+        "swamini vato",
+        "swami ni vato",
+        "swamini vaato",
+        "swamini vatu"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Gunatitanand_Swami"
+    },
+    {
+      "canonical": "Upanishads",
+      "variants": [
+        "upanishads",
+        "upanishad",
+        "upanisad",
+        "upnishad"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Vachanamrut",
+      "variants": [
+        "vachanamrut",
+        "vachnamrut",
+        "vachanamrit",
+        "vachanamrutam",
+        "vachan amrut"
+      ],
+      "category": "scripture",
+      "note": "Discourses of Bhagwan Swaminarayan",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Bochasanwasi_Akshar_Purushottam_Swaminarayan_Sanstha"
+    },
+    {
+      "canonical": "Vartal Vachanamrut",
+      "variants": [
+        "vartal vachanamrut",
+        "vartal vachnamrut",
+        "vartal prakaran"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Vedas",
+      "variants": [
+        "vedas",
+        "vedaas",
+        "veda"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://londonmandir.baps.org/faqs/"
+    },
+    {
+      "canonical": "Yamdand",
+      "variants": [
+        "yamdand",
+        "yam dand",
+        "yamdhand",
+        "yama danda"
+      ],
+      "category": "scripture",
+      "verified": false
+    },
+    {
+      "canonical": "Yogi Gita",
+      "variants": [
+        "yogi gita",
+        "yogi geeta",
+        "yogi gitaa"
+      ],
+      "category": "scripture",
+      "verified": true,
+      "source": "https://en.wikipedia.org/wiki/Gunatitanand_Swami"
+    }
+  ]
+}

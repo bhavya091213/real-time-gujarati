@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gujusub.fillers import clean_event  # noqa: E402
-from gujusub.server import PARTIAL_TRANSLATE_GAP_S  # noqa: E402
+from gujusub.server import PARTIAL_TRANSLATE_GAP_S, get_glossary  # noqa: E402
 from gujusub.streaming import (  # noqa: E402
     SAMPLE_RATE,
     StreamingConfig,
@@ -121,7 +121,7 @@ class _Translations:
             self.last_partial_at = now
         self.requested = key
         t = self.clock()
-        english = self.translator.translate(text)
+        english = get_glossary().apply(self.translator.translate(text))
         self.times_ms.append((self.clock() - t) * 1000)
         return english
 
@@ -185,9 +185,15 @@ def run_replay(
 
 
 def _display(ev: TranscriptEvent, filter_fillers: bool) -> TranscriptEvent:
-    if not filter_fillers:
+    """Same order as server.filtered: fillers, then glossary for English captions."""
+    committed, tail = ev.committed, ev.tail
+    if filter_fillers:
+        committed, tail = clean_event(committed, tail, final=ev.type == "final")
+    if getattr(ev, "lang", "gu") == "en":
+        glossary = get_glossary()
+        committed, tail = glossary.apply(committed), glossary.apply(tail)
+    if (committed, tail) == (ev.committed, ev.tail):
         return ev
-    committed, tail = clean_event(ev.committed, ev.tail, final=ev.type == "final")
     return TranscriptEvent(ev.type, ev.utterance_id, committed, tail)
 
 
