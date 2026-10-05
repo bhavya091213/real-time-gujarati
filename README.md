@@ -15,6 +15,12 @@ Everything runs locally on one machine; no cloud services.
    (CTranslate2, int8) translates to English.
 5. Events are broadcast to a self-contained display page you drop into OBS.
 
+English speech is recognised with NVIDIA
+[Parakeet-TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2)
+(CC-BY-4.0, NVIDIA; int8 ONNX export by
+[istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx), run via
+[onnx-asr](https://github.com/istupakov/onnx-asr)).
+
 See [`wiki/`](wiki/README.md) for architecture, design decisions, gotchas, and
 the broadcast setup guide.
 
