@@ -1066,8 +1066,10 @@ def test_main_configures_explicit_websocket_message_limit(
 
     monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate"])
     monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
-    monkeypatch.setattr(server, "ASREngine", DummyEngine)
-    monkeypatch.setattr(server, "engine", None)
+    monkeypatch.setattr(server, "load_engines",
+                        lambda langs, device: EngineRegistry(
+                            {lang: DummyEngine() for lang in langs}))
+    monkeypatch.setattr(server, "engines", None)
     monkeypatch.setattr(server, "translator", None)
     monkeypatch.setattr(server.uvicorn, "run",
                         lambda *args, **kwargs: run_calls.append((args, kwargs)))
@@ -1113,23 +1115,19 @@ def test_translate_flag_read_per_event(wire, settings_store):
     assert [m["translation"] for m in sent] == ["EN<a>", ""]
 
 
-def test_non_gu_asr_mode_warns_once_and_runs_gu(wire, settings_store, caplog):
-    settings_store.update({"asr_mode": "en"})
-    server._warned_modes.clear()
-    wire(ScriptedTranscriber([[P(1, "a")], [P(1, "a b")]]))
+def test_auto_asr_mode_warns_once_and_runs_gu(wire, settings_store, caplog, monkeypatch):
+    settings_store.update({"asr_mode": "auto"})
+    monkeypatch.setattr(server, "_warned_modes", set())
+    wire(ScriptedTranscriber())
 
     async def run():
-        mic = FakeMic()
-        task = asyncio.create_task(server._Pipeline(mic).run())
-        mic.inbox.put_nowait(pcm())
-        await mic.wait_for(lambda m: m["committed"] == "a")
-        mic.inbox.put_nowait(pcm())
-        await mic.wait_for(lambda m: m["committed"] == "a b")
-        mic.inbox.put_nowait(None)
-        await asyncio.wait_for(task, 2)
+        pipe = server._Pipeline(FakeMic())
+        return [pipe.status(), pipe.status()]
 
-    asyncio.run(run())
-    assert caplog.text.count("asr_mode 'en' not implemented") == 1
+    statuses = asyncio.run(run())
+    assert [st["asr"] for st in statuses] == ["gu", "gu"]
+    assert "not implemented" in statuses[0]["asr_warning"]
+    assert caplog.text.count("asr_mode 'auto' not implemented") == 1
 
 
 class CountingTranscriber(ScriptedTranscriber):
@@ -1165,7 +1163,8 @@ def test_status_shape_while_pipeline_active(monkeypatch, wire, settings_store):
     last = live[-1]
     assert set(last) == {"type", "asr", "translate", "lid", "decode_ms",
                          "avg_decode_ms", "window_s", "decodes", "lag_s",
-                         "backlog_s", "utterances"}
+                         "backlog_s", "utterances", "asr_warning"}
+    assert last["asr_warning"] is None
     assert last["asr"] == "gu" and last["translate"] is True and last["lid"] is False
     assert (last["decode_ms"], last["avg_decode_ms"]) == (180.0, 150.5)
     assert (last["window_s"], last["decodes"]) == (4.0, 3)
@@ -1234,3 +1233,139 @@ def test_translation_text_gets_glossary():
         return await pipe.translate("x")
 
     assert asyncio.run(run()) == "he gave Prasad."
+
+
+# --- mode routing (unit 3.2) ------------------------------------------------
+
+from gujusub.engines import EngineRegistry  # noqa: E402
+
+
+def _lang_engine(lang, script):
+    eng = FakeEngine(script)
+    eng.lang = lang
+    return eng
+
+
+@pytest.fixture
+def registry(monkeypatch):
+    def install(*langs):
+        engines = {lang: _lang_engine(lang, [f"{lang}-text"]) for lang in langs}
+        monkeypatch.setattr(server, "engines", EngineRegistry(engines))
+        monkeypatch.setattr(server, "_warned_modes", set())
+        return engines
+    return install
+
+
+def test_select_engine_follows_asr_mode(registry, settings_store):
+    loaded = registry("gu", "en")
+    assert server.select_engine() is loaded["gu"]
+    settings_store.update({"asr_mode": "en"})
+    assert server.select_engine() is loaded["en"]
+
+
+def test_en_mode_without_en_engine_falls_back_to_gu(
+        registry, settings_store, wire, caplog):
+    loaded = registry("gu")
+    settings_store.update({"asr_mode": "en"})
+    assert server.select_engine() is loaded["gu"]
+    assert server.select_engine() is loaded["gu"]
+    assert caplog.text.count("English engine not loaded") == 1  # warned once
+    wire(CountingTranscriber())
+
+    async def run():
+        return server._Pipeline(FakeMic()).status()
+
+    status = asyncio.run(run())
+    assert status["asr"] == "gu"
+    assert "English engine not loaded" in status["asr_warning"]
+
+
+def test_status_in_en_mode_reports_en_and_translate_off(
+        registry, settings_store, wire):
+    registry("gu", "en")
+    settings_store.update({"asr_mode": "en", "translate": True})
+    wire(CountingTranscriber(), FakeTranslator())
+
+    async def run():
+        return server._Pipeline(FakeMic()).status()
+
+    status = asyncio.run(run())
+    assert (status["asr"], status["translate"], status["asr_warning"]) == ("en", False, None)
+
+
+def test_idle_status_has_no_warning():
+    assert server.idle_status()["asr_warning"] is None
+
+
+def test_en_events_are_never_translated(client, wire):
+    tr = FakeTranslator()
+    en_p = TranscriptEvent("partial", 1, "hello", "there", lang="en")
+    en_f = TranscriptEvent("final", 1, "hello there", "", lang="en")
+    wire(ScriptedTranscriber([[en_p], [en_f], [F(2, "ગુ")]]), tr)
+    with client, client.websocket_connect("/ws") as ws:
+        seen = []
+        for _ in range(3):
+            ws.send_bytes(pcm())
+            seen.append(ws.receive_json())
+    assert [(m["lang"], m["translation"]) for m in seen] == [
+        ("en", ""), ("en", ""), ("gu", "EN<ગુ>")]
+    assert tr.calls == ["ગુ"]  # never the English text
+
+
+def test_filtered_preserves_lang_and_uses_english_filler_rules(monkeypatch):
+    monkeypatch.setattr(server, "filter_fillers", True)
+    ev = TranscriptEvent("final", 1, "So, um today we begin", "", lang="en")
+    out = server.filtered(ev)
+    assert out.lang == "en" and out.committed == "So, today we begin"
+    gu = server.filtered(TranscriptEvent("final", 1, "so today we begin", ""))
+    assert gu.lang == "gu" and gu.committed == "today we begin"
+
+
+def test_control_set_en_switches_next_utterance(client, wire, registry):
+    registry("gu", "en")
+    tr = FakeTranslator()
+    # utterance 1: frames 0-39, final after 19 silent frames; utterance 2 from 70
+    st = StreamingTranscriber(engine_for_utterance=server.select_engine,
+                              vad=FakeVAD([(0, 40), (70, 110)]))
+    wire(st, tr)
+    with client:
+        with client.websocket_connect("/ws") as ws:
+            ws.send_bytes(pcm(512 * 70))
+            first = recv_until(ws, lambda m: m["type"] == "final")
+            with client.websocket_connect("/ws/control") as ctl:
+                ctl.receive_json()  # settings snapshot
+                ctl.receive_json()  # status
+                ctl.send_json({"type": "set", "settings": {"asr_mode": "en"}})
+                assert recv_until(ctl, lambda m: m["type"] == "settings")[-1][
+                    "asr_mode"] == "en"
+            ws.send_bytes(pcm(512 * 70))
+            second = recv_until(ws, lambda m: m["type"] == "final")
+    assert {m["lang"] for m in first} == {"gu"}
+    assert first[-1]["committed"] == "gu-text"
+    assert first[-1]["translation"] == "EN<gu-text>"
+    assert {m["lang"] for m in second} == {"en"}
+    assert second[-1]["committed"] == "en-text"
+    assert {m["translation"] for m in second} == {""}
+    assert "en-text" not in tr.calls
+
+
+def test_main_loads_requested_engines(settings_store, monkeypatch):
+    requested = []
+
+    class DummyEngine:
+        def warmup(self):
+            pass
+
+    def fake_load(langs, device):
+        requested.append((langs, device))
+        return EngineRegistry({lang: DummyEngine() for lang in langs})
+
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    monkeypatch.setattr(server, "load_engines", fake_load)
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server.uvicorn, "run", lambda *a, **k: None)
+    server.main()
+    assert requested == [(("gu",), "cpu")]
+    assert server.engines.langs == ("gu",)

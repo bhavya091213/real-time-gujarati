@@ -16,10 +16,16 @@ Protocol:
               viewers get the display-only "settings"; a bad request gets
               {"type": "error", "message": "..."} and changes nothing.
             While a /ws pipeline runs, every STATUS_INTERVAL_S:
-              {"type": "status", "asr": "gu"|null, "translate": bool,
+              {"type": "status", "asr": "gu"|"en"|null, "translate": bool,
                "lid": bool, "decode_ms", "avg_decode_ms", "window_s",
-               "decodes", "lag_s", "backlog_s", "utterances"}
-              (lag_s == backlog_s: seconds of audio queued for the worker).
+               "decodes", "lag_s", "backlog_s", "utterances",
+               "asr_warning": str|null}
+              (lag_s == backlog_s: seconds of audio queued for the worker;
+               asr_warning explains a fallback, e.g. en engine not loaded).
+
+Mode routing: settings.asr_mode picks the engine when VAD opens an utterance
+(select_engine); it stays pinned until that utterance's final, and events
+carry its `lang`. English events are never translated (translation "").
 
 Per-connection pipeline (see _Pipeline):
   receiver    only reads audio messages into an asyncio.Queue.
@@ -37,7 +43,7 @@ Per-connection pipeline (see _Pipeline):
               Finals are translated inline by the worker and sent exactly once,
               after their translation, so events stay in order.
 
-Run:  python -m gujusub.server [--device cpu|mps] [--lang gu] [--port 8765]
+Run:  python -m gujusub.server [--device cpu|mps] [--engines gu,en] [--port 8765]
 """
 
 import argparse
@@ -53,7 +59,8 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
-from gujusub.asr_engine import ASREngine
+from gujusub.engine import ASREngine
+from gujusub.engines import EngineRegistry, load_engines, parse_engine_list
 from gujusub.fillers import clean_event
 from gujusub.glossary import Glossary, load_glossary
 from gujusub.settings import Settings, SettingsStore, display_payload, snapshot_payload
@@ -66,7 +73,7 @@ logger = logging.getLogger("server")
 STATIC = Path(__file__).parent / "static"
 
 app = FastAPI()
-engine: ASREngine | None = None  # loaded once in main()
+engines: EngineRegistry | None = None  # loaded once in main()
 translator: Translator | None = None  # loaded once in main(); None if --no-translate
 filter_fillers = True  # set from --no-filter in main()
 _glossary: Glossary | None = None  # lazily loaded; see get_glossary()
@@ -115,7 +122,8 @@ def filtered(event: TranscriptEvent) -> TranscriptEvent:
     """Fillers first, then glossary (glossary only for English captions)."""
     committed, tail = event.committed, event.tail
     if filter_fillers:
-        committed, tail = clean_event(committed, tail, final=event.type == "final")
+        committed, tail = clean_event(committed, tail, final=event.type == "final",
+                                      lang=getattr(event, "lang", "gu"))
     if getattr(event, "lang", "gu") == "en":
         glossary = get_glossary()
         committed, tail = glossary.apply(committed), glossary.apply(tail)
@@ -126,7 +134,15 @@ def filtered(event: TranscriptEvent) -> TranscriptEvent:
 
 def new_transcriber() -> StreamingTranscriber:
     """One transcriber per /ws connection (tests monkeypatch this)."""
-    return StreamingTranscriber(engine, StreamingConfig())
+    return StreamingTranscriber(config=StreamingConfig(),
+                                engine_for_utterance=select_engine,
+                                thresholds_provider=confidence_thresholds)
+
+
+def confidence_thresholds() -> tuple[float, float]:
+    """(conf_word_min, conf_utt_min) from the live settings, read per decode."""
+    s = get_settings()
+    return s.conf_word_min, s.conf_utt_min
 
 
 def latest_events(events: list[TranscriptEvent]) -> list[TranscriptEvent]:
@@ -146,7 +162,8 @@ def get_settings() -> Settings:
 def idle_status() -> dict:
     return {"type": "status", "asr": None, "translate": False, "lid": False,
             "decode_ms": 0.0, "avg_decode_ms": 0.0, "window_s": 0.0,
-            "decodes": 0, "lag_s": 0.0, "backlog_s": 0.0, "utterances": 0}
+            "decodes": 0, "lag_s": 0.0, "backlog_s": 0.0, "utterances": 0,
+            "asr_warning": None}
 
 
 def current_status() -> dict:
@@ -155,13 +172,37 @@ def current_status() -> dict:
     return idle_status()
 
 
-def effective_asr_mode() -> str:
-    """Only Gujarati ASR exists so far; other modes warn once and run gu."""
+def active_asr() -> tuple[str, str | None]:
+    """(engine lang to run, fallback warning or None) for the current asr_mode.
+
+    en needs the English engine (--engines gu,en); auto is not implemented yet
+    (WS4). Either falls back to gu, logging the reason once per mode.
+    """
     mode = get_settings().asr_mode
-    if mode != "gu" and mode not in _warned_modes:
+    if mode == "gu":
+        return "gu", None
+    if mode == "en":
+        if engines is not None and "en" in engines:
+            return "en", None
+        warning = ("English engine not loaded (start with --engines gu,en); "
+                   "running Gujarati")
+    else:
+        warning = f"asr_mode {mode!r} not implemented yet; running Gujarati"
+    if mode not in _warned_modes:
         _warned_modes.add(mode)
-        logger.warning("asr_mode %r not implemented yet; running 'gu'", mode)
-    return "gu"
+        logger.warning(warning)
+    return "gu", warning
+
+
+def effective_asr_mode() -> str:
+    return active_asr()[0]
+
+
+def select_engine() -> ASREngine:
+    """Engine for a new utterance (called from the transcriber's executor thread)."""
+    if engines is None:
+        raise RuntimeError("no ASR engines loaded (server.main() not run)")
+    return engines.get(effective_asr_mode())
 
 
 async def send_controls(payload: dict, exclude: WebSocket | None = None) -> None:
@@ -220,14 +261,15 @@ class _Pipeline:
     def status(self) -> dict:
         tx = self.transcriber
         backlog = round(self.queued_samples / SAMPLE_RATE, 3)
-        return {"type": "status", "asr": effective_asr_mode(),
-                "translate": self.translating(), "lid": False,
+        lang, warning = active_asr()
+        return {"type": "status", "asr": lang,
+                "translate": self.translating() and lang == "gu", "lid": False,
                 "decode_ms": float(getattr(tx, "last_decode_ms", 0.0)),
                 "avg_decode_ms": float(getattr(tx, "avg_decode_ms", 0.0)),
                 "window_s": float(getattr(tx, "last_window_s", 0.0)),
                 "decodes": int(getattr(tx, "decode_count", 0)),
                 "lag_s": backlog, "backlog_s": backlog,
-                "utterances": self.utterances}
+                "utterances": self.utterances, "asr_warning": warning}
 
     async def report_status(self) -> None:
         while True:
@@ -268,7 +310,6 @@ class _Pipeline:
                 continue
             batch = np.concatenate(chunks)
             self.queued_samples -= len(batch)
-            effective_asr_mode()  # en/auto not implemented yet: warn, run gu
             # feed() runs VAD + (sometimes) inference; keep it off the event loop
             events = await self.loop.run_in_executor(None, self.transcriber.feed, batch)
             for raw in latest_events(events):
@@ -284,8 +325,10 @@ class _Pipeline:
         payload = event.to_dict()
         if event.type == "final":
             self.utterances += 1
-        if self.translator is not None and not get_settings().translate:
-            payload["translation"] = ""  # translator idle: no executor call at all
+        if self.translator is not None and (
+                not get_settings().translate or event.lang != "gu"):
+            # translation off, or already English: no executor call at all
+            payload["translation"] = ""
             self.translations.pop(uid, None)
         elif self.translator is not None:
             if event.type == "final":
@@ -524,11 +567,21 @@ async def ws_control(ws: WebSocket) -> None:
         logger.info("control disconnected: %s", ws.client)
 
 
+def _engine_list_arg(text: str) -> tuple[str, ...]:
+    try:
+        return parse_engine_list(text)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e)) from None
+
+
 def main() -> None:
-    global engine, translator, filter_fillers, store
+    global engines, translator, filter_fillers, store
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", default="cpu", choices=["cpu", "mps"])
-    parser.add_argument("--lang", default="gu")
+    parser.add_argument("--lang", default="gu",
+                        help="deprecated: the Gujarati slot is always 'gu'; use --engines")
+    parser.add_argument("--engines", default="gu,en", type=_engine_list_arg,
+                        help="ASR engines to load: gu,en (default) or gu (low RAM)")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-translate", action="store_true",
                         help="disable Gujarati->English translation")
@@ -544,12 +597,16 @@ def main() -> None:
                 loaded.asr_mode, loaded.translate)
     if args.no_translate:
         logger.info("--no-translate: translation off regardless of settings")
-    engine = ASREngine(lang=args.lang, device=args.device)
+    if args.lang != "gu":
+        logger.warning("--lang %s ignored: use --engines (gu,en)", args.lang)
+    started = time.perf_counter()
+    engines = load_engines(args.engines, args.device)
     if not args.no_translate:
         translator = Translator()
         translator.warmup()
-    logger.info("warming up model ...")
-    engine.warmup()
+    engines.warmup()
+    logger.info("engines %s loaded and warm in %.1f s",
+                ",".join(engines.langs), time.perf_counter() - started)
     logger.info("ready — mic: http://localhost:%d  display: http://localhost:%d/display",
                 args.port, args.port)
     uvicorn.run(

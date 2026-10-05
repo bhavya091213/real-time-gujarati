@@ -21,6 +21,15 @@ Algorithm: Silero-VAD-gated growing window with LocalAgreement-2 commits
   decodes less often instead of falling behind. "Recent decode time" is the
   low median of this utterance's last few partial decodes (see
   _interval_samples).
+- Engine per utterance: with `engine_for_utterance`, the engine is chosen once
+  when VAD opens an utterance and pinned for its whole life (one language per
+  utterance; a mode switch applies from the next utterance). Events carry the
+  pinned engine's `lang`, and the window bound is max_window_s_by_lang[lang]
+  (falling back to max_window_s).
+- Confidence trimming: every decode (partial and final) passes through
+  confidence.apply_confidence with thresholds from `thresholds_provider`
+  (read per decode) BEFORE LocalAgreement, so a low-confidence word never
+  commits and an all-low decode counts as an empty hypothesis.
 """
 
 import collections
@@ -33,6 +42,7 @@ from typing import Protocol
 import numpy as np
 
 from gujusub.asr_engine import SAMPLE_RATE, ASREngine
+from gujusub.confidence import apply_confidence
 from gujusub.engine import Transcript, Word
 
 VAD_FRAME = 512  # samples per silero window @ 16 kHz (32 ms)
@@ -79,6 +89,7 @@ class TranscriptEvent:
     utterance_id: int
     committed: str  # stable text, never retracted within an utterance
     tail: str  # unstable text, may change on the next update
+    lang: str = "gu"  # language of the engine that decoded this utterance
 
     def to_dict(self) -> dict:
         return {
@@ -86,6 +97,7 @@ class TranscriptEvent:
             "utterance_id": self.utterance_id,
             "committed": self.committed,
             "tail": self.tail,
+            "lang": self.lang,
         }
 
 
@@ -99,6 +111,8 @@ class StreamingConfig:
     min_speech_ms: int = 250  # shorter blips are dropped as noise
     max_utterance_s: float = 12.0  # force a final after this much audio
     max_window_s: float = 5.0  # trim the decode window beyond this
+    # per-engine override of max_window_s (Parakeet: ~325 ms per 4 s window)
+    max_window_s_by_lang: dict[str, float] = field(default_factory=lambda: {"en": 4.0})
     min_context_s: float = 2.0  # audio always kept in the window after a trim
     trim_margin_s: float = 0.2  # gap required after the cut word's end
     adaptive_factor: float = 1.2  # interval >= factor x recent decode time
@@ -114,11 +128,16 @@ def _common_prefix(a: list[str], b: list[str]) -> list[str]:
     return out
 
 
+THRESHOLDS_OFF = (0.0, 0.0)  # (word_min, utt_min): confidence trimming disabled
+
 DECODE_HISTORY = 5  # partial decodes in the adaptive-interval estimate
 
 
 @dataclass
 class _UtteranceState:
+    engine: ASREngine  # pinned at utterance start
+    lang: str  # the pinned engine's language
+    max_window_s: float  # window bound for the pinned engine
     frames: list = field(default_factory=list)  # window: VAD_FRAME np arrays
     silence_frames: int = 0
     samples_since_infer: int = 0
@@ -215,13 +234,20 @@ class StreamingTranscriber:
 
     def __init__(
         self,
-        engine: ASREngine,
+        engine: ASREngine | None = None,
         config: StreamingConfig | None = None,
         vad: VAD | None = None,
         clock: Callable[[], float] = time.perf_counter,
+        *,
+        engine_for_utterance: Callable[[], ASREngine] | None = None,
+        thresholds_provider: Callable[[], tuple[float, float]] | None = None,
     ):
-        self.engine = engine
+        if engine is None and engine_for_utterance is None:
+            raise ValueError("need an engine or an engine_for_utterance provider")
+        self.engine = engine  # single-engine path (tests, replay)
+        self._engine_for_utterance = engine_for_utterance or (lambda: engine)
         self.config = config or StreamingConfig()
+        self._thresholds_provider = thresholds_provider or (lambda: THRESHOLDS_OFF)
         self.vad = vad if vad is not None else SileroVAD()
         self._clock = clock
         self.decode_count = 0
@@ -259,7 +285,7 @@ class StreamingTranscriber:
         if self._utt is None:
             self._preroll.append(frame)
             if prob >= cfg.vad_start_prob:
-                self._utt = _UtteranceState(frames=list(self._preroll))
+                self._utt = self._open_utterance(list(self._preroll))
                 self._preroll.clear()  # never reuse stale pre-onset audio
                 self._utt_id += 1
             return []
@@ -276,6 +302,18 @@ class StreamingTranscriber:
         if utt.samples_since_infer >= self._interval_samples():
             return self._partial_pass()
         return []
+
+    def _open_utterance(self, preroll: list) -> _UtteranceState:
+        """Pin the engine (and its language and window) for a new utterance."""
+        engine = self._engine_for_utterance()
+        lang = getattr(engine, "lang", "gu")
+        cfg = self.config
+        return _UtteranceState(
+            engine=engine,
+            lang=lang,
+            max_window_s=cfg.max_window_s_by_lang.get(lang, cfg.max_window_s),
+            frames=preroll,
+        )
 
     @property
     def avg_decode_ms(self) -> float:
@@ -295,15 +333,15 @@ class StreamingTranscriber:
         ms = min(ms, max(cfg.interval_ms, cfg.max_interval_ms))
         return int(ms * SAMPLE_RATE // 1000)
 
-    def _timed_decode(self, audio: np.ndarray) -> Transcript:
+    def _timed_decode(self, engine: ASREngine, audio: np.ndarray) -> Transcript:
         t0 = self._clock()
-        result = _decode(self.engine, audio)
+        result = _decode(engine, audio)
         ms = (self._clock() - t0) * 1000
         self.decode_count += 1
         self.last_decode_ms = ms
         self.last_window_s = len(audio) / SAMPLE_RATE
         self._total_decode_ms += ms
-        return result
+        return apply_confidence(result, *self._thresholds_provider())
 
     def _audio(self) -> np.ndarray:
         return np.concatenate(self._utt.frames)
@@ -314,7 +352,7 @@ class StreamingTranscriber:
         cfg = self.config
         frame_s = VAD_FRAME / SAMPLE_RATE
         window_s = len(utt.frames) * frame_s
-        if window_s <= cfg.max_window_s or not utt.decoded_since_trim:
+        if window_s <= utt.max_window_s or not utt.decoded_since_trim:
             return  # nothing decoded since the last trim: keep the audio
         cutoff_s = window_s - cfg.min_context_s
         agreed = len(_common_prefix(utt.prev_hyp, utt.committed))
@@ -354,7 +392,7 @@ class StreamingTranscriber:
         utt = self._utt
         utt.samples_since_infer = 0
         self._maybe_trim()
-        result = self._timed_decode(self._audio())
+        result = self._timed_decode(utt.engine, self._audio())
         utt.recent_decode_ms.append(self.last_decode_ms)
         hyp = result.text.split()
         words = _aligned_words(result, hyp)
@@ -376,6 +414,7 @@ class StreamingTranscriber:
                 utterance_id=self._utt_id,
                 committed=utt.committed_text(),
                 tail=" ".join(hyp[len(utt.committed):]),
+                lang=utt.lang,
             )
         ]
 
@@ -386,13 +425,14 @@ class StreamingTranscriber:
         speech_frames = utt.total_frames - utt.silence_frames
         if speech_frames * VAD_FRAME_MS < self.config.min_speech_ms:
             return []  # noise blip
-        hyp = self._timed_decode(np.concatenate(utt.frames)).text.split()
+        hyp = self._timed_decode(utt.engine, np.concatenate(utt.frames)).text.split()
         hyp = hyp[_select_seam_overlap(utt, hyp):]
         text = " ".join(utt.prefix + utt.committed + _final_suffix(utt, hyp))
         if not text:
             return []
         return [
             TranscriptEvent(
-                type="final", utterance_id=self._utt_id, committed=text, tail=""
+                type="final", utterance_id=self._utt_id, committed=text, tail="",
+                lang=utt.lang,
             )
         ]

@@ -19,7 +19,7 @@ REM
 REM Before starting the server, anything already listening on the port (--port,
 REM default 8765) is stopped, unless --keep-port is given.
 REM
-REM Any other flag (--device, --lang, --port, --no-translate, --no-filter, ...)
+REM Any other flag (--device, --engines, --port, --no-translate, --no-filter, ...)
 REM is passed to the server unchanged.
 
 setlocal
@@ -173,6 +173,6 @@ echo.
 echo Anything already listening on the server port (--port, default 8765) is
 echo stopped first unless --keep-port is given.
 echo.
-echo Any other flag (--device, --lang, --port, --no-translate, --no-filter, ...)
+echo Any other flag (--device, --engines, --port, --no-translate, --no-filter, ...)
 echo is passed to the server unchanged.
 exit /b 0

@@ -193,3 +193,18 @@ def test_partial_translations_respect_gap_and_commit_change():
     assert t(ev("partial", 1, "a b", "y"), gap * 3) == ""  # committed unchanged
     assert t(ev("final", 1, "a b c", ""), gap * 3) == "english"  # finals always
     assert len(tr.texts) == 3
+
+
+def test_english_events_are_not_translated():
+    c = Clock()
+    tr = CostTranslator(c, 0.0)
+    t = replay._Translations(tr, c)
+    ev = replay.TranscriptEvent("final", 1, "hello there", "", lang="en")
+    assert t(ev, 0.0) == ""
+    assert tr.texts == []
+
+
+def test_display_keeps_lang_and_english_openers():
+    ev = replay.TranscriptEvent("final", 1, "So, um today we begin", "", lang="en")
+    shown = replay._display(ev, filter_fillers=True)
+    assert (shown.lang, shown.committed) == ("en", "So, today we begin")

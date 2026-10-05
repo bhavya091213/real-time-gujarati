@@ -175,7 +175,7 @@ const DEBOUNCE_MS = 150, STATUS_MS = 1000;
 const GREY_COLOUR = /^#[0-9a-fA-F]{6}$/;
 // Fallback for Reset when the snapshot has no `defaults`.
 const DEFAULTS = {
-  asr_mode: "gu", translate: true, conf_word_min: 0, conf_utt_min: 0,
+  asr_mode: "gu", translate: true, conf_word_min: 0.5, conf_utt_min: 0.7,
   aspect: "16:9", mode: "translation", stable: false, clear: 6,
   font: 'system-ui, "Noto Sans Gujarati", sans-serif', size: 64, minsize: 36,
   weight: 700, lh: 1.3, ls: 0, tt: "none", color: "#ffffff", ow: 0,
@@ -189,7 +189,7 @@ const ASR_LABEL = { gu: "Gujarati", en: "English", auto: "Auto" };
 const SECTIONS = [
   ["Mode", [
     { k: "asr_mode", t: "select", l: "Speech language", opts: [
-      ["gu", "Gujarati"], ["en", "English", "coming soon"], ["auto", "Auto", "coming soon"]] },
+      ["gu", "Gujarati"], ["en", "English"], ["auto", "Auto", "coming soon"]] },
     { k: "translate", t: "check", l: "Translate to English" },
   ]],
   ["Confidence", [
@@ -374,7 +374,8 @@ function renderStatus() {
   const sec = v => (typeof v === "number" ? v.toFixed(1) : "–");
   liveEl2.textContent = `ASR: ${ASR_LABEL[s.asr] || s.asr} · Translate: ${s.translate ? "on" : "off"}` +
     ` · LID: ${s.lid ? "on" : "off"} · decode ${ms(s.decode_ms)} ms (avg ${ms(s.avg_decode_ms)})` +
-    ` · lag ${sec(s.lag_s)} s · utt ${s.utterances ?? 0}`;
+    ` · lag ${sec(s.lag_s)} s · utt ${s.utterances ?? 0}` +
+    (s.asr_warning ? ` · warning: ${s.asr_warning}` : "");
 }
 function onStatus(s) {
   lastStatus = s;

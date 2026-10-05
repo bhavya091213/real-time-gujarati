@@ -59,3 +59,33 @@ def test_clean_event_phrase_across_boundary():
 def test_clean_event_empty():
     assert clean_event("", "") == ("", "")
     assert clean_event("um", "") == ("", "")
+
+
+# --- English captions (unit 3.2) -------------------------------------------
+
+@pytest.mark.parametrize("opener", ["So,", "so", "Okay,", "OK", "Right,"])
+def test_english_sentence_initial_marker_kept_when_followed_by_words(opener):
+    text = f"{opener} today we talk about kindness"
+    assert clean_event(text, "", final=True, lang="en") == (text, "")
+
+
+def test_english_initial_marker_kept_after_dropped_hesitation():
+    assert clean_event("um so we begin", "", lang="en") == ("so we begin", "")
+
+
+def test_english_standalone_marker_still_dropped():
+    assert clean_event("So,", "", final=True, lang="en") == ("", "")
+    assert clean_event("so um", "", lang="en") == ("", "")
+
+
+def test_english_hesitations_dropped():
+    assert clean_event("we um begin", "uh now", lang="en") == ("we begin", "now")
+
+
+def test_english_other_initial_fillers_unchanged():
+    assert clean_event("like I said", "", lang="en") == ("I said", "")
+
+
+def test_gujarati_default_still_drops_initial_so():
+    assert clean_event("so today we talk", "") == ("today we talk", "")
+    assert clean_event("so today we talk", "", lang="gu") == ("today we talk", "")

@@ -134,6 +134,21 @@ replay clock/batching parity; torch imported via streaming import; cache
 `perf_cores()`; test hardening; late translation re-send after a final.
 Tests: 146.
 
+## 2026-10-05 - WS3: English engine, mode routing, glossary, confidence
+
+Branch ws3-english. Parakeet-TDT 0.6B int8 (onnx-asr) as the English engine
+(`engine_parakeet.py`); engine registry and `--engines gu,en` with the engine
+pinned per utterance (`engines.py`); `asr_mode` gu/en live from the mic page,
+no translation for English; BAPS glossary (667 entries, 195 verified,
+`GUJUSUB_GLOSSARY` override, hot reload); confidence trimming before
+LocalAgreement with defaults 0.5/0.7 and `tools/calibrate_confidence.py`.
+Numbers: Parakeet 106 ms/1 s ... 324 ms/4 s ... 401 ms/5 s (target 250 ms at
+5 s missed, so the English window is 4 s); both engines ~3.6 GB RSS; glossary
+~0.06 ms per 50-word line. Single-word minimum for the gate is 1.
+Open: calibrate on real user clips (only test-guju.m4a exists); Auto
+language mode next (units 4.x); per-language confidence thresholds (en gate is
+weak); deferred review items; glossary package-data for wheels.
+
 ## 2026-10-05 - WS2: server-side settings + mic-page panel
 
 Settings moved to the server (`gujusub/settings.py`, `/ws/control`, persisted

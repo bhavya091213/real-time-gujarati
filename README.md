@@ -21,6 +21,25 @@ English speech is recognised with NVIDIA
 [istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx), run via
 [onnx-asr](https://github.com/istupakov/onnx-asr)).
 
+## Modes
+
+The **Speech language** setting on the mic page picks the mode:
+
+- **Gujarati + translation** (`gu`, default): IndicConformer captions, translated
+  to English.
+- **English only** (`en`): Parakeet captions, no translation. English names and
+  terms are rewritten to BAPS house spelling by the glossary (below).
+- **Auto** (`auto`): per-utterance language detection is not built yet; the
+  option is disabled and runs as `gu`.
+
+One language is used per utterance: the engine is chosen when the utterance
+starts and a mode change applies from the next utterance. English re-decodes
+use a 4 s window (Gujarati: 5 s) to keep each decode near 325 ms.
+
+Memory: with both engines loaded the server uses about 3.6 GB RSS. On a
+low-RAM machine start with `--engines gu` (English mode then falls back to
+Gujarati and the status strip shows a warning).
+
 See [`wiki/`](wiki/README.md) for architecture, design decisions, gotchas, and
 the broadcast setup guide.
 
@@ -81,7 +100,8 @@ resolve from the repo root.
 | `--test` | start script | | Run pytest and exit |
 | `--help` | start script | | Usage plus the live server flag list |
 | `--device cpu\|mps` | server | `cpu` | ASR device; `mps` is Apple Silicon only (Windows uses `cpu`) |
-| `--lang CODE` | server | `gu` | ASR language |
+| `--engines LIST` | server | `gu,en` | ASR engines to load: `gu,en` or `gu` (low RAM) |
+| `--lang CODE` | server | `gu` | Deprecated no-op; use `--engines` and the Speech language setting |
 | `--port N` | server | `8765` | HTTP/WebSocket port |
 | `--no-translate` | server | off | Skip Gujarati to English translation |
 | `--no-filter` | server | off | Show filler words instead of hiding them |
@@ -97,11 +117,31 @@ The settings panel on the mic page (`/`) is the way to configure speech language
 | `GUJUSUB_MODEL_DIR` | `~/.cache/gujusub` | Where the symlink-free ASR model copy lives |
 | `HF_HOME` | `~/.cache/huggingface` | Hugging Face hub cache (downloaded models) |
 
-- **Models.** About 1 GB total: the IndicConformer ASR model and the
-  IndicTrans2 CTranslate2 translator, downloaded once into the hub cache. The
+- **Models.** About 1.7 GB total: the IndicConformer ASR model, the Parakeet
+  English model (~630 MB) and the IndicTrans2 CTranslate2 translator, downloaded once into the hub cache. The
   ASR model is also hardlinked into `GUJUSUB_MODEL_DIR` (no extra disk) because
   recent onnxruntime refuses to load external weights through the cache's
   symlinks.
+- **BAPS glossary.** English captions and translations are passed through a
+  glossary of BAPS names and terms (667 entries, house style without
+  diacritics, e.g. "Pramukh Swami Maharaj") packaged in
+  `gujusub/data/glossary_baps.json`. Point `GUJUSUB_GLOSSARY` at your own JSON
+  file to override it; the file is re-read within ~2 s of being saved, and a
+  broken file keeps the previous entries. Schema:
+  `{"entries": [{"canonical": "Satsangi", "variants": ["satsangi", "satsangee"],
+  "category": "concept", "safe": true}]}`. Matching is case-insensitive and
+  longest-first; `safe: false` marks ordinary English words (e.g. "beta") that
+  are only rewritten when the spelling differs from the canonical by more than
+  letter case. Only 195 of the 667 packaged entries are source-verified.
+- **Confidence trimming.** Two sliders on the mic page: *Word min* drops
+  individual words below that confidence before they can be committed;
+  *Utterance min* drops a whole decode whose kept words average below it (noise,
+  music, the wrong language). 0 turns a stage off. Defaults are 0.5 and 0.7
+  (provisional, calibrated on one Gujarati clip plus synthetic English; see
+  `tools/calibrate_confidence.py`). A single confident word is kept ("Amen").
+  The gate is weak for English: Parakeet is often confident on junk. Settings
+  saved before these defaults existed stay at 0 until reset (see
+  `wiki/gotchas.md`).
 - **Audio input.** Open the mic page, choose the input in the device selector,
   click **Start mic**.
 - **Display page** (`/display`, add as an OBS browser source): output only,
@@ -122,12 +162,16 @@ gujusub/            Python package
   streaming.py      VAD-gated streaming transcriber with LocalAgreement commits
   asr_engine.py     IndicConformer wrapper
   engine.py         ASR engine types/interface
+  engines.py        Engine registry (--engines), per-utterance engine selection
+  engine_parakeet.py Parakeet-TDT English engine (onnx-asr, int8)
+  confidence.py     Confidence trimming + utterance gate
+  glossary.py       BAPS glossary matcher (data/glossary_baps.json)
   threads.py        Thread-count policy (GUJUSUB_THREADS)
   fillers.py        Filler-word suppression
   translator.py     IndicTrans2 on CTranslate2 + pass-through guard
   it2_compat.py     Shims for IndicTransToolkit under transformers 5.x
   static/           index.html (mic page), display.html (broadcast page)
-tools/              mic_client.py (terminal client), transcribe_file.py (offline check), replay.py (latency benchmark)
+tools/              mic_client.py (terminal client), transcribe_file.py (offline check), replay.py (latency benchmark), calibrate_confidence.py (threshold sweeps)
 tests/              pytest suite
 samples/            Short Gujarati test clip
 wiki/               Project knowledge base (read this before changing things)
@@ -141,7 +185,7 @@ install-windows.cmd Windows installer
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                         # 128 tests, no models loaded
+pytest                         # 347 tests, no models loaded
 ruff check .                   # lint
 python tools/transcribe_file.py samples/test-guju.m4a --translate
 python tools/replay.py samples/test-guju.m4a --loop-to 60 --no-endpoint --translate   # latency/lag benchmark

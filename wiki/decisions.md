@@ -106,8 +106,8 @@ localStorage. Changing the device while streaming restarts the capture
   (all cores incl. E-cores, spinning on) contended with CT2 translation.
 - **Display: rAF coalescing + bounded fit passes** (1-6 layout passes per
   block instead of 1-9; one render per frame at most).
-- **Word-level confidence** is exposed by `Transcript.words` but unused; it
-  is there for later trimming/commit decisions.
+- **Word-level confidence** is exposed by `Transcript.words`; since WS3 it
+  feeds the confidence trim (see below).
 
 ## Settings on the server + control socket (WS2, 2026-10-05)
 
@@ -124,3 +124,44 @@ localStorage. Changing the device while streaming restarts the capture
 - Content mode renamed `primary | translation | both` (old `gu`/`en` migrate to
   `primary`/`translation`); default is `translation`.
 - `/ws/control` snapshot carries `defaults` so Reset never drifts from the server.
+
+## English engine and modes (WS3, 2026-10-05)
+
+- **Parakeet-TDT 0.6B v2, int8, via onnx-asr.** Chosen for English WER, a
+  transducer that gives real token logprobs (so word confidence), and a pure
+  ONNX Runtime stack (no torch/NeMo). Measured on an M1 Pro, median per window
+  1/2/4/5/8/12 s: 106/180/324/401/639/1238 ms. The 5 s window missed the
+  250 ms target (greedy TDT decode is a Python loop in onnx-asr), so English
+  re-decodes use a 4 s window (~325 ms); Gujarati keeps 5 s.
+- **One language per utterance.** The engine is pinned when VAD opens the
+  utterance; settings changes apply from the next one. No mid-utterance
+  switching, no mixed-language utterances.
+- **No translation for English.** `en` events skip the translator; the English
+  text is the caption.
+- **BAPS house-style glossary.** English output and translations are rewritten to
+  BAPS spellings without diacritics. Entries marked `safe: false` (ordinary
+  English words like "beta") are only rewritten when the spelling differs
+  from canonical by more than case, so normal prose is untouched. Operator
+  override with hot reload via `GUJUSUB_GLOSSARY`.
+- **`--engines gu,en`** replaces `--lang`. Both engines resident is ~3.6 GB RSS;
+  `--engines gu` is the low-RAM option.
+- **Confidence trim before LocalAgreement.** Applied to every partial and final
+  so a low-confidence flicker word never commits; a gated decode counts as an
+  empty hypothesis. Already-committed text is never retracted. Defaults
+  `conf_word_min=0.5`, `conf_utt_min=0.7` are provisional (one Gujarati clip
+  plus synthetic English; full table in
+  `.orchestrate/english-auto-lang-modes/02-units/calibration-3.4.md`):
+
+  | case | engine | at (0.5, 0.7) |
+  |---|---|---|
+  | test-guju.m4a | gu | identical final and translation |
+  | `say` English | en | identical |
+  | English audio | gu | dropped (mean conf ~0.58) |
+  | Gujarati audio | en | dropped |
+  | sample + noise, 0 dB | gu | drops only હતો (0.49) |
+
+  gu word conf: clean 0.64-1.00, English-as-gu 0.27-0.87. 0.6 would drop
+  અત્યારે (0.64), so 0.5 is the ceiling for that clip. The en gate is weak (see
+  gotchas); per-language thresholds are a follow-up once real clips exist.
+- **Single-word minimum is 1.** A confident one-word utterance ("Amen") is kept.
+  The earlier minimum of 2 dropped it and held back first partials.

@@ -11,6 +11,7 @@ Run:  python tools/replay.py samples/test-guju.m4a
 """
 
 import argparse
+import dataclasses
 import json
 import math
 import sys
@@ -25,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gujusub.fillers import clean_event  # noqa: E402
 from gujusub.server import PARTIAL_TRANSLATE_GAP_S, get_glossary  # noqa: E402
+from gujusub.settings import Settings  # noqa: E402
 from gujusub.streaming import (  # noqa: E402
     SAMPLE_RATE,
     StreamingConfig,
@@ -118,8 +120,8 @@ class _Translations:
 
     def __call__(self, event: TranscriptEvent, now: float) -> str:
         text = f"{event.committed} {event.tail}".strip()
-        if self.translator is None or not text:
-            return ""
+        if self.translator is None or not text or event.lang != "gu":
+            return ""  # as server.py: English captions are never translated
         key = (event.utterance_id, event.committed)
         if event.type != "final":
             if self.requested == key or now - self.last_partial_at < PARTIAL_TRANSLATE_GAP_S:
@@ -144,10 +146,14 @@ def run_replay(
     filter_fillers: bool = True,
     clock: Callable[[], float] = time.perf_counter,
     sleep: Callable[[float], None] = time.sleep,
+    thresholds: tuple[float, float] = (0.0, 0.0),
 ) -> dict:
-    """Feed `audio` in chunk_ms chunks; return {"summary": {...}, "events": [...]}."""
+    """Feed `audio` in chunk_ms chunks; return {"summary": {...}, "events": [...]}.
+
+    `thresholds` = (conf_word_min, conf_utt_min) for confidence trimming (0 = off).
+    """
     timed = _TimedEngine(engine, clock)
-    st = StreamingTranscriber(timed, config, vad)
+    st = StreamingTranscriber(timed, config, vad, thresholds_provider=lambda: thresholds)
     translate = _Translations(translator, clock)
     chunk = max(1, chunk_ms * SAMPLE_RATE // 1000)
     duration = len(audio) / SAMPLE_RATE
@@ -194,13 +200,14 @@ def _display(ev: TranscriptEvent, filter_fillers: bool) -> TranscriptEvent:
     """Same order as server.filtered: fillers, then glossary for English captions."""
     committed, tail = ev.committed, ev.tail
     if filter_fillers:
-        committed, tail = clean_event(committed, tail, final=ev.type == "final")
-    if getattr(ev, "lang", "gu") == "en":
+        committed, tail = clean_event(committed, tail, final=ev.type == "final",
+                                      lang=ev.lang)
+    if ev.lang == "en":
         glossary = get_glossary()
         committed, tail = glossary.apply(committed), glossary.apply(tail)
     if (committed, tail) == (ev.committed, ev.tail):
         return ev
-    return TranscriptEvent(ev.type, ev.utterance_id, committed, tail)
+    return dataclasses.replace(ev, committed=committed, tail=tail)
 
 
 def _record(ev, english, decodes, n0, arrival) -> dict:
@@ -275,6 +282,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", type=Path, metavar="OUT.json")
     p.add_argument("--chunk-ms", type=int, default=8)
     p.add_argument("--quiet", action="store_true")
+    defaults = Settings()
+    p.add_argument("--conf-word-min", type=float, default=defaults.conf_word_min,
+                   help="drop words below this confidence (default: settings default)")
+    p.add_argument("--conf-utt-min", type=float, default=defaults.conf_utt_min,
+                   help="drop decodes whose mean word confidence is below this")
     args = p.parse_args(argv)
 
     audio = loop_to(load_audio(args.audio), args.loop_to)
@@ -290,6 +302,7 @@ def main(argv: list[str] | None = None) -> int:
     result = run_replay(
         audio, engine, translator=translator, config=config, vad=make_vad(),
         chunk_ms=args.chunk_ms, rtf=args.rtf,
+        thresholds=(args.conf_word_min, args.conf_utt_min),
     )  # fmt: skip
     if not args.quiet:
         print("\n".join(format_event(r) for r in result["events"]))

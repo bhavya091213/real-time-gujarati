@@ -34,7 +34,7 @@ def test_defaults_match_display_page():
     assert len(DISPLAY_DEFAULTS) == 22
     assert {k: getattr(s, k) for k in DISPLAY_DEFAULTS} == DISPLAY_DEFAULTS
     assert (s.asr_mode, s.translate, s.conf_word_min, s.conf_utt_min, s.schema) == (
-        "gu", True, 0.0, 0.0, 3)
+        "gu", True, 0.5, 0.7, 3)
 
 
 def test_payloads():

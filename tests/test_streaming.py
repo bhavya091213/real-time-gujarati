@@ -476,6 +476,7 @@ def test_event_to_dict_shape():
         "utterance_id": 3,
         "committed": "a b",
         "tail": "c",
+        "lang": "gu",
     }
 
 
@@ -579,3 +580,31 @@ def test_final_mismatch_without_usable_partial_keeps_committed_only():
     partials = feed_all(tr, 1 + 3 * INTERVAL_FRAMES)
     assert partials[-1].committed == "a b c"
     assert tr.flush()[0].committed == "a b c"
+
+
+def _bounded_run(provider):
+    engine = FakeEngine(word_s=WORD_S)  # every word conf 0.9
+    tr = StreamingTranscriber(engine, vad=FakeVAD([(0, 100_000)]),
+                              thresholds_provider=provider)
+    return feed_ramp(tr, 400) + tr.flush()
+
+
+@pytest.mark.parametrize("thresholds", [(0.5, 0.0), (0.0, 0.0)])
+def test_bounded_window_unchanged_when_every_word_passes_confidence(thresholds):
+    assert _bounded_run(lambda: thresholds) == _bounded_run(None)
+
+
+def test_recommended_defaults_keep_finals_and_one_word_partials():
+    gated, off = _bounded_run(lambda: (0.5, 0.7)), _bounded_run(None)
+    finals = [e for e in gated if e.type == "final"]
+    assert finals == [e for e in off if e.type == "final"]
+    # min_words defaults to 1: first (one-word) partials are not held back
+    assert any(len(f"{e.committed} {e.tail}".split()) == 1 for e in gated)
+    assert len(gated) == len(off)
+
+
+def test_bounded_window_gate_drops_everything_below_utterance_threshold():
+    engine = FakeEngine(word_s=WORD_S)  # every word conf 0.9
+    tr = StreamingTranscriber(engine, vad=FakeVAD([(0, 100_000)]),
+                              thresholds_provider=lambda: (0.0, 0.95))
+    assert feed_ramp(tr, 400) + tr.flush() == []

@@ -121,3 +121,36 @@ rebuilding by hand drops any field added later.
 24–160, pad 0–25, bottom 0–50, outline 0–12, …). A `settings.json` value
 outside those ranges is dropped on load with a warning and the default is
 used, so an edited file can "lose" a value without an error on screen.
+
+## Parakeet / onnx-asr quirks
+
+- onnx-asr turns the vocab's "▁" into a leading space (tokens `' G'`, `'ood'`),
+  so words split on a leading space or "▁" (both handled and tested).
+- Timestamps are token *starts* on an 80 ms grid; word end = last token start
+  + 0.08 s.
+- Parakeet confidence is ~1.0 on clean speech and can stay high on
+  wrong-language audio, so the confidence gate is weak for `en` (the 0.05
+  silence floor also does not reject it).
+
+## Saved settings predating the confidence defaults keep the gate off
+
+A `settings.json` written before `conf_word_min`/`conf_utt_min` defaulted to
+0.5/0.7 contains `0.0` for both, and the store loads saved values over the
+defaults, so the gate stays off. Delete the keys from the file (or move the
+file aside) or set the sliders on the mic page.
+
+## `--lang` is a no-op
+
+The Gujarati slot is always `gu`; use `--engines` and the Speech language
+setting. The flag is accepted only so old launch scripts keep working.
+
+## baps.org blocks fetches
+
+Glossary entries could not be checked against the BAPS site; 195 of 667 are
+verified from other sources (Wikipedia etc.), the rest are `verified: false`.
+
+## Glossary is not package-data
+
+`gujusub/data/glossary_baps.json` is read via `importlib.resources`, but
+`pyproject.toml` has no package-data config. Running from source works; an
+installed wheel would need package-data added.

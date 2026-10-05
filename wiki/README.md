@@ -17,7 +17,7 @@ runs entirely on one Mac, no cloud.
 |------|----------------|
 | [architecture.md](architecture.md) | Pipeline, files, WebSocket protocol, how to run |
 | [decisions.md](decisions.md) | Why things are the way they are (streaming algorithm, filler rules, display choices) |
-| [gotchas.md](gotchas.md) | Things that bit us: Gujarati regex, translator pass-through, saved-settings vs defaults |
+| [gotchas.md](gotchas.md) | Things that bit us: Parakeet quirks, saved confidence settings, Gujarati regex, translator pass-through, saved-settings vs defaults |
 | [broadcast-setup.md](broadcast-setup.md) | Getting captions into OBS/ProPresenter and keyed on an ATEM |
 | [sessions.md](sessions.md) | Chronological log of work sessions and open threads |
 

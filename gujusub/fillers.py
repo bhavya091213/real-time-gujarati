@@ -11,6 +11,11 @@ it is displayed or translated. Two tiers:
   adjacent to another dropped filler, or dangling at the end of a *final*
   utterance. "I like this" is left untouched.
 
+English captions (lang="en") use the same Latin rules, except that a
+sentence-initial discourse marker ("So, today we...", "Okay", "Right") is kept
+when real words follow it: from a native English speaker it opens the
+sentence rather than filling a pause.
+
 This is a pure display transform: it runs on the text of each
 TranscriptEvent after the streaming commit logic, so it never affects
 LocalAgreement stability.
@@ -43,6 +48,10 @@ PHRASES: tuple[tuple[str, ...], ...] = (
     ("kind", "of"),
     ("એટલે", "કે"),  # that is to say
 )
+
+# English sentence openers kept at utterance start when words follow them.
+EN_OPENERS: frozenset[str] = frozenset({"so", "okay", "ok", "right"})
+
 
 def _is_punct(ch: str) -> bool:
     # Category-based rather than \W: Gujarati matras and anusvara are
@@ -80,7 +89,7 @@ def _is_contextual(words: tuple[str, ...]) -> bool:
     return words in PHRASES or (len(words) == 1 and words[0] in CONTEXTUAL)
 
 
-def _keep_mask(tokens: list[str], final: bool) -> list[bool]:
+def _keep_mask(tokens: list[str], final: bool, lang: str = "gu") -> list[bool]:
     norm = [_norm(t) for t in tokens]
     spans = _spans(norm)
     drop = [False] * len(spans)
@@ -91,6 +100,7 @@ def _keep_mask(tokens: list[str], final: bool) -> list[bool]:
         is_always = len(words) == 1 and words[0] in ALWAYS
         drop[idx] = is_always or (
             _is_contextual(words)
+            and not (lang == "en" and not kept_any and _en_opener(norm, start, end))
             and _drop_contextual(spans, norm, idx, kept_any, prev_hesitation)
         )
         kept_any = kept_any or not drop[idx]
@@ -111,6 +121,15 @@ def _keep_mask(tokens: list[str], final: bool) -> list[bool]:
             for j in range(start, end):
                 keep[j] = False
     return keep
+
+
+def _en_opener(norm: list[str], start: int, end: int) -> bool:
+    """An English opener followed by at least one non-hesitation word."""
+    return (
+        end - start == 1
+        and norm[start] in EN_OPENERS
+        and any(w not in ALWAYS for w in norm[end:])
+    )
 
 
 def _drop_contextual(
@@ -146,15 +165,18 @@ def clean_text(text: str, *, final: bool = False) -> str:
     return " ".join(t for t, k in zip(tokens, keep, strict=True) if k)
 
 
-def clean_event(committed: str, tail: str, *, final: bool = False) -> tuple[str, str]:
+def clean_event(
+    committed: str, tail: str, *, final: bool = False, lang: str = "gu"
+) -> tuple[str, str]:
     """Filter a committed/tail pair jointly so phrases spanning the boundary
-    ("you" | "know") are still caught. Returns new (committed, tail)."""
+    ("you" | "know") are still caught. Returns new (committed, tail).
+    `lang="en"` keeps a sentence-initial opener (see module doc)."""
     committed_tokens = committed.split()
     tail_tokens = tail.split()
     tokens = committed_tokens + tail_tokens
     if not tokens:
         return "", ""
-    keep = _keep_mask(tokens, final)
+    keep = _keep_mask(tokens, final, lang)
     n = len(committed_tokens)
     new_committed = " ".join(t for t, k in zip(tokens[:n], keep[:n], strict=True) if k)
     new_tail = " ".join(t for t, k in zip(tokens[n:], keep[n:], strict=True) if k)

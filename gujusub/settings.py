@@ -49,8 +49,14 @@ class Settings:
     # --- server-only keys ---
     asr_mode: Literal["gu", "en", "auto"] = "gu"
     translate: bool = True
-    conf_word_min: float = 0.0
-    conf_utt_min: float = 0.0
+    # Confidence trimming (gujusub/confidence.py), provisional until real clips
+    # in samples/ refine it (unit 4.3). Calibrated in
+    # .orchestrate/english-auto-lang-modes/02-units/calibration-3.4.md: 0.5 is the
+    # highest word_min that leaves the clean Gujarati sample unchanged (its lowest
+    # word is 0.64); utt 0.7 drops wrong-language decodes (English audio on the gu
+    # engine, Gujarati audio on the en engine) while clean gu/en speech passes.
+    conf_word_min: float = 0.5
+    conf_utt_min: float = 0.7
     schema: int = SCHEMA
 
     def with_updates(self, partial: dict) -> "Settings":
