@@ -21,6 +21,11 @@ English speech is recognised with NVIDIA
 [istupakov](https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx), run via
 [onnx-asr](https://github.com/istupakov/onnx-asr)).
 
+Auto mode identifies the spoken language with
+[SpeechBrain](https://speechbrain.github.io/)'s
+[`lang-id-voxlingua107-ecapa`](https://huggingface.co/speechbrain/lang-id-voxlingua107-ecapa)
+(Apache-2.0), restricted to Gujarati vs English.
+
 ## Modes
 
 The **Speech language** setting on the mic page picks the mode:
@@ -29,16 +34,20 @@ The **Speech language** setting on the mic page picks the mode:
   to English.
 - **English only** (`en`): Parakeet captions, no translation. English names and
   terms are rewritten to BAPS house spelling by the glossary (below).
-- **Auto** (`auto`): per-utterance language detection is not built yet; the
-  option is disabled and runs as `gu`.
+- **Auto** (`auto`): Gujarati or English is detected per utterance. Language ID
+  runs on the first ~1.5 s of speech, and nothing is shown until it decides
+  (so the first words appear about 1.5-2 s after speech starts). If it is still
+  undecided after 3 s of speech, the utterance falls back to Gujarati. There is
+  no translation in Auto. Needs both engines (`--engines gu,en`).
 
 One language is used per utterance: the engine is chosen when the utterance
 starts and a mode change applies from the next utterance. English re-decodes
 use a 4 s window (Gujarati: 5 s) to keep each decode near 325 ms.
 
-Memory: with both engines loaded the server uses about 3.6 GB RSS. On a
-low-RAM machine start with `--engines gu` (English mode then falls back to
-Gujarati and the status strip shows a warning).
+Memory: with both engines loaded the server uses about 3.6 GB RSS; the language
+ID model adds about 250 MB and is loaded only when the English engine is. On a
+low-RAM machine start with `--engines gu`, which disables English and Auto (both
+fall back to Gujarati and the status strip shows a warning).
 
 See [`wiki/`](wiki/README.md) for architecture, design decisions, gotchas, and
 the broadcast setup guide.
@@ -117,8 +126,9 @@ The settings panel on the mic page (`/`) is the way to configure speech language
 | `GUJUSUB_MODEL_DIR` | `~/.cache/gujusub` | Where the symlink-free ASR model copy lives |
 | `HF_HOME` | `~/.cache/huggingface` | Hugging Face hub cache (downloaded models) |
 
-- **Models.** About 1.7 GB total: the IndicConformer ASR model, the Parakeet
-  English model (~630 MB) and the IndicTrans2 CTranslate2 translator, downloaded once into the hub cache. The
+- **Models.** About 1.8 GB total: the IndicConformer ASR model, the Parakeet
+  English model (~630 MB), the SpeechBrain language-ID model (~86 MB on disk,
+  ~250 MB in memory) and the IndicTrans2 CTranslate2 translator, downloaded once into the hub cache. The
   ASR model is also hardlinked into `GUJUSUB_MODEL_DIR` (no extra disk) because
   recent onnxruntime refuses to load external weights through the cache's
   symlinks.
@@ -163,6 +173,7 @@ gujusub/            Python package
   asr_engine.py     IndicConformer wrapper
   engine.py         ASR engine types/interface
   engines.py        Engine registry (--engines), per-utterance engine selection
+  lid.py            Spoken-language ID (SpeechBrain ECAPA, gu/en) + Auto decision policy
   engine_parakeet.py Parakeet-TDT English engine (onnx-asr, int8)
   confidence.py     Confidence trimming + utterance gate
   glossary.py       BAPS glossary matcher (data/glossary_baps.json)
@@ -185,7 +196,7 @@ install-windows.cmd Windows installer
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                         # 347 tests, no models loaded
+pytest                         # 416 tests, no models loaded
 ruff check .                   # lint
 python tools/transcribe_file.py samples/test-guju.m4a --translate
 python tools/replay.py samples/test-guju.m4a --loop-to 60 --no-endpoint --translate   # latency/lag benchmark

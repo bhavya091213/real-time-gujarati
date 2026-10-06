@@ -23,8 +23,7 @@ because the CTC ASR never emits punctuation or Latin letters.
 - Page `DEFAULTS` (display.html, index.html fallback) must match `settings.py`
   defaults; the server snapshot wins, but a mismatch shows as a flash on load.
 - `schema` is not settable (rejected by `set`); Reset strips it.
-- `asr_mode` `en`/`auto` are accepted by the server but run as `gu` (with a
-  one-time warning) until the English/auto engines land; only the panel disables them.
+- `asr_mode` `en`/`auto` fall back to `gu` (with a one-time warning) when the `en` engine (and, for auto, LID) is not loaded, e.g. `--engines gu`.
 - `status` messages are per mic connection and untagged: with several mics open
   each pipeline sends its own, and the strip shows whichever arrived last.
 
@@ -154,3 +153,16 @@ verified from other sources (Wikipedia etc.), the rest are `verified: false`.
 `gujusub/data/glossary_baps.json` is read via `importlib.resources`, but
 `pyproject.toml` has no package-data config. Running from source works; an
 installed wheel would need package-data added.
+
+## Language ID (Auto mode)
+
+- **Near-silence scores as confident English** (P(en) 0.89-0.96). Feeding the raw
+  clip from t=0 makes the decider commit to `en` on Gujarati audio. Hence the
+  speech-only feed from VAD onset, the -45 dBFS RMS guard in `classify`, and no
+  single-window decision before 1.5 s. Do not feed preroll or silence to the decider.
+- **speechbrain `expect_len` warning is harmless.** Ignore it.
+- **Cold import of speechbrain takes ~17 s** on first run (warm start is quick).
+  Model load itself is ~1 s.
+- **LID and confidence defaults are provisional.** There are no user clips in
+  `samples/` yet, so thresholds (0.80 / 0.95 / 1.5 s / 3 s, RMS guard) were set on
+  one Gujarati clip plus synthetic English. Calibration and a bake-off are unit 4.3.

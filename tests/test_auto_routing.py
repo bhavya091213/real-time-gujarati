@@ -107,21 +107,42 @@ def test_flip_flop_emits_nothing_until_decided():
     assert s.engines["gu"].calls == 0
 
 
-def test_endpoint_while_unsure_drops_the_utterance(caplog):
+def test_endpoint_while_unsure_falls_back_to_gu(caplog):
     caplog.set_level(logging.INFO)
     # 0.8 s of speech then silence: no scheduled check; final check is weak
     s = Setup([gu(0.7)], speech=[(ONSET, ONSET + 25)]).run(ONSET + 60).flush()
-    assert s.events == []
+    assert [ev.type for _, ev in s.events] == ["final"]
+    assert s.events[0][1].lang == "gu" and s.events[0][1].committed == "ગુ વાત"
     assert len(s.lid.windows) == 1 and len(s.lid.windows[0]) == 25 * VAD_FRAME
-    assert s.engines["gu"].calls == s.engines["en"].calls == 0
-    assert "dropped" in caplog.text and "0.70" in caplog.text
-    assert s.tr.lid_last["lang"] == "unsure"
+    assert s.engines["en"].calls == 0
+    assert "LID undecided, defaulting to gu" in caplog.text and "0.70" in caplog.text
+    assert s.tr.lid_last["lang"] == "gu" and s.tr.lid_last["fallback"] is True
 
 
-def test_endpoint_final_check_strong_before_guard_drops_utterance():
+def test_endpoint_strong_en_before_guard_is_not_routed_to_en():
+    # en p=0.97 at 0.8 s is below strong_from_s: unsure -> gu fallback, not en
     s = Setup([en(0.97)], speech=[(ONSET, ONSET + 25)]).run(ONSET + 60)
+    assert [ev.type for _, ev in s.events] == ["final"]
+    assert s.events[0][1].lang == "gu"
+    assert s.engines["en"].calls == 0
+    assert s.tr.lid_last["fallback"] is True
+
+
+def test_endpoint_strong_gu_before_guard_is_captioned_as_gu():
+    s = Setup([gu(0.97)], speech=[(ONSET, ONSET + 25)]).run(ONSET + 60)
+    assert [ev.type for _, ev in s.events] == ["final"]
+    assert s.events[0][1].lang == "gu" and s.events[0][1].committed == "ગુ વાત"
+    assert s.engines["en"].calls == 0
+
+
+def test_endpoint_while_unsure_and_no_fallback_drops(caplog):
+    caplog.set_level(logging.INFO)
+    s = Setup([en(0.97)], speech=[(ONSET, ONSET + 25)],
+              config=LidConfig(lid_fallback="none")).run(ONSET + 60).flush()
     assert s.events == []
     assert s.engines["gu"].calls == s.engines["en"].calls == 0
+    assert "dropped" in caplog.text
+    assert s.tr.lid_last["lang"] == "unsure"
 
 
 def test_max_s_without_decision_falls_back_to_gu_with_warning(caplog):

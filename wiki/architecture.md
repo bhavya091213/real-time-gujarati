@@ -8,7 +8,10 @@ mic (browser page or mic_client.py)
   ▼
 StreamingTranscriber (streaming.py)
   │  Silero VAD gating; engine registry (engines.py) → engine pinned per
-  │  utterance when VAD opens it (asr_mode gu|en, read from settings)
+  │  utterance when VAD opens it (asr_mode gu|en, read from settings); in
+  │  asr_mode auto the provider returns an AutoRoute(decider, engine_for): the
+  │  utterance opens with no engine, speech-only frames feed the LidDecider,
+  │  nothing is decoded/emitted until it decides, then the engine is pinned
   │  confidence trim (confidence.py) on every decode → LocalAgreement-2 commits
   │  → TranscriptEvent(type, utterance_id, committed, tail, lang)
   ▼
@@ -41,6 +44,7 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 | `gujusub/engines.py` | `EngineRegistry` (lang → engine), `parse_engine_list`, `load_engines` for `--engines`. The server asks it for the engine at each utterance start; falls back to `gu` with an `asr_warning` if the `en` engine is not loaded. |
 | `gujusub/engine_parakeet.py` | Parakeet-TDT 0.6B v2 (int8 ONNX via onnx-asr) as an `ASREngine` with word confidence (`exp(min token logprob)`) and word timestamps. |
 | `gujusub/confidence.py` | `trim_words`, `utterance_ok`, `apply_confidence`: per-word and per-utterance gates run after every decode, before LocalAgreement. Thresholds come from settings (`conf_word_min`, `conf_utt_min`). |
+| `gujusub/lid.py` | `LanguageID` (SpeechBrain `lang-id-voxlingua107-ecapa`, logits restricted to gu/en and renormalised; RMS guard returns 0.5/0.5 below `min_rms_dbfs`, default -45 dBFS; lock-serialised), `LidConfig`, `LidDecider` (pure policy: `posteriors`, `decided_s`, `speech_s`, `final_check()`). Loaded only when `en` is in `--engines`. |
 | `gujusub/glossary.py` | BAPS glossary matcher with hot-reloaded operator override (`GUJUSUB_GLOSSARY`). |
 | `gujusub/data/glossary_baps.json` | Packaged glossary (667 entries, 195 verified). |
 | `gujusub/threads.py` | Thread-count policy for ORT and CT2: performance cores, spin-waiting off; `GUJUSUB_THREADS` overrides. |
@@ -53,8 +57,8 @@ Layout since 2026-09-03: code is the `gujusub/` package, run with `python -m guj
 | `tools/transcribe_file.py` | One-shot file transcription (`samples/test-guju.m4a`), optional `--translate`. |
 | `tools/replay.py` | Offline replay of a file through `StreamingTranscriber` (+ optional translator) with an arrival-time lag model; prints decodes/s, decode p50/p95/max, translate calls, max/end lag, RTF. Flags: `--loop-to S`, `--no-endpoint`, `--translate`, `--rtf 1`, `--json`. Serial model, so lag with `--translate` is an upper bound (the server translates off the ASR path). |
 | `tools/calibrate_confidence.py` | Sweeps `conf_word_min` x `conf_utt_min` over clips on one or both engines (`--recommend W,U`); used for the defaults in decisions.md. |
-| `tools/prefetch_models.py` | Downloads + materialises both models; `--verify` loads them and runs a tiny inference. Called by the installers. |
-| `tests/` | pytest suite (347 tests, no models loaded). Run: `.venv/bin/python -m pytest` |
+| `tools/prefetch_models.py` | Downloads + materialises the models (incl. language ID); `--verify` loads them and runs a tiny inference. Called by the installers. |
+| `tests/` | pytest suite (416 tests, no models loaded). Run: `.venv/bin/python -m pytest` |
 | `samples/` | Short Gujarati test clip. |
 | `pyproject.toml` | pytest + ruff config. `requirements.txt` runtime, `requirements-dev.txt` adds pytest/httpx/ruff. |
 | `install-osx.sh`, `install-windows.cmd` | One-shot installers: find Python >= 3.11, create `.venv`, pip install, verify imports, pre-download models. `--dev` adds dev deps + runs tests; `--skip-models` defers the download. Idempotent. |
@@ -85,12 +89,23 @@ Event field `lang` (`"gu"` | `"en"`, optional; missing means `gu`) is the langua
 of the engine that decoded the utterance. It picks the primary-line typeface on
 the display, and the server skips translation (`translation: ""`) for `en`.
 
+`TranscriptEvent.translate_allowed` is internal and never serialised. It is pinned
+when the utterance opens (True for gu mode, False for en and for everything in
+Auto) and carried on every partial and final, so a mid-utterance mode change
+cannot start or stop translation of an utterance already in flight. The server
+caches it per utterance id for in-flight partial translations. The separate
+`translate` toggle stays live.
+
+Status `lid_last` (Auto only, else null): the latest LID outcome (utterance id,
+language, posteriors, speech seconds, seconds since onset, fallback flag); the mic
+page shows it as "LID: on - last English 0.93 @1.5 s".
+
 ## Control/view messages (since WS2)
 
 - `/ws/view` first message: `{"type":"settings", <22 display keys>, "schema":3}`;
   later settings changes arrive as further display-only `settings` messages.
 - `/ws/control` on connect: `{"type":"settings", <all keys>, "defaults":{...}}`
-  then `{"type":"status", ...}` (asr, translate, lid, decode_ms, avg_decode_ms,
+  then `{"type":"status", ...}` (asr, translate, lid, lid_last, decode_ms, avg_decode_ms,
   window_s, decodes, lag_s, backlog_s, utterances, asr_warning (string or null,
   e.g. the `en` engine is not loaded so Gujarati is used instead); once per second per mic
   pipeline, idle with `asr:null` otherwise). In: `{"type":"get"}`,

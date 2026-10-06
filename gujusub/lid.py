@@ -142,7 +142,7 @@ class LidConfig:
     p_min: float = 0.80
     p_strong: float = 0.95
     strong_from_s: float = 1.5  # a single p_strong window decides only from here on
-    lid_fallback: str = "gu"  # Auto mode, undecided at max_s: "gu" = pin gu, "none" = drop
+    lid_fallback: str = "gu"  # Auto, undecided (max_s or endpoint): "gu" = pin gu, "none" = drop
 
     def __post_init__(self) -> None:
         if self.step_s <= 0 or self.first_s <= 0:

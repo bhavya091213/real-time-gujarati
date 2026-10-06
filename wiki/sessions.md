@@ -136,6 +136,19 @@ Tests: 146.
 
 **Review (WS3):** Codex found 2 issues: malformed operator glossary overrides could crash caption processing (fixed: schema validation + fallback, 357 tests); 'committed words not retracted when confidence later drops' rejected as by-design.
 
+## 2026-10-05 - WS4: Auto mode (language ID)
+
+Added `gujusub/lid.py` (SpeechBrain ECAPA restricted to gu/en, `LidDecider` policy),
+`AutoRoute` in the streaming pipeline, Auto enabled on the mic page with a
+`lid_last` status readout, `replay --engine auto`. Policy and rationale are in
+decisions.md. Measured on M1 Pro: Gujarati decided at 1.5 s of speech, caption
++2.1 s after onset; English +1.9 s; 17-28 ms per LID call; +~250 MB RSS.
+Review (Codex) fixes: F-01 `final_check` honours `strong_from_s`; F-02 translation
+eligibility pinned per utterance. Tests: 416. User-approved deviation: fallback to
+Gujarati after 3 s undecided.
+Open: user clips -> calibration and LID bake-off (unit 4.3); deferred review items
+from triage-ws2/ws3/ws4; per-language confidence thresholds (en gate is weak).
+
 ## 2026-10-05 - WS3: English engine, mode routing, glossary, confidence
 
 Branch ws3-english. Parakeet-TDT 0.6B int8 (onnx-asr) as the English engine

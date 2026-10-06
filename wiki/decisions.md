@@ -165,3 +165,31 @@ localStorage. Changing the device while streaming restarts the capture
   gotchas); per-language thresholds are a follow-up once real clips exist.
 - **Single-word minimum is 1.** A confident one-word utterance ("Amen") is kept.
   The earlier minimum of 2 dropped it and held back first partials.
+
+## Auto mode (WS4, 2026-10-05)
+
+- **SpeechBrain ECAPA, restricted to gu/en.** `speechbrain/lang-id-voxlingua107-ecapa`
+  (107 languages, Apache-2.0, ~86 MB). Only the gu and en logits are used and
+  renormalised. The planned "Laya" model is text-only and cannot classify audio.
+  Calls cost 17-28 ms (1-3 s of audio), about +250 MB RSS; it loads only with the
+  `en` engine.
+- **Decision policy.** Decide when two consecutive windows reach p >= 0.80, or one
+  window reaches p >= 0.95 (single-window shortcut only from 1.5 s of speech).
+  First check at 1.0 s, then every +0.5 s up to 3 s. Config in `LidConfig`.
+- **Speech-only feed.** Only VAD-positive frames from the onset reach the decider
+  (no preroll, no pauses), and `classify` returns 0.5/0.5 for windows under
+  -45 dBFS. Near-silence scores as confident English (see gotchas).
+- **Strong-window rule at the endpoint.** `final_check` (utterance ended while still
+  unsure) classifies all buffered speech once and honours `strong_from_s`: a single
+  strong window decides only from 1.5 s, so a shorter utterance is dropped unless
+  a confident streak continues (review fix F-01).
+- **Fallback: Gujarati after 3 s undecided.** User-approved deviation from the
+  original "show nothing until confident" (D7): the utterance is pinned to gu and a
+  warning is logged. `lid_fallback="none"` restores strict behaviour.
+- **No translation in Auto** (D6), including Gujarati utterances. Eligibility is
+  pinned per utterance (`translate_allowed`, internal), so switching mode mid-utterance
+  neither starts nor stops its translation (review fix F-02).
+- **One language per utterance** (D5): once decided, the engine stays pinned until
+  the endpoint; no code-switching.
+- Measured (M1 Pro): Gujarati decided at 1.5 s of speech, first caption +2.1 s after
+  onset; English +1.9 s.

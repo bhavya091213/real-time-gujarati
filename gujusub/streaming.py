@@ -35,9 +35,10 @@ Algorithm: Silero-VAD-gated growing window with LocalAgreement-2 commits
   frame on (no preroll, no pauses) are fed to the LID decider, and nothing is
   decoded or emitted while it is unsure. On a decision the engine is pinned
   and a partial pass runs at once over the whole buffered utterance. If the
-  utterance ends undecided, one last check runs on all its speech; still
-  unsure -> dropped. If max_s passes undecided, LidConfig.lid_fallback applies
-  ("gu": pin Gujarati with a warning; "none": drop the utterance).
+  utterance ends undecided, one last check runs on all its speech. Still
+  unsure at the endpoint, or max_s passes undecided -> LidConfig.lid_fallback
+  applies ("gu": pin Gujarati with a warning and decode the buffered audio;
+  "none": drop the utterance).
 """
 
 import collections
@@ -388,13 +389,18 @@ class StreamingTranscriber:
             return self._partial_pass()
         if not decider.done:
             return []
+        self._lid_fallback(utt, "max_s")
+        return self._partial_pass() if utt.engine is not None else []
+
+    def _lid_fallback(self, utt: _UtteranceState, where: str) -> None:
+        """Undecided at `where`: apply LidConfig.lid_fallback (pin gu or drop)."""
+        decider = utt.route.decider
         if decider.config.lid_fallback == "gu":
             logger.warning("LID undecided, defaulting to gu (u%d, %s)",
                            self._utt_id, _fmt_posteriors(decider.posteriors))
             self._lid_resolve(utt, "gu", "fallback")
-            return self._partial_pass()
-        self._lid_resolve(utt, None, "dropped (undecided at max_s)")
-        return []
+        else:
+            self._lid_resolve(utt, None, f"dropped (undecided at {where})")
 
     def _lid_resolve(self, utt: _UtteranceState, lang: str | None, how: str) -> None:
         """Record + log the LID outcome; pin `lang`'s engine or drop (None)."""
@@ -532,9 +538,10 @@ class StreamingTranscriber:
             return []  # noise blip
         if utt.route is not None:  # Auto mode, ended undecided: one last look
             lang = utt.route.decider.final_check()
-            decided = lang in LID_LANGS
-            self._lid_resolve(utt, lang if decided else None,
-                              "decided at end" if decided else "dropped")
+            if lang in LID_LANGS:
+                self._lid_resolve(utt, lang, "decided at end")
+            else:
+                self._lid_fallback(utt, "end")
         if utt.engine is None:
             return []
         hyp = self._timed_decode(utt.engine, np.concatenate(utt.frames)).text.split()
