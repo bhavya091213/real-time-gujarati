@@ -76,7 +76,7 @@ import time  # noqa: E402
 
 import numpy as np  # noqa: E402
 
-from gujusub.streaming import StreamingTranscriber  # noqa: E402
+from gujusub.streaming import VAD_FRAME, StreamingTranscriber  # noqa: E402
 from tests.fakes import FakeEngine, FakeVAD  # noqa: E402
 
 MSG = 128  # samples per mic-page message (8 ms)
@@ -1446,8 +1446,10 @@ def test_idle_status_has_no_lid_last():
 
 def test_auto_mode_never_translates_even_gujarati(client, wire, auto_mode):
     tr = FakeTranslator()
-    gu_p = TranscriptEvent("partial", 1, "ગુ", "વાત", lang="gu")
-    gu_f = TranscriptEvent("final", 1, "ગુ વાત", "", lang="gu")
+    gu_p = TranscriptEvent(
+        "partial", 1, "ગુ", "વાત", lang="gu", translate_allowed=False)
+    gu_f = TranscriptEvent(
+        "final", 1, "ગુ વાત", "", lang="gu", translate_allowed=False)
     en_f = TranscriptEvent("final", 2, "hello", "", lang="en")
     wire(ScriptedTranscriber([[gu_p], [gu_f], [en_f]]), tr)
     with client, client.websocket_connect("/ws") as ws:
@@ -1457,6 +1459,76 @@ def test_auto_mode_never_translates_even_gujarati(client, wire, auto_mode):
             seen.append(ws.receive_json())
     assert [m["translation"] for m in seen] == ["", "", ""]
     assert tr.calls == []
+
+
+def test_auto_utterance_stays_untranslated_after_switch_to_gu(
+        wire, auto_mode, settings_store):
+    _loaded, lid = auto_mode
+    lid.posteriors = {"gu": 0.9, "en": 0.1}
+    tr = FakeTranslator()
+    st = StreamingTranscriber(engine_for_utterance=server.select_engine,
+                              vad=FakeVAD([(0, 100)]))
+    wire(st, tr)
+
+    async def run():
+        pipe = server._Pipeline(FakeMic())
+        translator_task = asyncio.create_task(pipe.translate_partials())
+        try:
+            assert st.feed(np.ones(VAD_FRAME, dtype=np.float32)) == []
+            settings_store.update({"asr_mode": "gu"})
+            partials = st.feed(np.ones(VAD_FRAME * 60, dtype=np.float32))
+            assert partials and all(not event.translate_allowed for event in partials)
+            for event in server.latest_events(partials):
+                await pipe.publish(event)
+            finals = st.feed(np.ones(VAD_FRAME * 69, dtype=np.float32))
+            for event in server.latest_events(finals):
+                await pipe.publish(event)
+            return pipe.ws.sent
+        finally:
+            translator_task.cancel()
+            await asyncio.gather(translator_task, return_exceptions=True)
+
+    sent = asyncio.run(run())
+    assert sent[-1]["type"] == "final" and sent[-1]["lang"] == "gu"
+    assert {message["translation"] for message in sent} == {""}
+    assert all("translate_allowed" not in message for message in sent)
+    assert tr.calls == []
+
+
+def test_gu_utterance_keeps_translation_after_switch_to_auto(
+        wire, auto_mode, settings_store):
+    settings_store.update({"asr_mode": "gu"})
+    tr = FakeTranslator()
+    st = StreamingTranscriber(engine_for_utterance=server.select_engine,
+                              vad=FakeVAD([(0, 100)]))
+    wire(st, tr)
+
+    async def run():
+        pipe = server._Pipeline(FakeMic())
+        translator_task = asyncio.create_task(pipe.translate_partials())
+        try:
+            assert st.feed(np.ones(VAD_FRAME, dtype=np.float32)) == []
+            settings_store.update({"asr_mode": "auto"})
+            partials = st.feed(np.ones(VAD_FRAME * 60, dtype=np.float32))
+            assert partials and all(event.translate_allowed for event in partials)
+            for event in server.latest_events(partials):
+                await pipe.publish(event)
+            await pipe.ws.wait_for(
+                lambda message: message["type"] == "partial"
+                and message["translation"] == "EN<gu-text>")
+            finals = st.feed(np.ones(VAD_FRAME * 69, dtype=np.float32))
+            for event in server.latest_events(finals):
+                await pipe.publish(event)
+            return pipe.ws.sent
+        finally:
+            translator_task.cancel()
+            await asyncio.gather(translator_task, return_exceptions=True)
+
+    sent = asyncio.run(run())
+    assert sent[-1]["type"] == "final" and sent[-1]["lang"] == "gu"
+    assert sent[-1]["translation"] == "EN<gu-text>"
+    assert all("translate_allowed" not in message for message in sent)
+    assert tr.calls == ["gu-text", "gu-text"]
 
 
 def test_auto_end_to_end_lid_picks_engine(client, wire, auto_mode):

@@ -101,6 +101,7 @@ class TranscriptEvent:
     committed: str  # stable text, never retracted within an utterance
     tail: str  # unstable text, may change on the next update
     lang: str = "gu"  # language of the engine that decoded this utterance
+    translate_allowed: bool = True  # pinned route policy; internal, not serialized
 
     def to_dict(self) -> dict:
         return {
@@ -174,6 +175,7 @@ class _UtteranceState:
     engine: ASREngine | None  # pinned at utterance start (Auto: on the LID decision)
     lang: str  # the pinned engine's language
     max_window_s: float  # window bound for the pinned engine
+    translate_allowed: bool  # pinned at utterance start (Auto never translates)
     frames: list = field(default_factory=list)  # window: VAD_FRAME np arrays
     route: AutoRoute | None = None  # Auto mode, LID still undecided
     onset_frame: int = 0  # index in frames of the VAD onset frame
@@ -360,9 +362,10 @@ class StreamingTranscriber:
         choice = self._engine_for_utterance()
         if isinstance(choice, AutoRoute):
             return _UtteranceState(engine=None, lang="", max_window_s=self.config.max_window_s,
-                                   frames=preroll, route=choice,
+                                   translate_allowed=False, frames=preroll, route=choice,
                                    onset_frame=len(preroll) - 1)
-        utt = _UtteranceState(engine=None, lang="", max_window_s=0.0, frames=preroll)
+        utt = _UtteranceState(engine=None, lang="", max_window_s=0.0,
+                              translate_allowed=True, frames=preroll)
         self._pin(utt, choice)
         return utt
 
@@ -516,6 +519,7 @@ class StreamingTranscriber:
                 committed=utt.committed_text(),
                 tail=" ".join(hyp[len(utt.committed):]),
                 lang=utt.lang,
+                translate_allowed=utt.translate_allowed,
             )
         ]
 
@@ -542,5 +546,6 @@ class StreamingTranscriber:
             TranscriptEvent(
                 type="final", utterance_id=self._utt_id, committed=text, tail="",
                 lang=utt.lang,
+                translate_allowed=utt.translate_allowed,
             )
         ]

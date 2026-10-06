@@ -118,11 +118,10 @@ def test_endpoint_while_unsure_drops_the_utterance(caplog):
     assert s.tr.lid_last["lang"] == "unsure"
 
 
-def test_endpoint_final_check_strong_emits_final_in_that_lang():
+def test_endpoint_final_check_strong_before_guard_drops_utterance():
     s = Setup([en(0.97)], speech=[(ONSET, ONSET + 25)]).run(ONSET + 60)
-    assert [(ev.type, ev.lang, ev.committed) for _, ev in s.events] == [
-        ("final", "en", "hello there")
-    ]
+    assert s.events == []
+    assert s.engines["gu"].calls == s.engines["en"].calls == 0
 
 
 def test_max_s_without_decision_falls_back_to_gu_with_warning(caplog):

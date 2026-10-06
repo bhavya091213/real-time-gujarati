@@ -195,7 +195,11 @@ class LidDecider:
     def final_check(self) -> str:
         """One last classification of all buffered speech; then ``done``."""
         if not self.done and self._buffered > self._checked:
-            self._judge(self._classify(self._audio()), self._buffered, strong_ok=True)
+            self._judge(
+                self._classify(self._audio()),
+                self._buffered,
+                strong_ok=self._buffered >= _samples(self.config.strong_from_s),
+            )
         self.done = True
         return self.lang or UNSURE
 

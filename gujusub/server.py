@@ -30,7 +30,7 @@ Mode routing: settings.asr_mode picks the engine when VAD opens an utterance
 carry its `lang`. English events are never translated (translation "").
 Auto: select_engine returns an AutoRoute (fresh LidDecider over the shared
 LanguageID); the transcriber pins gu/en once LID decides (see streaming.py).
-Nothing is translated while asr_mode is auto (D6), Gujarati included.
+Utterances opened in Auto are never translated (D6), Gujarati included.
 
 Per-connection pipeline (see _Pipeline):
   receiver    only reads audio messages into an asyncio.Queue.
@@ -222,9 +222,9 @@ def select_engine() -> ASREngine | AutoRoute:
     return engines.get(mode)
 
 
-def translation_allowed(lang: str) -> bool:
-    """Gujarati captions get English, except in Auto mode (D6: never translate)."""
-    return lang == "gu" and get_settings().asr_mode != "auto"
+def translation_allowed(event: TranscriptEvent) -> bool:
+    """Whether this utterance's pinned route permits Gujarati translation."""
+    return event.lang == "gu" and event.translate_allowed
 
 
 def load_language_id() -> LanguageID:
@@ -271,6 +271,7 @@ class _Pipeline:
         self.audio: asyncio.Queue[np.ndarray | None] = asyncio.Queue()
         self.last_sent: dict | None = None  # most recent payload sent
         self.translations: dict[int, str] = {}  # utterance_id -> latest English
+        self.translation_eligibility: dict[int, bool] = {}  # pinned route policy
         self.requested: tuple[int, str] | None = None  # last (uid, committed) queued
         self.pending: tuple[int, str] | None = None  # latest-only slot
         self.wake = asyncio.Event()
@@ -349,13 +350,18 @@ class _Pipeline:
         if not text:
             if event.type == "final":
                 self.translations.pop(uid, None)  # nothing published; still forget it
+                self.translation_eligibility.pop(uid, None)
             return  # utterance was nothing but fillers
         payload = event.to_dict()
+        eligible = translation_allowed(event)
         if event.type == "final":
             self.utterances += 1
+            self.translation_eligibility.pop(uid, None)
+        else:
+            self.translation_eligibility[uid] = eligible
         if self.translator is not None and (
-                not get_settings().translate or not translation_allowed(event.lang)):
-            # translation off, already English, or Auto mode: no executor call
+                not get_settings().translate or not eligible):
+            # translation off, already English, or Auto-origin: no executor call
             payload["translation"] = ""
             self.translations.pop(uid, None)
         elif self.translator is not None:
@@ -403,8 +409,9 @@ class _Pipeline:
             return  # utterance already finalized (or nothing to update)
         if not english:
             return  # failed/dropped: partials keep the last good English
-        if not get_settings().translate or not translation_allowed("gu"):
-            return  # switched off (or to Auto) while this translation was in flight
+        if (not get_settings().translate
+                or not self.translation_eligibility.get(uid, False)):
+            return  # switched off or route-ineligible while translation was in flight
         self.translations[uid] = english
         if english != last.get("translation"):
             await self.send({**last, "translation": english})

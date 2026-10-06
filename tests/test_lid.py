@@ -104,12 +104,12 @@ def test_last_posteriors_and_decision_time_are_recorded():
     assert d.decided_s == 1.5
 
 
-def test_final_check_decides_on_strong_full_buffer():
+def test_final_check_strong_before_guard_stays_unsure():
     clf = ScriptedClassifier([gu(0.97)])
     d = LidDecider(clf)
     d.feed(secs(0.8))
-    assert d.final_check() == "gu"
-    assert d.done and d.lang == "gu"
+    assert d.final_check() == "unsure"
+    assert d.done and d.lang is None
     assert clf.lengths == [int(0.8 * SR)]
 
 
