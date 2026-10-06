@@ -130,9 +130,28 @@ class Glossary:
         return None
 
 
+def _validate_entries(entries: object) -> list[dict]:
+    if not isinstance(entries, list):
+        raise ValueError("entries must be a list")
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError("each glossary entry must be an object")
+        canonical = entry.get("canonical")
+        if not isinstance(canonical, str) or not canonical.strip():
+            raise ValueError("canonical must be a non-empty string")
+        variants = entry.get("variants")
+        if not isinstance(variants, list) or any(
+            not isinstance(variant, str) or not variant.strip() for variant in variants
+        ):
+            raise ValueError("variants must be a list of non-empty strings")
+        if "safe" in entry and not isinstance(entry["safe"], bool):
+            raise ValueError("safe must be a boolean")
+    return entries
+
+
 def _read_entries(path: Path) -> list[dict]:
     with open(path, encoding="utf-8") as f:
-        return json.load(f)["entries"]
+        return _validate_entries(json.load(f)["entries"])
 
 
 def _packaged_entries() -> list[dict]:

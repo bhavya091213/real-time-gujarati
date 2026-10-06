@@ -105,6 +105,60 @@ def _write(path, entries):
     path.write_text(json.dumps({"entries": entries}), encoding="utf-8")
 
 
+@pytest.mark.parametrize(
+    "entries",
+    [
+        {},
+        [None],
+        [{"canonical": 123, "variants": ["foo"]}],
+        [{"canonical": " ", "variants": ["foo"]}],
+        [{"canonical": "Foo", "variants": "foo"}],
+        [{"canonical": "Foo", "variants": [123]}],
+        [{"canonical": "Foo", "variants": [" "]}],
+        [{"canonical": "Foo", "variants": ["foo"], "safe": "false"}],
+    ],
+    ids=[
+        "entries-not-list",
+        "entry-not-object",
+        "canonical-not-string",
+        "canonical-empty",
+        "variants-not-list",
+        "variant-not-string",
+        "variant-empty",
+        "safe-not-boolean",
+    ],
+)
+def test_malformed_override_schema_falls_back_to_packaged(tmp_path, entries):
+    f = tmp_path / "g.json"
+    _write(f, entries)
+
+    gl = load_glossary(f)
+
+    assert len(gl) > 500
+    assert "Swaminarayan" in gl.apply("jai swaminarayan.")
+
+
+@pytest.mark.parametrize(
+    "entries",
+    [
+        [{"canonical": 123, "variants": ["bar"]}],
+        [{"canonical": "Bar", "variants": [123]}],
+    ],
+    ids=["canonical-not-string", "variant-not-string"],
+)
+def test_malformed_override_reload_keeps_previous(tmp_path, entries):
+    f = tmp_path / "g.json"
+    _write(f, [{"canonical": "Foo", "variants": ["fu"]}])
+    gl = load_glossary(f)
+    _write(f, entries)
+    os.utime(f, (time.time() + 10, time.time() + 10))
+    gl._checked -= 3
+
+    gl.maybe_reload()
+
+    assert gl.apply("fu") == "Foo"
+
+
 def test_env_override_and_hot_reload(tmp_path, monkeypatch):
     f = tmp_path / "g.json"
     _write(f, [{"canonical": "Foo", "variants": ["fu"]}])

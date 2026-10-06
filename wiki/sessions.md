@@ -134,6 +134,8 @@ replay clock/batching parity; torch imported via streaming import; cache
 `perf_cores()`; test hardening; late translation re-send after a final.
 Tests: 146.
 
+**Review (WS3):** Codex found 2 issues: malformed operator glossary overrides could crash caption processing (fixed: schema validation + fallback, 357 tests); 'committed words not retracted when confidence later drops' rejected as by-design.
+
 ## 2026-10-05 - WS3: English engine, mode routing, glossary, confidence
 
 Branch ws3-english. Parakeet-TDT 0.6B int8 (onnx-asr) as the English engine
