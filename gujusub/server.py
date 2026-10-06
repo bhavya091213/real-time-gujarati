@@ -16,16 +16,21 @@ Protocol:
               viewers get the display-only "settings"; a bad request gets
               {"type": "error", "message": "..."} and changes nothing.
             While a /ws pipeline runs, every STATUS_INTERVAL_S:
-              {"type": "status", "asr": "gu"|"en"|null, "translate": bool,
+              {"type": "status", "asr": "gu"|"en"|"auto"|null, "translate": bool,
                "lid": bool, "decode_ms", "avg_decode_ms", "window_s",
                "decodes", "lag_s", "backlog_s", "utterances",
-               "asr_warning": str|null}
+               "asr_warning": str|null, "lid_last": {...}|null}
               (lag_s == backlog_s: seconds of audio queued for the worker;
-               asr_warning explains a fallback, e.g. en engine not loaded).
+               asr_warning explains a fallback, e.g. en engine not loaded;
+               lid_last is the latest Auto-mode LID outcome: utterance_id,
+               lang ("gu"|"en"|"unsure"), p, speech_s, since_onset_s, fallback).
 
 Mode routing: settings.asr_mode picks the engine when VAD opens an utterance
 (select_engine); it stays pinned until that utterance's final, and events
 carry its `lang`. English events are never translated (translation "").
+Auto: select_engine returns an AutoRoute (fresh LidDecider over the shared
+LanguageID); the transcriber pins gu/en once LID decides (see streaming.py).
+Nothing is translated while asr_mode is auto (D6), Gujarati included.
 
 Per-connection pipeline (see _Pipeline):
   receiver    only reads audio messages into an asyncio.Queue.
@@ -63,8 +68,9 @@ from gujusub.engine import ASREngine
 from gujusub.engines import EngineRegistry, load_engines, parse_engine_list
 from gujusub.fillers import clean_event
 from gujusub.glossary import Glossary, load_glossary
+from gujusub.lid import LanguageID, LidConfig, LidDecider
 from gujusub.settings import Settings, SettingsStore, display_payload, snapshot_payload
-from gujusub.streaming import StreamingConfig, StreamingTranscriber, TranscriptEvent
+from gujusub.streaming import AutoRoute, StreamingConfig, StreamingTranscriber, TranscriptEvent
 from gujusub.translator import Translator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
@@ -75,6 +81,8 @@ STATIC = Path(__file__).parent / "static"
 app = FastAPI()
 engines: EngineRegistry | None = None  # loaded once in main()
 translator: Translator | None = None  # loaded once in main(); None if --no-translate
+language_id: LanguageID | None = None  # loaded in main() when the en engine is
+lid_config = LidConfig()  # Auto-mode decision policy (lid_fallback "gu")
 filter_fillers = True  # set from --no-filter in main()
 _glossary: Glossary | None = None  # lazily loaded; see get_glossary()
 viewers: set[WebSocket] = set()  # connected /ws/view sockets
@@ -163,7 +171,7 @@ def idle_status() -> dict:
     return {"type": "status", "asr": None, "translate": False, "lid": False,
             "decode_ms": 0.0, "avg_decode_ms": 0.0, "window_s": 0.0,
             "decodes": 0, "lag_s": 0.0, "backlog_s": 0.0, "utterances": 0,
-            "asr_warning": None}
+            "asr_warning": None, "lid_last": None}
 
 
 def current_status() -> dict:
@@ -173,21 +181,27 @@ def current_status() -> dict:
 
 
 def active_asr() -> tuple[str, str | None]:
-    """(engine lang to run, fallback warning or None) for the current asr_mode.
+    """(engine lang or "auto" to run, fallback warning or None) for asr_mode.
 
-    en needs the English engine (--engines gu,en); auto is not implemented yet
-    (WS4). Either falls back to gu, logging the reason once per mode.
+    en needs the English engine; auto needs it plus the LID model (both loaded
+    with --engines gu,en). Otherwise falls back to gu, logging once per mode.
     """
     mode = get_settings().asr_mode
     if mode == "gu":
         return "gu", None
+    has_en = engines is not None and "en" in engines
     if mode == "en":
-        if engines is not None and "en" in engines:
+        if has_en:
             return "en", None
         warning = ("English engine not loaded (start with --engines gu,en); "
                    "running Gujarati")
+    elif mode == "auto":
+        if has_en and language_id is not None:
+            return "auto", None
+        warning = ("Auto needs the English engine and language ID "
+                   "(start with --engines gu,en); running Gujarati")
     else:
-        warning = f"asr_mode {mode!r} not implemented yet; running Gujarati"
+        warning = f"asr_mode {mode!r} not implemented; running Gujarati"
     if mode not in _warned_modes:
         _warned_modes.add(mode)
         logger.warning(warning)
@@ -198,11 +212,23 @@ def effective_asr_mode() -> str:
     return active_asr()[0]
 
 
-def select_engine() -> ASREngine:
-    """Engine for a new utterance (called from the transcriber's executor thread)."""
+def select_engine() -> ASREngine | AutoRoute:
+    """Engine (or Auto-mode LID route) for a new utterance (executor thread)."""
     if engines is None:
         raise RuntimeError("no ASR engines loaded (server.main() not run)")
-    return engines.get(effective_asr_mode())
+    mode = effective_asr_mode()
+    if mode == "auto":
+        return AutoRoute(LidDecider(language_id.classify, lid_config), engines.get)
+    return engines.get(mode)
+
+
+def translation_allowed(lang: str) -> bool:
+    """Gujarati captions get English, except in Auto mode (D6: never translate)."""
+    return lang == "gu" and get_settings().asr_mode != "auto"
+
+
+def load_language_id() -> LanguageID:
+    return LanguageID()
 
 
 async def send_controls(payload: dict, exclude: WebSocket | None = None) -> None:
@@ -262,14 +288,16 @@ class _Pipeline:
         tx = self.transcriber
         backlog = round(self.queued_samples / SAMPLE_RATE, 3)
         lang, warning = active_asr()
+        auto = lang == "auto"
         return {"type": "status", "asr": lang,
-                "translate": self.translating() and lang == "gu", "lid": False,
+                "translate": self.translating() and lang == "gu", "lid": auto,
                 "decode_ms": float(getattr(tx, "last_decode_ms", 0.0)),
                 "avg_decode_ms": float(getattr(tx, "avg_decode_ms", 0.0)),
                 "window_s": float(getattr(tx, "last_window_s", 0.0)),
                 "decodes": int(getattr(tx, "decode_count", 0)),
                 "lag_s": backlog, "backlog_s": backlog,
-                "utterances": self.utterances, "asr_warning": warning}
+                "utterances": self.utterances, "asr_warning": warning,
+                "lid_last": getattr(tx, "lid_last", None) if auto else None}
 
     async def report_status(self) -> None:
         while True:
@@ -326,8 +354,8 @@ class _Pipeline:
         if event.type == "final":
             self.utterances += 1
         if self.translator is not None and (
-                not get_settings().translate or event.lang != "gu"):
-            # translation off, or already English: no executor call at all
+                not get_settings().translate or not translation_allowed(event.lang)):
+            # translation off, already English, or Auto mode: no executor call
             payload["translation"] = ""
             self.translations.pop(uid, None)
         elif self.translator is not None:
@@ -375,8 +403,8 @@ class _Pipeline:
             return  # utterance already finalized (or nothing to update)
         if not english:
             return  # failed/dropped: partials keep the last good English
-        if not get_settings().translate:
-            return  # switched off while this translation was in flight
+        if not get_settings().translate or not translation_allowed("gu"):
+            return  # switched off (or to Auto) while this translation was in flight
         self.translations[uid] = english
         if english != last.get("translation"):
             await self.send({**last, "translation": english})
@@ -575,7 +603,7 @@ def _engine_list_arg(text: str) -> tuple[str, ...]:
 
 
 def main() -> None:
-    global engines, translator, filter_fillers, store
+    global engines, translator, filter_fillers, store, language_id
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", default="cpu", choices=["cpu", "mps"])
     parser.add_argument("--lang", default="gu",
@@ -605,6 +633,9 @@ def main() -> None:
         translator = Translator()
         translator.warmup()
     engines.warmup()
+    if "en" in engines:  # Auto mode needs gu + en + LID
+        language_id = load_language_id()
+        language_id.warmup()
     logger.info("engines %s loaded and warm in %.1f s",
                 ",".join(engines.langs), time.perf_counter() - started)
     logger.info("ready — mic: http://localhost:%d  display: http://localhost:%d/display",

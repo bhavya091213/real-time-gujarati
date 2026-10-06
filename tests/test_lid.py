@@ -42,6 +42,11 @@ def secs(s: float) -> np.ndarray:
     return np.zeros(int(round(s * SR)), dtype=np.float32)
 
 
+def tone(s: float, amplitude: float = 0.1) -> np.ndarray:
+    t = np.arange(int(round(s * SR)), dtype=np.float32) / SR
+    return (amplitude * np.sin(2 * np.pi * 220 * t)).astype(np.float32)
+
+
 def feed_steps(decider: LidDecider, total_s: float, step_s: float = 0.25) -> list[str]:
     out = []
     for _ in range(int(round(total_s / step_s))):
@@ -67,11 +72,83 @@ def test_decides_on_second_consecutive_confident_window():
     assert clf.lengths == [SR, int(1.5 * SR)]
 
 
-def test_strong_single_window_decides_immediately():
-    clf = ScriptedClassifier([en(0.97)])
+def test_strong_single_window_at_first_check_does_not_decide():
+    # near-silence scores as confident English, so the 1.0 s window alone never commits
+    clf = ScriptedClassifier([en(0.99), gu(0.6)])
     d = LidDecider(clf)
-    assert d.feed(secs(1.0)) == "en"
+    assert d.feed(secs(1.0)) == "unsure"
+    assert d.feed(secs(0.5)) == "unsure"
+    assert not d.done
+
+
+def test_strong_single_window_decides_from_second_check():
+    clf = ScriptedClassifier([gu(0.6), en(0.97)])
+    d = LidDecider(clf)
+    assert d.feed(secs(1.0)) == "unsure"
+    assert d.feed(secs(0.5)) == "en"
     assert d.lang == "en"
+
+
+def test_two_confident_windows_from_the_first_check_still_decide():
+    clf = ScriptedClassifier([en(0.99), en(0.85)])
+    d = LidDecider(clf)
+    assert d.feed(secs(1.5)) == "en"
+
+
+def test_last_posteriors_and_decision_time_are_recorded():
+    clf = ScriptedClassifier([gu(0.85), gu(0.9)])
+    d = LidDecider(clf)
+    assert d.posteriors is None and d.decided_s is None
+    d.feed(secs(1.5))
+    assert d.posteriors == gu(0.9)
+    assert d.decided_s == 1.5
+
+
+def test_final_check_decides_on_strong_full_buffer():
+    clf = ScriptedClassifier([gu(0.97)])
+    d = LidDecider(clf)
+    d.feed(secs(0.8))
+    assert d.final_check() == "gu"
+    assert d.done and d.lang == "gu"
+    assert clf.lengths == [int(0.8 * SR)]
+
+
+def test_final_check_continues_a_confident_streak():
+    clf = ScriptedClassifier([en(0.85), en(0.82)])
+    d = LidDecider(clf)
+    d.feed(secs(1.2))
+    assert d.final_check() == "en"
+    assert clf.lengths == [SR, int(1.2 * SR)]
+
+
+def test_final_check_weak_stays_unsure():
+    clf = ScriptedClassifier([gu(0.85)])
+    d = LidDecider(clf)
+    d.feed(secs(0.8))
+    assert d.final_check() == "unsure"
+    assert d.done and d.lang is None
+
+
+def test_final_check_without_new_audio_does_not_reclassify():
+    clf = ScriptedClassifier([gu(0.7), gu(0.7)])
+    d = LidDecider(clf)
+    d.feed(secs(1.5))
+    assert d.final_check() == "unsure"
+    assert len(clf.lengths) == 2
+
+
+def test_final_check_with_no_audio_is_unsure():
+    clf = ScriptedClassifier([])
+    assert LidDecider(clf).final_check() == "unsure"
+    assert clf.lengths == []
+
+
+def test_final_check_after_decision_keeps_it():
+    clf = ScriptedClassifier([en(0.9), en(0.9)])
+    d = LidDecider(clf)
+    d.feed(secs(1.5))
+    assert d.final_check() == "en"
+    assert len(clf.lengths) == 2
 
 
 def test_flip_flop_stays_unsure_then_times_out():
@@ -103,11 +180,11 @@ def test_timeout_is_final_and_stops_classifying():
 
 
 def test_decision_is_sticky_after_done():
-    clf = ScriptedClassifier([en(0.99)])
+    clf = ScriptedClassifier([en(0.99), en(0.99)])
     d = LidDecider(clf)
-    d.feed(secs(1.0))
+    d.feed(secs(1.5))
     assert d.feed(secs(2.0)) == "en"
-    assert len(clf.lengths) == 1
+    assert len(clf.lengths) == 2
 
 
 def test_big_chunk_evaluates_each_checkpoint_on_its_prefix():
@@ -126,14 +203,14 @@ def test_buffer_capped_at_max_seconds():
 
 
 def test_reset_starts_a_new_utterance():
-    clf = ScriptedClassifier([en(0.99), gu(0.99)])
+    clf = ScriptedClassifier([en(0.99), en(0.99), gu(0.99), gu(0.99)])
     d = LidDecider(clf)
-    assert d.feed(secs(1.0)) == "en"
+    assert d.feed(secs(1.5)) == "en"
     d.reset()
-    assert not d.done and d.lang is None
+    assert not d.done and d.lang is None and d.posteriors is None
     assert d.feed(secs(0.5)) == "unsure"
-    assert d.feed(secs(0.5)) == "gu"
-    assert clf.lengths == [SR, SR]
+    assert d.feed(secs(1.0)) == "gu"
+    assert clf.lengths == [SR, int(1.5 * SR), SR, int(1.5 * SR)]
 
 
 def test_custom_config_thresholds():
@@ -151,6 +228,15 @@ def test_config_rejects_bad_values():
         LidConfig(first_s=4.0, max_s=3.0)
     with pytest.raises(ValueError):
         LidConfig(step_s=0.0)
+    with pytest.raises(ValueError):
+        LidConfig(lid_fallback="en")
+
+
+def test_config_defaults_for_auto_mode():
+    cfg = LidConfig()
+    assert cfg.strong_from_s == 1.5
+    assert cfg.lid_fallback == "gu"
+    assert LidConfig(lid_fallback="none").lid_fallback == "none"
 
 
 # ---------------------------------------------------------------- LanguageID
@@ -179,7 +265,7 @@ class FakeSpeechBrain:
 def test_language_id_renormalises_over_gu_and_en():
     fake = FakeSpeechBrain(gu_logit=2.0, en_logit=0.0)
     model = LanguageID(classifier=fake)
-    probs = model.classify(secs(2.0))
+    probs = model.classify(tone(2.0))
     assert set(probs) == {"gu", "en"}
     assert math.isclose(probs["gu"] + probs["en"], 1.0, rel_tol=1e-6)
     assert math.isclose(probs["gu"], 1 / (1 + math.exp(-2.0)), rel_tol=1e-5)
@@ -213,7 +299,7 @@ def test_language_id_rejects_2d_audio():
 
 def test_language_id_restores_torch_threads():
     before = torch.get_num_threads()
-    LanguageID(classifier=FakeSpeechBrain(0.0, 0.0), threads=1).classify(secs(1.0))
+    LanguageID(classifier=FakeSpeechBrain(0.0, 0.0), threads=1).classify(tone(1.0))
     assert torch.get_num_threads() == before
 
 
@@ -226,7 +312,26 @@ def test_warmup_runs_one_classification():
 def test_decider_accepts_language_id_classify():
     fake = FakeSpeechBrain(gu_logit=10.0, en_logit=0.0)
     d = LidDecider(LanguageID(classifier=fake).classify)
-    assert d.feed(secs(1.0)) == "gu"
+    assert d.feed(tone(1.0)) == "unsure"
+    assert d.feed(tone(0.5)) == "gu"
+
+
+def test_language_id_near_silence_is_uninformative_without_model_call():
+    fake = FakeSpeechBrain(gu_logit=0.0, en_logit=10.0)
+    model = LanguageID(classifier=fake)
+    # 0.005 peak sine -> RMS ~ -49 dBFS, below the -45 dBFS default floor
+    assert model.classify(tone(1.0, amplitude=0.005)) == {"gu": 0.5, "en": 0.5}
+    assert model.classify(secs(1.0)) == {"gu": 0.5, "en": 0.5}
+    assert fake.calls == []
+    probs = model.classify(tone(1.0, amplitude=0.02))  # ~ -37 dBFS: classified
+    assert probs["en"] > 0.99 and len(fake.calls) == 1
+
+
+def test_language_id_rms_floor_is_configurable():
+    fake = FakeSpeechBrain(gu_logit=10.0, en_logit=0.0)
+    model = LanguageID(classifier=fake, min_rms_dbfs=-20.0)
+    assert model.classify(tone(1.0, amplitude=0.05)) == {"gu": 0.5, "en": 0.5}
+    assert fake.calls == []
 
 
 def test_savedir_follows_model_dir_env(monkeypatch, tmp_path):

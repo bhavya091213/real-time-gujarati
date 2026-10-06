@@ -8,6 +8,11 @@ is an upper bound: translation time is charged to the serial processing clock.
 
 Run:  python tools/replay.py samples/test-guju.m4a
       python tools/replay.py samples/test-guju.m4a --loop-to 60 --no-endpoint --translate
+      python tools/replay.py samples/test-guju.m4a --engine auto   # LID picks gu/en
+
+--engine auto loads gu + en + LID and reports each utterance's LID decision
+(lang, p, speech seconds that decided, time since VAD onset, and when the
+first caption appeared after onset). Auto mode never translates (as server.py).
 """
 
 import argparse
@@ -25,10 +30,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from gujusub.fillers import clean_event  # noqa: E402
+from gujusub.lid import LidConfig, LidDecider  # noqa: E402
 from gujusub.server import PARTIAL_TRANSLATE_GAP_S, get_glossary  # noqa: E402
 from gujusub.settings import Settings  # noqa: E402
 from gujusub.streaming import (  # noqa: E402
     SAMPLE_RATE,
+    AutoRoute,
     StreamingConfig,
     StreamingTranscriber,
     TranscriptEvent,
@@ -49,7 +56,14 @@ def _load_en():
     return ParakeetEngine()
 
 
-ENGINES: dict[str, Callable[[], object]] = {"gu": _load_gu, "en": _load_en}  # WS4 adds auto
+ENGINES: dict[str, Callable[[], object]] = {"gu": _load_gu, "en": _load_en}
+AUTO = "auto"  # --engine auto: both ENGINES + LID
+
+
+def load_lid():
+    from gujusub.lid import LanguageID
+
+    return LanguageID()
 
 
 def load_audio(path: Path) -> np.ndarray:
@@ -147,14 +161,31 @@ def run_replay(
     clock: Callable[[], float] = time.perf_counter,
     sleep: Callable[[float], None] = time.sleep,
     thresholds: tuple[float, float] = (0.0, 0.0),
+    lid: Callable[[np.ndarray], dict[str, float]] | None = None,
+    lid_config: LidConfig | None = None,
 ) -> dict:
     """Feed `audio` in chunk_ms chunks; return {"summary": {...}, "events": [...]}.
 
     `thresholds` = (conf_word_min, conf_utt_min) for confidence trimming (0 = off).
+    Auto mode: pass `lid` (a classify callable) and `engine` as {lang: engine};
+    nothing is translated and summary["lid"] lists the per-utterance decisions.
     """
-    timed = _TimedEngine(engine, clock)
-    st = StreamingTranscriber(timed, config, vad, thresholds_provider=lambda: thresholds)
+    if lid is None:
+        timed = _TimedEngine(engine, clock)
+        st = StreamingTranscriber(timed, config, vad, thresholds_provider=lambda: thresholds)
+    else:
+        by_lang = {lang: _TimedEngine(eng, clock) for lang, eng in engine.items()}
+        timed = next(iter(by_lang.values()))
+        for other in by_lang.values():
+            other.decodes = timed.decodes  # one shared decode log
+        cfg = lid_config or LidConfig()
+        st = StreamingTranscriber(
+            config=config, vad=vad, thresholds_provider=lambda: thresholds,
+            engine_for_utterance=lambda: AutoRoute(LidDecider(lid, cfg), by_lang.__getitem__),
+        )  # fmt: skip
+        translator = None  # D6: Auto mode never translates
     translate = _Translations(translator, clock)
+    decisions: list[dict] = []
     chunk = max(1, chunk_ms * SAMPLE_RATE // 1000)
     duration = len(audio) / SAMPLE_RATE
     records: list[dict] = []
@@ -172,7 +203,11 @@ def run_replay(
         start = max(vclock, arrival)
         n0 = len(timed.decodes)
         t0 = clock()
+        seen = st.lid_last
         events = feed_fn()
+        if st.lid_last is not seen and st.lid_last is not None:
+            onset_at = arrival - st.lid_last["since_onset_s"]
+            decisions.append({**st.lid_last, "onset_at_s": round(onset_at, 3)})
         for ev in events:
             shown = _display(ev, filter_fillers)
             english = translate(shown, arrival)
@@ -190,10 +225,31 @@ def run_replay(
         process(lambda part=part: st.feed(part), (i + len(part)) / SAMPLE_RATE)
     process(st.flush, duration)
 
+    summary = _summarize(duration, timed, translate, lags, busy, records)
+    if lid is not None:
+        summary["lid"] = [_first_event(d, records) for d in decisions]
+    return {"summary": summary, "events": records}
+
+
+def _first_event(decision: dict, records: list[dict]) -> dict:
+    """Add when the utterance's first caption arrived (and was shown, with lag)."""
+    uid = decision["utterance_id"]
+    first = next((r for r in records if r["utterance_id"] == uid), None)
+    onset = decision["onset_at_s"]
     return {
-        "summary": _summarize(duration, timed, translate, lags, busy, records),
-        "events": records,
+        **decision,
+        "first_event_s": round(first["t"] - onset, 3) if first else None,
+        "first_shown_s": round(first["t"] + first["lag_s"] - onset, 3) if first else None,
     }
+
+
+def format_decision(d: dict) -> str:
+    first = "no caption" if d["first_event_s"] is None else (
+        f"first caption +{d['first_event_s']:.2f} s (shown +{d['first_shown_s']:.2f} s)")
+    how = " (fallback)" if d["fallback"] else ""
+    return (f"LID u{d['utterance_id']}: {d['lang']} p={d['p']:.2f}{how} at "
+            f"{d['speech_s']:.2f} s speech, +{d['since_onset_s']:.2f} s after onset "
+            f"@{d['onset_at_s']:.2f} s; {first}")
 
 
 def _display(ev: TranscriptEvent, filter_fillers: bool) -> TranscriptEvent:
@@ -216,6 +272,7 @@ def _record(ev, english, decodes, n0, arrival) -> dict:
         "t": arrival,
         "type": ev.type,
         "utterance_id": ev.utterance_id,
+        "lang": ev.lang,
         "window_s": window_s,
         "decode_ms": decode_ms,
         "lag_s": 0.0,
@@ -264,7 +321,8 @@ def format_summary(s: dict) -> str:
         ("RTF", f"{s['rtf']:.3f}"),
         ("final text", s["final_text"]),
     ]
-    return "\n".join(f"{k:20s} {v}" for k, v in rows)
+    lines = [f"{k:20s} {v}" for k, v in rows]
+    return "\n".join(lines + [format_decision(d) for d in s.get("lid", [])])
 
 
 def write_json(result: dict, path: Path) -> None:
@@ -274,7 +332,7 @@ def write_json(result: dict, path: Path) -> None:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("audio", type=Path)
-    p.add_argument("--engine", default="gu", choices=sorted(ENGINES))
+    p.add_argument("--engine", default="gu", choices=sorted([*ENGINES, AUTO]))
     p.add_argument("--loop-to", type=float, default=0.0, metavar="SECONDS")
     p.add_argument("--no-endpoint", action="store_true", help="never endpoint on silence")
     p.add_argument("--rtf", type=int, choices=(0, 1), default=0, help="1 = pace in real time")
@@ -290,10 +348,21 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     audio = loop_to(load_audio(args.audio), args.loop_to)
-    engine = ENGINES[args.engine]()
-    engine.warmup()
+    lid = None
+    if args.engine == AUTO:
+        engine = {lang: load() for lang, load in ENGINES.items()}
+        for eng in engine.values():
+            eng.warmup()
+        language_id = load_lid()
+        language_id.warmup()
+        lid = language_id.classify
+    else:
+        engine = ENGINES[args.engine]()
+        engine.warmup()
     translator = None
-    if args.translate:
+    if args.translate and lid is not None:
+        print("--translate ignored: Auto mode never translates", file=sys.stderr)
+    elif args.translate:
         from gujusub.translator import Translator
 
         translator = Translator()
@@ -302,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
     result = run_replay(
         audio, engine, translator=translator, config=config, vad=make_vad(),
         chunk_ms=args.chunk_ms, rtf=args.rtf,
-        thresholds=(args.conf_word_min, args.conf_utt_min),
+        thresholds=(args.conf_word_min, args.conf_utt_min), lid=lid,
     )  # fmt: skip
     if not args.quiet:
         print("\n".join(format_event(r) for r in result["events"]))

@@ -189,7 +189,7 @@ const ASR_LABEL = { gu: "Gujarati", en: "English", auto: "Auto" };
 const SECTIONS = [
   ["Mode", [
     { k: "asr_mode", t: "select", l: "Speech language", opts: [
-      ["gu", "Gujarati"], ["en", "English"], ["auto", "Auto", "coming soon"]] },
+      ["gu", "Gujarati"], ["en", "English"], ["auto", "Auto (Gujarati / English, no translation)"]] },
     { k: "translate", t: "check", l: "Translate to English" },
   ]],
   ["Confidence", [
@@ -360,6 +360,16 @@ function applySnapshot(snap) {
   if (!gu) tr.input.checked = false;
 }
 
+// "on · last en 0.93 @1.5 s" — latest Auto-mode decision (lid_last) for the operator
+function lidText(s) {
+  if (!s.lid) return "off";
+  const d = s.lid_last;
+  if (!d) return "on · waiting";
+  const lang = ASR_LABEL[d.lang] || d.lang;
+  const how = d.fallback ? " (fallback)" : "";
+  return `on · last ${lang} ${Number(d.p).toFixed(2)}${how} @${Number(d.since_onset_s).toFixed(1)} s`;
+}
+
 let lastStatus = null, statusTimer = null, lastRender = 0;
 function renderStatus() {
   statusTimer = null; lastRender = Date.now();
@@ -373,7 +383,7 @@ function renderStatus() {
   const ms = v => (typeof v === "number" ? Math.round(v) : "–");
   const sec = v => (typeof v === "number" ? v.toFixed(1) : "–");
   liveEl2.textContent = `ASR: ${ASR_LABEL[s.asr] || s.asr} · Translate: ${s.translate ? "on" : "off"}` +
-    ` · LID: ${s.lid ? "on" : "off"} · decode ${ms(s.decode_ms)} ms (avg ${ms(s.avg_decode_ms)})` +
+    ` · LID: ${lidText(s)} · decode ${ms(s.decode_ms)} ms (avg ${ms(s.avg_decode_ms)})` +
     ` · lag ${sec(s.lag_s)} s · utt ${s.utterances ?? 0}` +
     (s.asr_warning ? ` · warning: ${s.asr_warning}` : "");
 }

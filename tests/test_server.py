@@ -1115,9 +1115,11 @@ def test_translate_flag_read_per_event(wire, settings_store):
     assert [m["translation"] for m in sent] == ["EN<a>", ""]
 
 
-def test_auto_asr_mode_warns_once_and_runs_gu(wire, settings_store, caplog, monkeypatch):
+def test_auto_asr_mode_without_lid_warns_once_and_runs_gu(
+        wire, settings_store, caplog, monkeypatch):
     settings_store.update({"asr_mode": "auto"})
     monkeypatch.setattr(server, "_warned_modes", set())
+    monkeypatch.setattr(server, "language_id", None)
     wire(ScriptedTranscriber())
 
     async def run():
@@ -1126,8 +1128,8 @@ def test_auto_asr_mode_warns_once_and_runs_gu(wire, settings_store, caplog, monk
 
     statuses = asyncio.run(run())
     assert [st["asr"] for st in statuses] == ["gu", "gu"]
-    assert "not implemented" in statuses[0]["asr_warning"]
-    assert caplog.text.count("asr_mode 'auto' not implemented") == 1
+    assert "Auto needs" in statuses[0]["asr_warning"]
+    assert caplog.text.count("Auto needs") == 1
 
 
 class CountingTranscriber(ScriptedTranscriber):
@@ -1163,7 +1165,7 @@ def test_status_shape_while_pipeline_active(monkeypatch, wire, settings_store):
     last = live[-1]
     assert set(last) == {"type", "asr", "translate", "lid", "decode_ms",
                          "avg_decode_ms", "window_s", "decodes", "lag_s",
-                         "backlog_s", "utterances", "asr_warning"}
+                         "backlog_s", "utterances", "asr_warning", "lid_last"}
     assert last["asr_warning"] is None
     assert last["asr"] == "gu" and last["translate"] is True and last["lid"] is False
     assert (last["decode_ms"], last["avg_decode_ms"]) == (180.0, 150.5)
@@ -1369,3 +1371,153 @@ def test_main_loads_requested_engines(settings_store, monkeypatch):
     server.main()
     assert requested == [(("gu",), "cpu")]
     assert server.engines.langs == ("gu",)
+
+
+# --- Auto mode (unit 4.2) ---------------------------------------------------
+
+from gujusub.lid import LidConfig  # noqa: E402
+from gujusub.streaming import AutoRoute  # noqa: E402
+
+
+class FakeLanguageID:
+    def __init__(self, posteriors=None):
+        self.posteriors = posteriors or {"gu": 0.1, "en": 0.9}
+        self.calls = 0
+
+    def classify(self, audio):
+        self.calls += 1
+        return self.posteriors
+
+
+@pytest.fixture
+def auto_mode(registry, settings_store, monkeypatch):
+    loaded = registry("gu", "en")
+    lid = FakeLanguageID()
+    monkeypatch.setattr(server, "language_id", lid)
+    settings_store.update({"asr_mode": "auto", "translate": True})
+    return loaded, lid
+
+
+def test_select_engine_in_auto_returns_a_fresh_lid_route(auto_mode):
+    loaded, lid = auto_mode
+    first, second = server.select_engine(), server.select_engine()
+    assert isinstance(first, AutoRoute) and first.decider is not second.decider
+    assert first.engine_for("en") is loaded["en"] and first.engine_for("gu") is loaded["gu"]
+    assert first.decider.config == server.lid_config
+
+
+def test_auto_without_en_engine_falls_back_to_gu(registry, settings_store, monkeypatch):
+    loaded = registry("gu")
+    monkeypatch.setattr(server, "language_id", FakeLanguageID())
+    settings_store.update({"asr_mode": "auto"})
+    assert server.select_engine() is loaded["gu"]
+    assert server.active_asr()[0] == "gu" and "Auto needs" in server.active_asr()[1]
+
+
+def test_status_in_auto_reports_lid_and_no_translation(auto_mode, wire):
+    tx = CountingTranscriber()
+    tx.lid_last = {"utterance_id": 3, "lang": "en", "p": 0.93, "speech_s": 1.5,
+                   "since_onset_s": 1.6, "fallback": False}
+    wire(tx, FakeTranslator())
+
+    async def run():
+        return server._Pipeline(FakeMic()).status()
+
+    st = asyncio.run(run())
+    assert (st["asr"], st["lid"], st["translate"], st["asr_warning"]) == (
+        "auto", True, False, None)
+    assert st["lid_last"]["lang"] == "en" and st["lid_last"]["p"] == 0.93
+
+
+def test_status_outside_auto_has_no_lid(registry, settings_store, wire):
+    registry("gu", "en")
+    wire(CountingTranscriber(), FakeTranslator())
+
+    async def run():
+        return server._Pipeline(FakeMic()).status()
+
+    st = asyncio.run(run())
+    assert st["lid"] is False and st["lid_last"] is None
+
+
+def test_idle_status_has_no_lid_last():
+    assert server.idle_status()["lid_last"] is None
+
+
+def test_auto_mode_never_translates_even_gujarati(client, wire, auto_mode):
+    tr = FakeTranslator()
+    gu_p = TranscriptEvent("partial", 1, "ગુ", "વાત", lang="gu")
+    gu_f = TranscriptEvent("final", 1, "ગુ વાત", "", lang="gu")
+    en_f = TranscriptEvent("final", 2, "hello", "", lang="en")
+    wire(ScriptedTranscriber([[gu_p], [gu_f], [en_f]]), tr)
+    with client, client.websocket_connect("/ws") as ws:
+        seen = []
+        for _ in range(3):
+            ws.send_bytes(pcm())
+            seen.append(ws.receive_json())
+    assert [m["translation"] for m in seen] == ["", "", ""]
+    assert tr.calls == []
+
+
+def test_auto_end_to_end_lid_picks_engine(client, wire, auto_mode):
+    loaded, lid = auto_mode
+    tr = FakeTranslator()
+    st = StreamingTranscriber(engine_for_utterance=server.select_engine,
+                              vad=FakeVAD([(0, 100)]))
+    wire(st, tr)
+    with client, client.websocket_connect("/ws") as ws:
+        ws.send_bytes(pcm(512 * 130))
+        got = recv_until(ws, lambda m: m["type"] == "final")
+    assert {m["lang"] for m in got} == {"en"}
+    assert got[-1]["committed"] == "en-text"
+    assert lid.calls >= 2 and loaded["gu"].calls == 0
+    assert tr.calls == []
+
+
+def test_main_loads_language_id_with_en_engine(settings_store, monkeypatch):
+    class DummyEngine:
+        def warmup(self):
+            pass
+
+    class DummyLid:
+        warmed = False
+
+        def warmup(self):
+            DummyLid.warmed = True
+
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu,en"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    monkeypatch.setattr(server, "load_engines",
+                        lambda langs, device: EngineRegistry({k: DummyEngine() for k in langs}))
+    monkeypatch.setattr(server, "load_language_id", DummyLid)
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server, "language_id", None)
+    monkeypatch.setattr(server.uvicorn, "run", lambda *a, **k: None)
+    server.main()
+    assert isinstance(server.language_id, DummyLid) and DummyLid.warmed
+
+
+def test_main_skips_language_id_without_en_engine(settings_store, monkeypatch):
+    class DummyEngine:
+        def warmup(self):
+            pass
+
+    def boom():
+        raise AssertionError("LID must not load with --engines gu")
+
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    monkeypatch.setattr(server, "load_engines",
+                        lambda langs, device: EngineRegistry({k: DummyEngine() for k in langs}))
+    monkeypatch.setattr(server, "load_language_id", boom)
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server, "language_id", None)
+    monkeypatch.setattr(server.uvicorn, "run", lambda *a, **k: None)
+    server.main()
+    assert server.language_id is None
+
+
+def test_lid_config_default_falls_back_to_gu():
+    assert server.lid_config == LidConfig()
