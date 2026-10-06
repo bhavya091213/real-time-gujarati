@@ -208,3 +208,57 @@ def test_display_keeps_lang_and_english_openers():
     ev = replay.TranscriptEvent("final", 1, "So, um today we begin", "", lang="en")
     shown = replay._display(ev, filter_fillers=True)
     assert (shown.lang, shown.committed) == ("en", "So, today we begin")
+
+
+# --- Auto mode (unit 4.2) ---------------------------------------------------
+
+
+class FixedLid:
+    def __init__(self, posteriors):
+        self.posteriors, self.calls = posteriors, 0
+
+    def classify(self, audio):
+        self.calls += 1
+        return self.posteriors
+
+    def warmup(self):
+        pass
+
+
+def lang_cost_engine(clock, lang, text):
+    eng = CostEngine(clock, text=text)
+    eng.lang = lang
+    return eng
+
+
+def test_auto_replay_reports_lid_decisions_and_never_translates():
+    c = Clock()
+    engines = {"gu": lang_cost_engine(c, "gu", "ગુ"), "en": lang_cost_engine(c, "en", "hi there")}
+    lid = FixedLid({"gu": 0.1, "en": 0.9})
+    tr = CostTranslator(c, 0.0)
+    cfg = StreamingConfig(endpoint_ms=600)
+    out = replay.run_replay(
+        audio_of(90), engines, translator=tr, config=cfg, vad=FakeVAD([(5, 80)]),
+        chunk_ms=32, clock=c, lid=lid.classify,
+    )  # fmt: skip
+    (dec,) = out["summary"]["lid"]
+    assert (dec["utterance_id"], dec["lang"], dec["p"]) == (1, "en", 0.9)
+    assert dec["speech_s"] == pytest.approx(1.5)
+    assert dec["since_onset_s"] == pytest.approx(47 * VAD_FRAME / 16000)
+    assert dec["first_event_s"] == pytest.approx(dec["since_onset_s"])
+    assert {e["lang"] for e in out["events"]} == {"en"}
+    assert engines["gu"].calls == 0
+    assert tr.texts == [] and out["summary"]["final_text"] == "hi there"
+    assert "LID" in replay.format_summary(out["summary"])
+
+
+def test_cli_auto_builds_both_engines_and_lid(tmp_path, monkeypatch, capsys):
+    c = Clock()
+    monkeypatch.setitem(replay.ENGINES, "gu", lambda: lang_cost_engine(c, "gu", "ગુ"))
+    monkeypatch.setitem(replay.ENGINES, "en", lambda: lang_cost_engine(c, "en", "hi"))
+    monkeypatch.setattr(replay, "load_lid", lambda: FixedLid({"gu": 0.95, "en": 0.05}))
+    monkeypatch.setattr(replay, "load_audio", lambda p: np.full(48000, 0.1, dtype=np.float32))
+    monkeypatch.setattr(replay, "make_vad", lambda: FakeVAD([(0, 1000)]))
+    assert replay.main([str(tmp_path / "x.wav"), "--engine", "auto", "--quiet"]) == 0
+    out = capsys.readouterr().out
+    assert "LID u1: gu p=0.95" in out

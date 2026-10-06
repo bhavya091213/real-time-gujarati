@@ -30,9 +30,18 @@ Algorithm: Silero-VAD-gated growing window with LocalAgreement-2 commits
   confidence.apply_confidence with thresholds from `thresholds_provider`
   (read per decode) BEFORE LocalAgreement, so a low-confidence word never
   commits and an all-low decode counts as an empty hypothesis.
+- Auto mode: the provider may return an AutoRoute instead of an engine. The
+  utterance then opens with no engine; only VAD speech frames from the onset
+  frame on (no preroll, no pauses) are fed to the LID decider, and nothing is
+  decoded or emitted while it is unsure. On a decision the engine is pinned
+  and a partial pass runs at once over the whole buffered utterance. If the
+  utterance ends undecided, one last check runs on all its speech; still
+  unsure -> dropped. If max_s passes undecided, LidConfig.lid_fallback applies
+  ("gu": pin Gujarati with a warning; "none": drop the utterance).
 """
 
 import collections
+import logging
 import statistics
 import time
 from collections.abc import Callable
@@ -44,6 +53,8 @@ import numpy as np
 from gujusub.asr_engine import SAMPLE_RATE, ASREngine
 from gujusub.confidence import apply_confidence
 from gujusub.engine import Transcript, Word
+
+logger = logging.getLogger("streaming")
 
 VAD_FRAME = 512  # samples per silero window @ 16 kHz (32 ms)
 VAD_FRAME_MS = VAD_FRAME * 1000 // SAMPLE_RATE
@@ -90,6 +101,7 @@ class TranscriptEvent:
     committed: str  # stable text, never retracted within an utterance
     tail: str  # unstable text, may change on the next update
     lang: str = "gu"  # language of the engine that decoded this utterance
+    translate_allowed: bool = True  # pinned route policy; internal, not serialized
 
     def to_dict(self) -> dict:
         return {
@@ -128,6 +140,31 @@ def _common_prefix(a: list[str], b: list[str]) -> list[str]:
     return out
 
 
+class LidPolicy(Protocol):
+    """What the transcriber needs from gujusub.lid.LidDecider."""
+
+    config: object  # has .lid_fallback ("gu" | "none")
+    lang: str | None
+    done: bool
+    posteriors: dict[str, float] | None
+    decided_s: float | None
+
+    @property
+    def speech_s(self) -> float: ...
+
+    def feed(self, chunk: np.ndarray) -> str: ...
+
+    def final_check(self) -> str: ...
+
+
+@dataclass(frozen=True)
+class AutoRoute:
+    """Auto mode for one utterance: a fresh LID decider + lang -> engine lookup."""
+
+    decider: LidPolicy
+    engine_for: Callable[[str], ASREngine]
+
+
 THRESHOLDS_OFF = (0.0, 0.0)  # (word_min, utt_min): confidence trimming disabled
 
 DECODE_HISTORY = 5  # partial decodes in the adaptive-interval estimate
@@ -135,10 +172,13 @@ DECODE_HISTORY = 5  # partial decodes in the adaptive-interval estimate
 
 @dataclass
 class _UtteranceState:
-    engine: ASREngine  # pinned at utterance start
+    engine: ASREngine | None  # pinned at utterance start (Auto: on the LID decision)
     lang: str  # the pinned engine's language
     max_window_s: float  # window bound for the pinned engine
+    translate_allowed: bool  # pinned at utterance start (Auto never translates)
     frames: list = field(default_factory=list)  # window: VAD_FRAME np arrays
+    route: AutoRoute | None = None  # Auto mode, LID still undecided
+    onset_frame: int = 0  # index in frames of the VAD onset frame
     silence_frames: int = 0
     samples_since_infer: int = 0
     committed: list = field(default_factory=list)  # committed words (window)
@@ -162,6 +202,13 @@ class _UtteranceState:
 
 
 SEAM_MAX_WORDS = 5
+LID_LANGS = ("gu", "en")
+
+
+def _fmt_posteriors(posteriors: dict[str, float] | None) -> str:
+    if not posteriors:
+        return "no classification"
+    return " ".join(f"{k}={v:.2f}" for k, v in sorted(posteriors.items()))
 
 
 def _seam_overlaps(prefix: list[str], hyp: list[str]) -> list[int]:
@@ -259,6 +306,7 @@ class StreamingTranscriber:
         self._preroll: collections.deque = collections.deque(maxlen=preroll_frames)
         self._utt: _UtteranceState | None = None
         self._utt_id = 0
+        self.lid_last: dict | None = None  # latest Auto-mode LID outcome (status)
 
     def feed(self, audio: np.ndarray) -> list[TranscriptEvent]:
         """Ingest a chunk of audio (any length) and return any new events."""
@@ -285,9 +333,11 @@ class StreamingTranscriber:
         if self._utt is None:
             self._preroll.append(frame)
             if prob >= cfg.vad_start_prob:
+                self._utt_id += 1
                 self._utt = self._open_utterance(list(self._preroll))
                 self._preroll.clear()  # never reuse stale pre-onset audio
-                self._utt_id += 1
+                if self._utt.route is not None:
+                    self._utt.route.decider.feed(frame)  # the onset frame is speech
             return []
 
         utt = self._utt
@@ -299,21 +349,75 @@ class StreamingTranscriber:
             return self._finalize()
         if utt.total_frames * VAD_FRAME >= cfg.max_utterance_s * SAMPLE_RATE:
             return self._finalize()
+        if utt.route is not None:
+            return self._lid_step(frame, prob)
+        if utt.engine is None:
+            return []  # Auto mode dropped this utterance
         if utt.samples_since_infer >= self._interval_samples():
             return self._partial_pass()
         return []
 
     def _open_utterance(self, preroll: list) -> _UtteranceState:
         """Pin the engine (and its language and window) for a new utterance."""
-        engine = self._engine_for_utterance()
-        lang = getattr(engine, "lang", "gu")
+        choice = self._engine_for_utterance()
+        if isinstance(choice, AutoRoute):
+            return _UtteranceState(engine=None, lang="", max_window_s=self.config.max_window_s,
+                                   translate_allowed=False, frames=preroll, route=choice,
+                                   onset_frame=len(preroll) - 1)
+        utt = _UtteranceState(engine=None, lang="", max_window_s=0.0,
+                              translate_allowed=True, frames=preroll)
+        self._pin(utt, choice)
+        return utt
+
+    def _pin(self, utt: _UtteranceState, engine: ASREngine) -> None:
         cfg = self.config
-        return _UtteranceState(
-            engine=engine,
-            lang=lang,
-            max_window_s=cfg.max_window_s_by_lang.get(lang, cfg.max_window_s),
-            frames=preroll,
-        )
+        utt.engine = engine
+        utt.lang = getattr(engine, "lang", "gu")
+        utt.max_window_s = cfg.max_window_s_by_lang.get(utt.lang, cfg.max_window_s)
+        utt.route = None
+
+    def _lid_step(self, frame: np.ndarray, prob: float) -> list[TranscriptEvent]:
+        """Auto mode, undecided: feed speech frames to LID; decode once it decides."""
+        utt = self._utt
+        decider = utt.route.decider
+        if prob < self.config.vad_start_prob:
+            return []  # pauses and near-silence would read as English
+        decider.feed(frame)
+        if decider.lang is not None:
+            self._lid_resolve(utt, decider.lang, "decided")
+            return self._partial_pass()
+        if not decider.done:
+            return []
+        if decider.config.lid_fallback == "gu":
+            logger.warning("LID undecided, defaulting to gu (u%d, %s)",
+                           self._utt_id, _fmt_posteriors(decider.posteriors))
+            self._lid_resolve(utt, "gu", "fallback")
+            return self._partial_pass()
+        self._lid_resolve(utt, None, "dropped (undecided at max_s)")
+        return []
+
+    def _lid_resolve(self, utt: _UtteranceState, lang: str | None, how: str) -> None:
+        """Record + log the LID outcome; pin `lang`'s engine or drop (None)."""
+        decider = utt.route.decider
+        posteriors = decider.posteriors or {}
+        since_onset_s = (len(utt.frames) - utt.onset_frame) * VAD_FRAME / SAMPLE_RATE
+        speech_s = decider.decided_s or decider.speech_s  # window that decided
+        p = posteriors.get(lang) if lang else max(posteriors.values(), default=0.0)
+        self.lid_last = {
+            "utterance_id": self._utt_id,
+            "lang": lang or "unsure",
+            "p": round(float(p or 0.0), 3),
+            "speech_s": round(speech_s, 3),
+            "since_onset_s": round(since_onset_s, 3),
+            "fallback": how == "fallback",
+        }
+        logger.info("LID %s %s (u%d) after %.2f s speech, %.2f s since onset: %s",
+                    lang or "unsure", how, self._utt_id, speech_s,
+                    since_onset_s, _fmt_posteriors(decider.posteriors))
+        if lang is None:
+            utt.route = None  # engine stays None: nothing is decoded or emitted
+            return
+        self._pin(utt, utt.route.engine_for(lang))
 
     @property
     def avg_decode_ms(self) -> float:
@@ -415,6 +519,7 @@ class StreamingTranscriber:
                 committed=utt.committed_text(),
                 tail=" ".join(hyp[len(utt.committed):]),
                 lang=utt.lang,
+                translate_allowed=utt.translate_allowed,
             )
         ]
 
@@ -425,6 +530,13 @@ class StreamingTranscriber:
         speech_frames = utt.total_frames - utt.silence_frames
         if speech_frames * VAD_FRAME_MS < self.config.min_speech_ms:
             return []  # noise blip
+        if utt.route is not None:  # Auto mode, ended undecided: one last look
+            lang = utt.route.decider.final_check()
+            decided = lang in LID_LANGS
+            self._lid_resolve(utt, lang if decided else None,
+                              "decided at end" if decided else "dropped")
+        if utt.engine is None:
+            return []
         hyp = self._timed_decode(utt.engine, np.concatenate(utt.frames)).text.split()
         hyp = hyp[_select_seam_overlap(utt, hyp):]
         text = " ".join(utt.prefix + utt.committed + _final_suffix(utt, hyp))
@@ -434,5 +546,6 @@ class StreamingTranscriber:
             TranscriptEvent(
                 type="final", utterance_id=self._utt_id, committed=text, tail="",
                 lang=utt.lang,
+                translate_allowed=utt.translate_allowed,
             )
         ]
