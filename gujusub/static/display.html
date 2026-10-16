@@ -4,191 +4,341 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Caption Display</title>
+<!-- Webfonts are optional: the link is non-blocking (media swap) and every
+     measurement is redone once fonts load, so offline the system fallbacks in
+     the font stacks are used and the layout is still correct. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap">
 <style>
   :root {
     --bg: #000000;
-    --text-color: #ffffff;
-    --font: system-ui, "Noto Sans Gujarati", sans-serif;
-    --size: 64px;
-    --weight: 700;
-    --lh: 1.3;
+    --color: #ffffff;
+    --font-gu: "Noto Sans Gujarati", system-ui, sans-serif;
+    --font-en: Inter, system-ui, sans-serif;
+    --fs: 56px;            /* computed in JS from size * scale * stageHeight/1080 */
+    --weight: 500;
+    --lh: 1.28;            /* English / Latin line height */
+    --lh-gu: 1.35;         /* Gujarati needs a little more room for matras */
     --ls: 0px;
     --tt: none;
     --align: center;
     --pad: 5%;
-    --bottom: 8%;
     --stroke-w: 0px;
-    --stroke-c: #000000;
-    --cap-shadow: none;
+    --oc: #000000;
+    --shadow: none;
+    --panel-h: 25%;
+    --po: 0.75;
     --ar-w: 16;
     --ar-h: 9;
-    --bar-w: 8px;
-    --bar-c: #ffffff;
-    --bar-h: 0px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; }
-  body {
-    background: var(--bg);
-    overflow: hidden;
-    font-family: system-ui, sans-serif;
-  }
+  body { background: var(--bg); overflow: hidden; font-family: system-ui, sans-serif; }
   body.hide-chrome { cursor: none; }
 
-  /* ---- Stage ---- */
-  #app {
-    position: fixed; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
+  /* ---- Stage: fixed aspect box, centred; everything is positioned in it ---- */
+  #app { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   #stage {
-    position: relative;
+    position: relative; overflow: hidden;
     width: min(100vw, calc(100vh * var(--ar-w) / var(--ar-h)));
     aspect-ratio: calc(var(--ar-w) / var(--ar-h));
   }
 
-  /* ---- Caption (two-line clamp, bottom-anchored) ---- */
-  #caption {
+  /* ---- Backing: full-width bottom panel (panel=bottom) ---- */
+  #panel {
+    position: absolute; left: 0; right: 0; bottom: 0; height: var(--panel-h);
+    background: rgba(0, 0, 0, var(--po)); display: none;
+  }
+  .panel-bottom #panel { display: block; }
+
+  /* ---- Caption blocks: anchored at bottom-centre (left:x%, top:y%) ---- */
+  #captions { position: absolute; inset: 0; transition: opacity 0.7s ease; }
+  #captions.faded { opacity: 0; }
+  .block {
     position: absolute;
-    left: var(--pad); right: var(--pad); bottom: var(--bottom);
-    font-family: var(--font);
-    font-size: var(--size);
+    transform: translate(-50%, -100%);
+    transform-origin: center bottom;
+    padding: 0 var(--pad);
+    color: var(--color);
+    font-size: var(--fs);
     font-weight: var(--weight);
-    line-height: var(--lh);
-    letter-spacing: var(--ls);
     text-transform: var(--tt);
     text-align: var(--align);
-    color: var(--text-color);
-    opacity: 1;
-    transition: opacity 0.6s ease;
   }
-  #caption.faded { opacity: 0; }
-  #caption.with-bar { padding-left: calc(var(--bar-w) + var(--size) * 0.4); }
-  #bar {
-    position: absolute; left: 0; bottom: 0;
-    width: var(--bar-w); height: var(--bar-h);
-    background: var(--bar-c);
-    border-radius: calc(var(--bar-w) / 4);
-  }
-  #bar[hidden] { display: none; }
-  .cap-block {
-    display: flex; flex-direction: column; justify-content: flex-end;
-    overflow: hidden;
-  }
-  .cap-block.lines-2 { height: calc(var(--size) * var(--lh) * 2); }
-  .cap-block.lines-1 { height: calc(var(--size) * var(--lh) * 1); }
-  .cap-block[hidden] { display: none; }
-  /* Primary block: Gujarati uses the configured stack, English a Latin stack. */
-  .cap-block.lang-en { font-family: var(--font), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-  .cap-block span {
-    display: block;  /* so its height is a whole number of line boxes */
-    -webkit-text-stroke: var(--stroke-w) var(--stroke-c);
+  .block[hidden] { display: none; }
+  .font-en { font-family: var(--font-en); letter-spacing: calc(var(--ls) - 0.01em); --block-lh: var(--lh); }
+  .font-gu { font-family: var(--font-gu); letter-spacing: var(--ls); --block-lh: var(--lh-gu); }
+  /* Rows are pre-wrapped in JS, so the DOM must never wrap on its own. Each
+     row is exactly one line box tall, empty or not: text grows upward. */
+  .row { white-space: nowrap; line-height: var(--block-lh); height: calc(var(--fs) * var(--block-lh)); }
+  .w {
+    -webkit-text-stroke: var(--stroke-w) var(--oc);
     paint-order: stroke fill;
-    text-shadow: var(--cap-shadow);
-    overflow-wrap: break-word;
+    text-shadow: var(--shadow);
+  }
+  /* panel=lines: one chip per row, cloned across fragments */
+  .panel-lines .line:not(:empty) {
+    background: rgba(0, 0, 0, var(--po));
+    padding: 0.06em 0.3em; border-radius: 0.1em;
+    -webkit-box-decoration-break: clone; box-decoration-break: clone;
   }
 
   /* ---- Chrome (auto-hiding UI) ---- */
-  #chrome {
-    position: fixed; top: 12px; right: 12px;
-    display: flex; gap: 8px; z-index: 20;
-    transition: opacity 0.3s ease;
-  }
+  #chrome { position: fixed; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 20; transition: opacity 0.3s ease; }
   #chrome button {
     width: 40px; height: 40px; border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.25);
-    background: rgba(20,20,20,0.75);
+    border: 1px solid rgba(255,255,255,0.25); background: rgba(20,20,20,0.75);
     color: #eee; font-size: 20px; cursor: pointer;
   }
   #chrome button:hover { background: rgba(60,60,60,0.85); }
   #dot {
-    position: fixed; left: 10px; bottom: 10px;
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #e33; z-index: 20;
-    transition: opacity 0.3s ease;
+    position: fixed; left: 10px; bottom: 10px; width: 8px; height: 8px; border-radius: 50%;
+    background: #888; z-index: 20; transition: opacity 0.3s ease;
   }
-  #dot.on { background: #2c2; }
-  body.hide-chrome #chrome, body.hide-chrome #dot {
-    opacity: 0; pointer-events: none;
-  }
-
+  #dot.connecting { background: #f5a623; animation: pulse 1s ease-in-out infinite; }
+  #dot.live { background: #2c2; }
+  #dot.error { background: #e33; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  body.hide-chrome #chrome, body.hide-chrome #dot { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <div id="app">
   <div id="stage">
-    <div id="caption">
-      <div id="bar" hidden></div>
-      <div id="primaryBlock" class="cap-block lang-gu lines-2" hidden><span id="primaryText"></span></div>
-      <div id="transBlock" class="cap-block lines-2"><span id="transText"></span></div>
+    <div id="panel"></div>
+    <div id="captions">
+      <div id="primaryBlock" class="block font-gu" hidden></div>
+      <div id="transBlock" class="block font-en"></div>
     </div>
   </div>
 </div>
 
 <div id="chrome">
-  <button id="fsBtn" title="Fullscreen (f)">&#x26F6;</button>
+  <button id="fsBtn" title="Fullscreen (F) · G cycle languages · C clear · +/- size">&#x26F6;</button>
 </div>
-<div id="dot"></div>
+<div id="dot" title="idle"></div>
 
 <script>
 "use strict";
 (function () {
   var $ = function (id) { return document.getElementById(id); };
 
-  /* ---------------- Settings ----------------
-     gujusub/settings.py is the source of truth. The server pushes the full
-     display settings on /ws/view (first message, and on every change); this
-     page holds no UI for them and stores nothing locally.
-     DEFAULTS must match the server defaults, and SCHEMA the server schema.
+  /* ================= Pure text helpers (extracted by tests) ================= */
+  /* @test-begin words */
+  // Quote marks are stripped (apostrophes only at word edges, so "don't"
+  // survives) and whitespace collapsed; returns the list of word strings.
+  function normalizeWords(text) {
+    return String(text || "")
+      .replace(/["“”„«»]/g, "")
+      .split(/\s+/)
+      .map(function (w) { return w.replace(/^['‘’]+|['‘’]+$/g, ""); })
+      .filter(function (w) { return w !== ""; });
+  }
+  // Two words are "the same" for animation purposes when their first three
+  // characters match case-insensitively, so ASR revisions do not re-fade.
+  function sameWord(a, b) {
+    return a.slice(0, 3).toLowerCase() === b.slice(0, 3).toLowerCase();
+  }
+  // LCS diff of the previous rendered words [{t,id}] against the next word
+  // strings. Matched words keep their id; the rest get newId() and fresh=true.
+  function diffWords(prev, next, newId) {
+    var n = prev.length, m = next.length, i, j;
+    var L = [];
+    for (i = 0; i <= n; i++) L.push(new Array(m + 1).fill(0));
+    for (i = n - 1; i >= 0; i--)
+      for (j = m - 1; j >= 0; j--)
+        L[i][j] = sameWord(prev[i].t, next[j]) ? L[i + 1][j + 1] + 1
+                                               : Math.max(L[i + 1][j], L[i][j + 1]);
+    var out = [];
+    i = 0; j = 0;
+    while (j < m) {
+      if (i < n && sameWord(prev[i].t, next[j]) && L[i][j] === L[i + 1][j + 1] + 1) {
+        out.push({ t: next[j], id: prev[i].id, fresh: false }); i++; j++;
+      } else if (i < n && L[i + 1][j] >= L[i][j + 1]) {
+        i++;
+      } else {
+        out.push({ t: next[j], id: newId(), fresh: true }); j++;
+      }
+    }
+    return out;
+  }
+  /* @test-end words */
+
+  /* @test-begin RowEngine */
+  var PAUSE_MS = 900;   // a gap this long between text changes closes the cue
+  var STRONG_PUNCT = /[.!?…।॥]["'’”)]*\s*$/u;
+
+  // Split one utterance's words into phrases: forced breaks (pauses), strong
+  // punctuation at the end of the previous word, or the per-phrase word cap.
+  function splitPhrases(words, breaks, cap) {
+    var out = [], cur = [];
+    words.forEach(function (w, i) {
+      if (cur.length && (breaks.indexOf(i) >= 0 || cur.length >= cap ||
+                         STRONG_PUNCT.test(words[i - 1].t))) {
+        out.push(cur); cur = [];
+      }
+      cur.push(w);
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  // Greedy wrap of a phrase to maxWidth px using measure(text) -> px.
+  // A single word wider than the row still gets a row of its own.
+  function wrapPhrase(words, maxWidth, measure) {
+    var rows = [], row = [], w = 0, sp = measure(" ");
+    words.forEach(function (word) {
+      var ww = measure(word.t);
+      if (row.length && w + sp + ww > maxWidth) { rows.push(row); row = []; w = 0; }
+      w += (row.length ? sp : 0) + ww;
+      row.push(word);
+    });
+    if (row.length) rows.push(row);
+    return rows;
+  }
+  // Keep the last `limit` rows, padding empty rows ABOVE (bottom-anchored).
+  function padRows(rows, limit) {
+    var out = rows.slice(-limit);
+    while (out.length < limit) out.unshift([]);
+    return out;
+  }
+  // Number of leading words that still match (prefix-3) after a revision.
+  function commonPrefix(a, b) {
+    var k = 0;
+    while (k < a.length && k < b.length && sameWord(a[k].t, b[k].t)) k++;
+    return k;
+  }
+
+  // Per-language caption rows. update() takes the full text of one utterance
+  // (committed = final words, tail = pending words); rows(width) yields the
+  // last `limit` rows of {t, final} words. A new utterance always starts a
+  // new row; within one, rows break at punctuation, the word cap, a pause.
+  function RowEngine(limit, wordCap, measure) {
+    this.limit = limit;
+    this.wordCap = wordCap;
+    this.measure = measure;
+    this.utts = [];
+  }
+  RowEngine.MAX_UTTS = 8;  // enough to fill 6 rows (each utterance >= 1 row)
+  RowEngine.prototype.clear = function () { this.utts = []; };
+  RowEngine.prototype.isEmpty = function () {
+    return !this.utts.some(function (u) { return u.words.length > 0; });
+  };
+  // Returns true when the visible text changed (drives the idle fade timer).
+  RowEngine.prototype.update = function (uid, committed, tail, isFinal, now) {
+    var fin = normalizeWords(committed), pend = normalizeWords(tail);
+    if (isFinal) { fin = fin.concat(pend); pend = []; }
+    var words = fin.map(function (t) { return { t: t, final: true }; })
+      .concat(pend.map(function (t) { return { t: t, final: false }; }));
+    var u = this.utts[this.utts.length - 1];
+    if (!u || u.uid !== uid) {
+      u = { uid: uid, words: [], breaks: [], at: now };
+      this.utts.push(u);
+      if (this.utts.length > RowEngine.MAX_UTTS) this.utts.shift();
+    }
+    var oldText = u.words.map(function (w) { return w.t; }).join(" ");
+    var newText = words.map(function (w) { return w.t; }).join(" ");
+    var changed = oldText !== newText;
+    if (changed) {
+      var keep = commonPrefix(u.words, words);
+      // Breaks are only meaningful while the words before them survive.
+      u.breaks = u.breaks.filter(function (b) { return b <= keep; });
+      // Text resumed after a pause: continue on a new row after the
+      // surviving words (a revised last word moves down with the new text).
+      if (u.words.length && now - u.at >= PAUSE_MS && keep > 0 && words.length > keep &&
+          u.breaks.indexOf(keep) < 0)
+        u.breaks.push(keep);
+      u.at = now;
+    }
+    u.breaks = u.breaks.filter(function (b) { return b > 0 && b < words.length; });
+    u.words = words;
+    return changed;
+  };
+  RowEngine.prototype.rows = function (maxWidth) {
+    var all = [], cap = this.wordCap, measure = this.measure;
+    this.utts.forEach(function (u) {
+      splitPhrases(u.words, u.breaks, cap).forEach(function (p) {
+        wrapPhrase(p, maxWidth, measure).forEach(function (r) { all.push(r); });
+      });
+    });
+    return padRows(all, this.limit);
+  };
+  /* @test-end RowEngine */
+
+  /* ================= Settings =================
+     gujusub/settings.py is the source of truth. The server pushes the display
+     settings on /ws/view (first message and on every change); this page holds
+     no UI for them and stores nothing locally. DEFAULTS equal the server
+     defaults exactly (tests/test_display.py checks); keys the server does not
+     send fall back to them and unknown server keys are ignored.
      Precedence: server-pushed > URL params (old OBS links) > DEFAULTS. */
-  var SCHEMA = 3;
+  /* @test-begin DEFAULTS */
+  var SCHEMA = 4;  // older server schemas are accepted (missing keys default)
   var DEFAULTS = {
     aspect: "16:9",          // stage aspect ratio
     mode: "translation",     // primary (ASR text) | translation | both
     stable: false,           // ignore tail (stable-only)
-    clear: 6,                // seconds of silence before fade, 0 = never
-    font: 'system-ui, "Noto Sans Gujarati", sans-serif',
-    size: 64,                // px (maximum; text auto-shrinks to fit)
-    minsize: 36,             // px floor for auto-shrink; below this it wraps/scrolls
-    weight: 700,
-    lh: 1.3,
-    ls: 0,                   // px
+    clear: 20,               // seconds without new text before fade, 0 = never
+    font: '"Noto Sans Gujarati", system-ui, sans-serif',  // Gujarati stack
+    font_en: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    size: 56,                // px at a 1080-px-high stage (scales with the stage)
+    minsize: 36,             // accepted, unused: rows replace auto-shrink
+    weight: 500,
+    lh: 1.28,                // line height (Gujarati gets +0.07)
+    ls: 0,                   // extra letter spacing px (English also -0.01em)
     tt: "none",              // none | uppercase | lowercase | capitalize
     color: "#ffffff",
-    ow: 0,                   // outline width px
-    oc: "#000000",           // outline color
-    shadow: false,           // use text-shadow instead of stroke
-    bg: "#000000",           // hex or "transparent"
-    align: "left",           // left reads better while text is still growing
-    pad: 5,                  // horizontal padding, % of stage width
-    bottom: 8,               // bottom margin, % of stage height
-    bar: true,               // vertical bar beside live captions
-    barw: 8,                 // bar width px
-    barc: "#ffffff"
+    ow: 0,                   // outline (text stroke) width px at 1080p
+    oc: "#000000",           // outline / shadow colour
+    shadow: false,           // soft character shadow 0 2px 10px
+    bg: "#000000",           // hex, "transparent", chroma green #00b140 ...
+    align: "center",         // left | center | right (within each block)
+    pad: 5,                  // inner horizontal padding, % of stage width
+    bottom: 8,               // legacy: superseded by y (URL ?bottom= maps to y)
+    bar: false,              // legacy: the caption bar was dropped in the
+    barw: 8,                 //   row-based look; bar/barw/barc are accepted
+    barc: "#ffffff",         //   so old servers/links validate, and ignored
+    rows_primary: 2,         // visible rows, primary (ASR) block, 1-6
+    rows_translation: 3,     // visible rows, translation block, 1-6
+    x: 50,                   // block centre, % of stage width
+    y: 88,                   // bottom edge of the lowest block, % of stage height
+    gap: 16,                 // primary bottom edge sits this % above translation's
+    scale: 1,                // font scale multiplier, 0.5-2
+    maxw: 100,               // block width, % of stage width
+    panel: "bottom",         // backing: bottom (panel) | lines (chips) | none
+    panel_h: 25,             // min bottom panel height, % of stage height
+                             //   (grows to cover the lowest block's rows)
+    panel_opacity: 0.75,     // backing alpha 0-1
+    wordfade: true           // fade new words in (off under reduced motion)
   };
+  /* @test-end DEFAULTS */
   var LEGACY_MODE = { gu: "primary", en: "translation" };
   var MODES = { primary: 1, translation: 1, both: 1 };
-  var urlSettings = {};
+  var PANELS = { bottom: 1, lines: 1, none: 1 };
+  var MODE_CYCLE = ["both", "translation", "primary"];
+  var PARAMS = new URLSearchParams(location.search);
+  var PREVIEW = PARAMS.get("preview") === "1";
+  var urlSettings = {}, serverSettings = {}, local = {};  // local: G / +/- keys
   var settings = Object.assign({}, DEFAULTS);
+  var cfg = sanitize(settings);
 
   function normMode(v) {
     if (LEGACY_MODE.hasOwnProperty(v)) v = LEGACY_MODE[v];
     return MODES.hasOwnProperty(v) ? v : null;
   }
   function loadFromUrl() {
-    var p = new URLSearchParams(location.search);
     Object.keys(DEFAULTS).forEach(function (k) {
-      if (!p.has(k)) return;
-      var v = p.get(k);
-      var t = typeof DEFAULTS[k];
+      if (!PARAMS.has(k)) return;
+      var v = PARAMS.get(k), t = typeof DEFAULTS[k];
       if (k === "mode") { var m = normMode(v); if (m) urlSettings.mode = m; }
       else if (t === "boolean") urlSettings[k] = (v === "1" || v === "true");
       else if (t === "number") { var n = parseFloat(v); if (isFinite(n)) urlSettings[k] = n; }
       else if (v !== "") urlSettings[k] = v;
     });
+    if ("bottom" in urlSettings && !("y" in urlSettings)) urlSettings.y = 100 - urlSettings.bottom;
   }
-  // Overlay a server message on top of URL params and defaults.
-  var serverSettings = {};
   function ingestServerSettings(msg) {
     if (msg.schema > SCHEMA)
       console.warn("server settings schema " + msg.schema + " > page schema " + SCHEMA +
@@ -198,181 +348,138 @@
       if (k === "mode") { var m = normMode(msg.mode); if (m) serverSettings.mode = m; }
       else serverSettings[k] = msg[k];
     });
-    settings = Object.assign({}, DEFAULTS, urlSettings, serverSettings);
+    local = {};  // an operator change in the panel wins over local key tweaks
+    rebuildSettings();
+  }
+  function rebuildSettings() {
+    settings = Object.assign({}, DEFAULTS, urlSettings, serverSettings, local);
+    cfg = sanitize(settings);
     applySettings();
-    render(true);
+  }
+  // Clamped copy used for layout; `settings` itself is never mutated.
+  function sanitize(s) {
+    function num(v, lo, hi, d) { return (typeof v === "number" && isFinite(v)) ? Math.min(hi, Math.max(lo, v)) : d; }
+    return Object.assign({}, s, {
+      rows_primary: Math.round(num(s.rows_primary, 1, 6, 2)),
+      rows_translation: Math.round(num(s.rows_translation, 1, 6, 3)),
+      x: num(s.x, 0, 100, 50), y: num(s.y, 0, 100, 88), gap: num(s.gap, 0, 100, 16),
+      scale: num(s.scale, 0.3, 3, 1), maxw: num(s.maxw, 10, 100, 100),
+      size: num(s.size, 8, 400, 56), pad: num(s.pad, 0, 45, 5),
+      panel: PANELS.hasOwnProperty(s.panel) ? s.panel : "bottom",
+      panel_h: num(s.panel_h, 0, 100, 25), panel_opacity: num(s.panel_opacity, 0, 1, 0.75),
+      clear: num(s.clear, 0, 3600, 20), ow: num(s.ow, 0, 20, 0)
+    });
   }
 
-  /* ---------------- Apply settings -> CSS vars & DOM ---------------- */
+  /* ================= Apply settings -> CSS vars ================= */
+  var root = document.documentElement.style;
+  var stageEl = $("stage"), captions = $("captions");
   function applySettings() {
-    var r = document.documentElement.style;
-    var parts = settings.aspect.split(":");
+    var parts = String(cfg.aspect).split(":");
     var arW = parseFloat(parts[0]), arH = parseFloat(parts[1]);
     if (!isFinite(arW) || !isFinite(arH) || arW <= 0 || arH <= 0) { arW = 16; arH = 9; }
-    r.setProperty("--ar-w", arW);
-    r.setProperty("--ar-h", arH);
-    r.setProperty("--bg", settings.bg);
-    r.setProperty("--text-color", settings.color);
-    r.setProperty("--font", settings.font);
-    r.setProperty("--size", settings.size + "px");
-    r.setProperty("--weight", settings.weight);
-    r.setProperty("--lh", settings.lh);
-    r.setProperty("--ls", settings.ls + "px");
-    r.setProperty("--tt", settings.tt);
-    r.setProperty("--align", settings.align);
-    r.setProperty("--pad", settings.pad + "%");
-    r.setProperty("--bottom", settings.bottom + "%");
-    r.setProperty("--stroke-c", settings.oc);
-    r.setProperty("--bar-w", settings.barw + "px");
-    r.setProperty("--bar-c", settings.barc);
-    $("caption").classList.toggle("with-bar", settings.bar);
-    if (settings.shadow) {
-      r.setProperty("--stroke-w", "0px");
-      r.setProperty("--cap-shadow", buildShadow(settings.ow, settings.oc));
-    } else {
-      r.setProperty("--stroke-w", settings.ow + "px");
-      r.setProperty("--cap-shadow", "none");
+    root.setProperty("--ar-w", arW);
+    root.setProperty("--ar-h", arH);
+    root.setProperty("--bg", cfg.bg);
+    root.setProperty("--color", cfg.color);
+    root.setProperty("--font-gu", cfg.font);
+    root.setProperty("--font-en", enFamily());
+    root.setProperty("--weight", cfg.weight);
+    root.setProperty("--lh", cfg.lh);
+    root.setProperty("--lh-gu", cfg.lh + 0.07);
+    root.setProperty("--ls", cfg.ls + "px");
+    root.setProperty("--tt", cfg.tt);
+    root.setProperty("--align", cfg.align);
+    root.setProperty("--pad", cfg.pad + "%");
+    root.setProperty("--oc", cfg.oc);
+    root.setProperty("--po", cfg.panel_opacity);
+    stageEl.className = "panel-" + cfg.panel;
+    primaryEngine.limit = cfg.rows_primary;
+    transEngine.limit = cfg.rows_translation;
+    invalidateLayout();
+  }
+  // Gujarati glyphs can land in the English block (translation-mode fallback).
+  function enFamily() { return cfg.font_en + ', "Noto Sans Gujarati"'; }
+
+  /* ================= Measurement (one offscreen canvas) ================= */
+  var ctx = document.createElement("canvas").getContext("2d");
+  var ctxFont = "", caches = {};
+  // measure(text) -> px for one font string, cached per font; letter spacing
+  // and text-transform are applied here because canvas ignores the CSS ones.
+  function makeMeasure(family, sizePx, lsPx) {
+    var font = cfg.weight + " " + sizePx.toFixed(2) + "px " + family;
+    if (!caches[font]) {
+      if (Object.keys(caches).length > 16) caches = {};
+      caches[font] = new Map();
     }
+    var cache = caches[font];
+    return function (text) {
+      var hit = cache.get(text);
+      if (hit !== undefined) return hit;
+      if (ctxFont !== font) { ctx.font = font; ctxFont = font; }
+      var t = applyTT(text);
+      var w = ctx.measureText(t).width + lsPx * t.length;
+      cache.set(text, w);
+      return w;
+    };
   }
-  function buildShadow(w, c) {
-    if (!w || w <= 0) return "none";
-    var out = [];
-    [-w, 0, w].forEach(function (x) {
-      [-w, 0, w].forEach(function (y) {
-        if (x !== 0 || y !== 0) out.push(x + "px " + y + "px 0 " + c);
-      });
-    });
-    out.push("0 0 " + w + "px " + c);
-    return out.join(", ");
+  function applyTT(t) {
+    if (cfg.tt === "uppercase") return t.toUpperCase();
+    if (cfg.tt === "lowercase") return t.toLowerCase();
+    if (cfg.tt === "capitalize") return t.charAt(0).toUpperCase() + t.slice(1);
+    return t;
   }
 
-  /* ---------------- Fullscreen ---------------- */
-  function toggleFullscreen() {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(function () {});
-    } else {
-      document.documentElement.requestFullscreen().catch(function () {});
-    }
+  /* ================= Layout (only on resize / settings / font load) ======== */
+  var L = null;  // cached geometry; null = recompute on next frame
+  function invalidateLayout() { L = null; scheduleRender(); }
+  function computeLayout() {
+    var r = stageEl.getBoundingClientRect();
+    var W = r.width || 1, H = r.height || 1, k = H / 1080;
+    var fs = cfg.size * cfg.scale * k;
+    root.setProperty("--fs", fs.toFixed(2) + "px");
+    root.setProperty("--stroke-w", (cfg.ow * k).toFixed(2) + "px");
+    root.setProperty("--shadow", cfg.shadow ? "0 " + (2 * k).toFixed(1) + "px " +
+                     (10 * k).toFixed(1) + "px " + cfg.oc : "none");
+    var reserve = cfg.panel === "lines" ? 0.6 * fs : 0;   // chip padding
+    var width = W * (cfg.maxw - 2 * cfg.pad) / 100 - reserve;
+    L = {
+      W: W, H: H, fs: fs, width: Math.max(fs, width),
+      measureEn: makeMeasure(enFamily(), fs, cfg.ls - 0.01 * fs),
+      measureGu: makeMeasure(cfg.font, fs, cfg.ls)
+    };
   }
-  $("fsBtn").addEventListener("click", toggleFullscreen);
-  $("stage").addEventListener("dblclick", toggleFullscreen);
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "f" || e.key === "F") toggleFullscreen();
-  });
-
-  /* ---------------- Auto-hiding chrome ---------------- */
-  var chromeTimer = null;
-  function showChrome() {
-    document.body.classList.remove("hide-chrome");
-    clearTimeout(chromeTimer);
-    chromeTimer = setTimeout(function () {
-      document.body.classList.add("hide-chrome");
-    }, 3000);
+  window.addEventListener("resize", invalidateLayout);
+  if (document.fonts) {
+    var fontsChanged = function () { caches = {}; invalidateLayout(); };
+    document.fonts.ready.then(fontsChanged);
+    if (document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", fontsChanged);
   }
-  document.addEventListener("mousemove", showChrome);
-  document.addEventListener("mousedown", showChrome);
-  showChrome();
 
-  /* ---------------- Caption state & rendering ---------------- */
+  /* ================= Caption state ================= */
   var state = { uid: null, lang: "gu", committed: "", tail: "", translation: "" };
-  var caption = $("caption");
-  var clearTimer = null;
+  var primaryEngine = new RowEngine(DEFAULTS.rows_primary, 14, null);
+  var transEngine = new RowEngine(DEFAULTS.rows_translation, 16, null);
+  var lastTextAt = 0;
 
-  // Last text/layout actually rendered; lets render() skip identical frames.
-  // Both the primary text and the translation are compared, so a repeated
-  // partial with the same text but a new translation still re-renders.
-  var lastPrimary = null, lastTrans = null, lastLang = null;
-
-  // force=true (settings/resize changes) re-fits even if the text is unchanged.
-  function render(force) {
-    var primary = state.committed;
-    if (!settings.stable && state.tail)
-      primary = primary ? primary + " " + state.tail : state.tail;
-    var trans = state.translation;
-    if (!force && primary === lastPrimary && trans === lastTrans &&
-        state.lang === lastLang) return;
-    // translation mode with nothing translated yet: show the primary text
-    // so the screen is never blank.
-    var both = settings.mode === "both";
-    var showTrans = both || (settings.mode === "translation" && trans !== "");
-    var showPrimary = both || settings.mode === "primary" ||
-                      (settings.mode === "translation" && trans === "");
-    var pB = $("primaryBlock"), tB = $("transBlock");
-    pB.hidden = !showPrimary;
-    tB.hidden = !showTrans;
-    pB.className = "cap-block lang-" + state.lang + " " + (both ? "lines-1" : "lines-2");
-    tB.className = "cap-block " + (both ? "lines-1" : "lines-2");
-    // Block limits are CSS-fixed (N line boxes), read before dirtying the DOM.
-    var limits = blockLimits();
-    lastPrimary = primary; lastTrans = trans; lastLang = state.lang;
-    $("primaryText").textContent = primary;
-    $("transText").textContent = trans;
-    fitText(limits);
+  // Feed the current utterance into both engines. Translations replace the
+  // whole cue (pending until final). In translation-only mode an utterance
+  // with no translation yet shows its ASR text so the screen is never blank.
+  function feedEngines(isFinal, now) {
+    var tail = cfg.stable ? "" : state.tail;
+    primaryEngine.wordCap = state.lang === "en" ? 16 : 14;
+    var changed = primaryEngine.update(state.uid, state.committed, tail, isFinal, now);
+    var tr = state.translation;
+    if (cfg.mode === "translation" && !tr)
+      changed = transEngine.update(state.uid, state.committed, tail, isFinal, now) || changed;
+    else
+      changed = transEngine.update(state.uid, isFinal ? tr : "", isFinal ? "" : tr, isFinal, now) || changed;
+    if (changed) { lastTextAt = now; captions.classList.remove("faded"); }
   }
 
-  // Events can arrive faster than frames; handleEvent only updates state and
-  // this renders at most once per animation frame (latest state wins).
-  var rafPending = false;
-  function scheduleRender() {
-    if (rafPending) return;
-    rafPending = true;
-    requestAnimationFrame(function () { rafPending = false; render(false); });
-  }
-
-  function blockLimits() {
-    return [$("primaryBlock"), $("transBlock")].map(function (block) {
-      return block.hidden ? 0 : block.clientHeight + 0.5;
-    });
-  }
-
-  // Shrink each visible block's text until it fits its line limit, stopping
-  // at settings.minsize. The block keeps its full-size height, so nothing
-  // else moves; if the floor is hit the text simply wraps and is clipped.
-  // Layout passes per block: 1 if the full size fits (common case); 2 if even
-  // the min size overflows; otherwise 2 + at most 4 bisection steps = 6.
-  function fitText(limits) {
-    limits = limits || blockLimits();
-    var textHeight = 0;
-    [$("primaryBlock"), $("transBlock")].forEach(function (block, idx) {
-      if (block.hidden) return;
-      var span = block.firstElementChild;
-      var limit = limits[idx];
-      span.style.fontSize = "";
-      if (!span.textContent) return;
-      var h = span.getBoundingClientRect().height;       // pass 1: max size
-      if (h > limit) {
-        var hi = settings.size, lo = Math.min(settings.minsize, hi);
-        span.style.fontSize = lo + "px";
-        h = span.getBoundingClientRect().height;         // pass 2: min size
-        if (h <= limit) {
-          var hLo = h;
-          for (var i = 0; i < 4; i++) {                  // passes 3..6
-            var mid = (lo + hi) / 2;
-            span.style.fontSize = mid + "px";
-            var hm = span.getBoundingClientRect().height;
-            if (hm <= limit) { lo = mid; hLo = hm; } else hi = mid;
-          }
-          span.style.fontSize = lo + "px";
-          h = hLo;
-        }
-      }
-      textHeight += Math.min(h, block.clientHeight);
-    });
-    // The bar spans exactly the text currently on screen (blocks are
-    // bottom-anchored, so it grows upward from the last line).
-    $("bar").hidden = !settings.bar || textHeight === 0;
-    caption.style.setProperty("--bar-h", textHeight + "px");
-  }
-  window.addEventListener("resize", function () { render(true); });
-  function armClearTimer() {
-    caption.classList.remove("faded");
-    clearTimeout(clearTimer);
-    if (settings.clear > 0) {
-      clearTimer = setTimeout(function () {
-        caption.classList.add("faded");
-      }, settings.clear * 1000);
-    }
-  }
+  /* @test-begin handleEvent */
+  // A new utterance_id resets committed/tail/translation; an explicitly empty
+  // translation clears it; an omitted translation preserves it.
   function handleEvent(msg) {
     if (!msg || (msg.type !== "partial" && msg.type !== "final")) return;
     if (msg.utterance_id !== state.uid) {
@@ -386,24 +493,178 @@
     state.tail = (msg.type === "final") ? "" : (typeof msg.tail === "string" ? msg.tail : "");
     if (typeof msg.translation === "string")
       state.translation = msg.translation;
+    feedEngines(msg.type === "final", Date.now());
     scheduleRender();
-    armClearTimer();
+  }
+  /* @test-end handleEvent */
+
+  function clearCaptions() {
+    primaryEngine.clear();
+    transEngine.clear();
+    lastTextAt = 0;
+    captions.classList.remove("faded");
+    scheduleRender();
+  }
+  // 250 ms tick: fade after `clear` s without new text, then drop the text.
+  setInterval(function () {
+    if (cfg.clear <= 0 || !lastTextAt) return;
+    var idle = Date.now() - lastTextAt, limit = cfg.clear * 1000;
+    if (idle >= limit + 700) clearCaptions();
+    else if (idle >= limit) captions.classList.add("faded");
+  }, 250);
+
+  /* ================= Rendering ================= */
+  var PH_EN = ["Live English captions appear here.", "Position and size come from Settings."];
+  var PH_GU = ["જીવંત ગુજરાતી લખાણ અહીં દેખાશે."];
+  var REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var idSeq = 0;
+  function newId() { return ++idSeq; }
+  function makeBlock(el) { return { el: el, rowEls: [], prev: [], spans: new Map() }; }
+  var blocks = { primary: makeBlock($("primaryBlock")), trans: makeBlock($("transBlock")) };
+
+  function blockRows(engine, measure, placeholder) {
+    if (PREVIEW && primaryEngine.isEmpty() && transEngine.isEmpty()) {
+      var rows = [];
+      placeholder.forEach(function (line) {
+        var ws = normalizeWords(line).map(function (t) { return { t: t, final: true }; });
+        wrapPhrase(ws, L.width, measure).forEach(function (r) { rows.push(r); });
+      });
+      return padRows(rows, engine.limit);
+    }
+    engine.measure = measure;
+    return engine.rows(L.width);
   }
 
-  /* ---------------- WebSocket client (receive-only, auto-reconnect) ---------- */
-  var dot = $("dot");
-  var ws = null;
-  var backoff = 1000;
-  var BACKOFF_MAX = 10000;
+  // Update one block's DOM: rows are reused by index, word spans by diff id,
+  // so unchanged words are never re-created (and never re-faded).
+  function renderBlock(b, rows) {
+    var flat = [];
+    rows.forEach(function (r) { r.forEach(function (w) { flat.push(w.t); }); });
+    var diffed = diffWords(b.prev, flat, newId);
+    b.prev = diffed;
+    while (b.rowEls.length < rows.length) {
+      var rowEl = document.createElement("div");
+      rowEl.className = "row";
+      rowEl.appendChild(document.createElement("span")).className = "line";
+      b.el.appendChild(rowEl);
+      b.rowEls.push(rowEl);
+    }
+    while (b.rowEls.length > rows.length) b.el.removeChild(b.rowEls.shift());
+    var k = 0, spans = new Map(), fresh = [];
+    rows.forEach(function (r, i) {
+      var line = b.rowEls[i].firstChild, kids = [], sig = [];
+      r.forEach(function (w, j) {
+        var d = diffed[k++], el = b.spans.get(d.id);
+        if (!el) { el = document.createElement("span"); el.className = "w"; }
+        if (el.textContent !== d.t) el.textContent = d.t;
+        if (d.fresh) fresh.push(el);
+        spans.set(d.id, el);
+        if (j) kids.push(document.createTextNode(" "));
+        kids.push(el);
+        sig.push(d.id);
+      });
+      var s = sig.join(",");
+      if (line._sig !== s) { line._sig = s; line.replaceChildren.apply(line, kids); }
+    });
+    b.spans = spans;
+    if (cfg.wordfade && !REDUCED && fresh.length && fresh[0].animate) {
+      fresh.forEach(function (el) {
+        el.animate([{ opacity: 0.35 }, { opacity: 1 }],
+                   { duration: 100, easing: "ease-out", fill: "both" });
+      });
+    }
+  }
 
+  function placeBlock(b, bottomPct) {
+    var st = b.el.style;
+    st.left = cfg.x + "%";
+    st.top = bottomPct + "%";
+    st.width = cfg.maxw + "%";
+  }
+
+  var lastPanelH = "";
+  function render() {
+    if (!L) computeLayout();
+    var showP = cfg.mode !== "translation", showT = cfg.mode !== "primary";
+    var pEn = state.lang === "en";
+    var P = blocks.primary, T = blocks.trans;
+    P.el.hidden = !showP;
+    T.el.hidden = !showT;
+    P.el.className = "block " + (pEn ? "font-en" : "font-gu");
+    // Bottom panel: at least panel_h, grown to cover the lowest block's rows.
+    var lowRows = showT ? cfg.rows_translation : cfg.rows_primary;
+    var lowLh = (showT || pEn) ? cfg.lh : cfg.lh + 0.07;
+    var lowTop = cfg.y - lowRows * L.fs * lowLh / L.H * 100;
+    var panelH = Math.min(100, Math.max(cfg.panel_h, 100 - lowTop + 1)).toFixed(2) + "%";
+    if (panelH !== lastPanelH) { root.setProperty("--panel-h", panelH); lastPanelH = panelH; }
+    if (showT) {
+      placeBlock(T, cfg.y);
+      renderBlock(T, blockRows(transEngine, L.measureEn, PH_EN));
+    }
+    if (showP) {
+      var y = cfg.y;
+      if (showT) {
+        // Sit `gap` % above the translation block, but never overlap it.
+        var tH = cfg.rows_translation * L.fs * cfg.lh / L.H * 100;
+        y = Math.min(cfg.y - cfg.gap, cfg.y - tH - 1);
+      }
+      placeBlock(P, y);
+      renderBlock(P, blockRows(primaryEngine, pEn ? L.measureEn : L.measureGu,
+                               pEn ? PH_EN : PH_GU));
+    }
+  }
+  // Events can arrive faster than frames: at most one render per frame.
+  var rafPending = false;
+  function scheduleRender() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () { rafPending = false; render(); });
+  }
+
+  /* ================= Chrome: fullscreen, keys, auto-hide ================= */
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    else document.documentElement.requestFullscreen().catch(function () {});
+  }
+  $("fsBtn").addEventListener("click", toggleFullscreen);
+  stageEl.addEventListener("dblclick", toggleFullscreen);
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var key = e.key.toLowerCase();
+    if (key === "f") toggleFullscreen();
+    else if (key === "escape" && document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    else if (key === "g") {
+      local.mode = MODE_CYCLE[(MODE_CYCLE.indexOf(cfg.mode) + 1) % MODE_CYCLE.length];
+      rebuildSettings();
+    } else if (key === "c") clearCaptions();
+    else if (key === "+" || key === "=" || key === "-" || key === "_") {
+      var step = (key === "-" || key === "_") ? -0.1 : 0.1;
+      local.scale = Math.round(Math.min(1.8, Math.max(0.6, cfg.scale + step)) * 10) / 10;
+      rebuildSettings();
+    } else return;
+    showChrome();
+  });
+  var chromeTimer = null;
+  function showChrome() {
+    document.body.classList.remove("hide-chrome");
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(function () { document.body.classList.add("hide-chrome"); }, 3000);
+  }
+  document.addEventListener("mousemove", showChrome);
+  document.addEventListener("mousedown", showChrome);
+  showChrome();
+
+  /* ================= WebSocket client (receive-only, auto-reconnect) ======= */
+  var dot = $("dot");
+  function setStatus(s) { dot.className = s; dot.title = s; }
+  var ws = null, backoff = 1000, BACKOFF_MAX = 10000;
   function connect() {
+    if (!location.host) return;  // file:// preview: stay idle
+    setStatus("connecting");
     var proto = location.protocol === "https:" ? "wss" : "ws";
-    var url = proto + "://" + location.host + "/ws/view";
-    try { ws = new WebSocket(url); } catch (e) { scheduleReconnect(); return; }
-    ws.onopen = function () {
-      backoff = 1000;
-      dot.classList.add("on");
-    };
+    try { ws = new WebSocket(proto + "://" + location.host + "/ws/view"); }
+    catch (e) { setStatus("error"); scheduleReconnect(); return; }
+    ws.onopen = function () { backoff = 1000; setStatus("live"); };
     ws.onmessage = function (ev) {
       if (typeof ev.data !== "string") return;
       var msg;
@@ -411,24 +672,17 @@
       if (msg && msg.type === "settings") ingestServerSettings(msg);
       else handleEvent(msg);
     };
-    ws.onclose = function () {
-      dot.classList.remove("on");
-      scheduleReconnect();
-    };
-    ws.onerror = function () {
-      try { ws.close(); } catch (e) {}
-    };
+    ws.onclose = function () { setStatus("error"); scheduleReconnect(); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
   }
   function scheduleReconnect() {
     setTimeout(connect, backoff);
     backoff = Math.min(backoff * 2, BACKOFF_MAX);
   }
 
-  /* ---------------- Init ---------------- */
+  /* ================= Init ================= */
   loadFromUrl();
-  settings = Object.assign({}, DEFAULTS, urlSettings);
-  applySettings();
-  render(true);
+  rebuildSettings();
   connect();
 })();
 </script>

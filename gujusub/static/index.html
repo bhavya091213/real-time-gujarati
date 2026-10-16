@@ -17,6 +17,7 @@
   #controls { padding: 1rem 2rem; }
   #livestatus { margin-left: 1rem; color: #666; font-size: .9rem; }
   #livestatus.active { color: #9c9; }
+  #livestatus .bad { color: #f88; }
   #settings { margin: 0 2rem 1rem; border: 1px solid #333; border-radius: .5rem; background: #181818; font-size: .9rem; }
   #settings > summary { cursor: pointer; padding: .6rem 1rem; color: #ccc; }
   #settings .body { padding: 0 1rem 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
@@ -27,7 +28,8 @@
   #settings .row input[type=range] { flex: 1; min-width: 0; }
   #settings .row input[type=text] { flex: 1; min-width: 0; }
   #settings .row .val { color: #888; min-width: 3rem; text-align: right; }
-  #settings select, #settings input[type=text], #settings input[type=number] {
+  #settings .row input[type=password] { flex: 1; min-width: 0; }
+  #settings select, #settings input[type=text], #settings input[type=number], #settings input[type=password] {
     background: #222; color: #eee; border: 1px solid #444; border-radius: .3rem; padding: .2rem .4rem; font-size: .9rem; }
   #settings .note { color: #888; font-size: .8rem; margin: .2rem 0; }
   #settings .err { color: #f88; min-height: 1.1em; padding: 0 1rem .5rem; font-size: .85rem; grid-column: 1 / -1; }
@@ -36,7 +38,12 @@
   #settings .swatches button.sel { border-color: #fff; }
   #settings .swatches .tp { background: repeating-conic-gradient(#888 0 25%, #ccc 0 50%) 0 0/10px 10px; }
   #settings .row.off { opacity: .5; }
-  #resetBtn { font-size: .9rem; padding: .3rem 1rem; background: #333; color: #eee; }
+  #resetBtn, #settings button.small { font-size: .9rem; padding: .3rem 1rem; background: #333; color: #eee; }
+  #settings button.small { padding: .2rem .7rem; }
+  #settings button:disabled { opacity: .5; cursor: default; }
+  #settings .provider { border-top: 1px solid #2c2c2c; margin-top: .5rem; padding-top: .3rem; }
+  #settings .provider a { color: #8bf; }
+  #settings .keystat { color: #ccc; margin: .3rem 0; }
   button { font-size: 1.1rem; padding: .5rem 1.5rem; border-radius: .5rem;
            border: none; cursor: pointer; }
   #status { margin-left: 1rem; color: #888; }
@@ -176,17 +183,83 @@ const GREY_COLOUR = /^#[0-9a-fA-F]{6}$/;
 // Fallback for Reset when the snapshot has no `defaults`.
 const DEFAULTS = {
   asr_mode: "gu", translate: true, conf_word_min: 0.5, conf_utt_min: 0.7,
-  aspect: "16:9", mode: "translation", stable: false, clear: 6,
-  font: 'system-ui, "Noto Sans Gujarati", sans-serif', size: 64, minsize: 36,
-  weight: 700, lh: 1.3, ls: 0, tt: "none", color: "#ffffff", ow: 0,
-  oc: "#000000", shadow: false, bg: "#000000", align: "left", pad: 5,
-  bottom: 8, bar: true, barw: 8, barc: "#ffffff",
+  aspect: "16:9", mode: "translation", stable: false, clear: 20,
+  font: '"Noto Sans Gujarati", system-ui, sans-serif', size: 56, minsize: 36,
+  weight: 500, lh: 1.28, ls: 0, tt: "none", color: "#ffffff", ow: 0,
+  oc: "#000000", shadow: false, bg: "#000000", align: "center", pad: 5,
+  bottom: 8, bar: false, barw: 8, barc: "#ffffff",  // minsize/bottom/bar*: legacy, no control
+  rows_primary: 2, rows_translation: 3, x: 50, y: 88, gap: 16, scale: 1, maxw: 100,
+  panel: "bottom", panel_h: 25, panel_opacity: 0.75, wordfade: true,
+  font_en: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
 };
 const LEGACY_MODE = { en: "translation", gu: "primary" };
 const ASR_LABEL = { gu: "Gujarati", en: "English", auto: "Auto" };
 
+// --- pure engine helpers (no DOM; exercised by tests/test_index_page.py) ---
+// Fallback copy of gujusub/cloud/registry.py catalog(), used until the server's
+// "providers" message arrives.
+const STATIC_CATALOG = [
+  { id: "soniox", label: "Soniox", key_env: "SONIOX_API_KEY", key_url: "https://console.soniox.com/",
+    gujarati: "yes", translates: true, language_id: true, needs_region: false,
+    note: "stt-rt-v5: Gujarati + English, built-in translation and language ID (what sabha-stt uses)." },
+  { id: "elevenlabs", label: "ElevenLabs", key_env: "ELEVENLABS_API_KEY", key_url: "https://elevenlabs.io/app/settings/api-keys",
+    gujarati: "yes", translates: false, language_id: true, needs_region: false,
+    note: "Scribe v2 Realtime: Gujarati supported; translation stays local." },
+  { id: "deepgram", label: "Deepgram", key_env: "DEEPGRAM_API_KEY", key_url: "https://console.deepgram.com/",
+    gujarati: "yes", translates: false, language_id: false, needs_region: false,
+    note: "Nova-3 with language=gu (added 2026-05); no Gujarati/English auto-detect; translation stays local." },
+  { id: "openai", label: "OpenAI", key_env: "OPENAI_API_KEY", key_url: "https://platform.openai.com/api-keys",
+    gujarati: "partial", translates: false, language_id: false, needs_region: false,
+    note: "Realtime transcription (gpt-4o-transcribe): Gujarati via Whisper-class models; text arrives per turn, not word by word." },
+  { id: "sarvam", label: "Sarvam AI", key_env: "SARVAM_API_KEY", key_url: "https://dashboard.sarvam.ai/",
+    gujarati: "yes", translates: false, language_id: true, needs_region: false,
+    note: "Saaras v3 realtime, gu-IN (language_code auto for Gujarati/English); Indian-language specialist; translation stays local." },
+  { id: "azure", label: "Azure AI Speech", key_env: "AZURE_SPEECH_KEY", key_url: "https://portal.azure.com/",
+    gujarati: "yes", translates: false, language_id: true, needs_region: true,
+    note: "gu-IN continuous recognition via the Azure Speech SDK (pip install azure-cognitiveservices-speech); needs key + region." },
+];
+const LOCAL_BACKEND = "local";
+
+function backendOptions(catalog) {
+  return [[LOCAL_BACKEND, "Local models (no internet)"], ...catalog.map(p => [p.id, p.label])];
+}
+
+function providerFacts(p) {
+  return [
+    `Gujarati: ${p.gujarati}`,
+    `Translation: ${p.translates ? "built in" : "local (IndicTrans2)"}`,
+    `Language auto-detect: ${p.language_id ? "yes" : "no"}`,
+  ];
+}
+
+// k: one entry of the server's keys map ({set, hint, source, region, env}) or undefined.
+function keyStatusText(k) {
+  const region = k && k.region ? ` · region ${k.region}` : "";
+  if (!k || !k.set) return `No key saved${region}`;
+  const from = k.source === "env" ? `from env ${k.env || "variable"}` : "saved";
+  return `Key: ${k.hint || "set"} (${from})${region}`;
+}
+
+// -> {text, bad}: the "Engine: …" prefix of the status strip.
+function engineStatus(s, byId) {
+  const backend = s && s.backend;
+  if (!backend || backend === LOCAL_BACKEND) return { text: "Engine: Local", bad: false };
+  const label = (byId[backend] && byId[backend].label) || backend;
+  const c = s.cloud;
+  if (!c || !c.state) return { text: `Engine: ${label}`, bad: false };
+  if (c.state === "error" || c.error) {
+    return { text: `Engine: ${label} · error: ${c.error || "unknown"}`, bad: true };
+  }
+  return { text: `Engine: ${label} · ${c.state}`, bad: false };
+}
+// --- end pure engine helpers ---
+
 // type: select | range | check | color | number | text
 const SECTIONS = [
+  ["Speech engine", [
+    { k: "asr_backend", t: "select", l: "Engine", opts: backendOptions(STATIC_CATALOG) },
+    { t: "provider" },
+  ]],
   ["Mode", [
     { k: "asr_mode", t: "select", l: "Speech language", opts: [
       ["gu", "Gujarati"], ["en", "English"], ["auto", "Auto (Gujarati / English, no translation)"]] },
@@ -204,34 +277,41 @@ const SECTIONS = [
     { k: "stable", t: "check", l: "Stable text only" },
     { k: "clear", t: "number", l: "Clear after (s, 0=never)", min: 0, max: 600, step: 1 },
   ]],
+  ["Position", [
+    { k: "x", t: "range", l: "Horizontal (%)", min: 0, max: 100, step: 0.5 },
+    { k: "y", t: "range", l: "Bottom edge (%)", min: 0, max: 100, step: 0.5 },
+    { k: "gap", t: "range", l: "Gujarati above English (%)", min: 0, max: 60, step: 0.5 },
+    { k: "maxw", t: "range", l: "Block width (%)", min: 20, max: 100, step: 1 },
+    { k: "align", t: "select", l: "Align", opts: [["center", "center"], ["left", "left"], ["right", "right"]] },
+  ]],
   ["Text", [
-    { k: "font", t: "text", l: "Font family" },
-    { k: "size", t: "range", l: "Size", min: 24, max: 160, step: 1 },
-    { k: "minsize", t: "range", l: "Min size (auto-fit)", min: 16, max: 160, step: 1 },
+    { k: "font", t: "text", l: "Gujarati font" },
+    { k: "font_en", t: "text", l: "English font" },
+    { k: "size", t: "range", l: "Size (px at 1080p)", min: 24, max: 160, step: 1 },
+    { k: "scale", t: "range", l: "Scale", min: 0.5, max: 2, step: 0.1 },
     { k: "weight", t: "select", l: "Weight", num: true, opts: [400, 500, 600, 700, 800, 900].map(v => [v, String(v)]) },
     { k: "lh", t: "range", l: "Line height", min: 1.0, max: 2.2, step: 0.05 },
     { k: "ls", t: "range", l: "Letter spacing", min: -2, max: 20, step: 0.5 },
     { k: "tt", t: "select", l: "Transform", opts: [["none", "none"], ["uppercase", "UPPERCASE"]] },
     { k: "color", t: "color", l: "Text color" },
   ]],
-  ["Outline", [
-    { k: "ow", t: "range", l: "Width", min: 0, max: 12, step: 0.5 },
-    { k: "oc", t: "color", l: "Color" },
-    { k: "shadow", t: "check", l: "Shadow instead of stroke" },
+  ["Rows", [
+    { k: "rows_primary", t: "number", l: "Gujarati rows", min: 1, max: 6, step: 1 },
+    { k: "rows_translation", t: "number", l: "English rows", min: 1, max: 6, step: 1 },
+    { k: "wordfade", t: "check", l: "Fade in new words" },
   ]],
-  ["Background", [
+  ["Backing", [
+    { k: "panel", t: "select", l: "Backing", opts: [
+      ["bottom", "Bottom panel"], ["lines", "Per-line chips"], ["none", "None"]] },
+    { k: "panel_h", t: "range", l: "Panel min height (%)", min: 0, max: 100, step: 1 },
+    { k: "panel_opacity", t: "range", l: "Opacity", min: 0, max: 1, step: 0.05 },
     { k: "bg", t: "swatches" },
-    { k: "bg", t: "color", l: "Custom" },
+    { k: "bg", t: "color", l: "Custom background" },
   ]],
-  ["Position", [
-    { k: "align", t: "select", l: "Align", opts: [["left", "left"], ["center", "center"], ["right", "right"]] },
-    { k: "pad", t: "range", l: "H padding (%)", min: 0, max: 25, step: 0.5 },
-    { k: "bottom", t: "range", l: "Bottom margin (%)", min: 0, max: 50, step: 0.5 },
-  ]],
-  ["Caption bar", [
-    { k: "bar", t: "check", l: "Show bar" },
-    { k: "barw", t: "range", l: "Width", min: 2, max: 24, step: 1 },
-    { k: "barc", t: "color", l: "Color" },
+  ["Outline & shadow", [
+    { k: "ow", t: "range", l: "Outline width", min: 0, max: 12, step: 0.5 },
+    { k: "oc", t: "color", l: "Outline / shadow color" },
+    { k: "shadow", t: "check", l: "Soft shadow" },
   ]],
 ];
 const SWATCHES = [["#000000", "Black (luma key)"], ["#00ff00", "Green (chroma)"],
@@ -245,6 +325,13 @@ const liveEl2 = document.getElementById("livestatus");
 const fields = {};        // key -> [{el, spec, rowEl}]
 let current = {};         // last snapshot from server
 let ctl = null, ctlDelay = 500, sendTimers = {};
+const sectionEls = {};    // section title -> fieldset
+let catalog = STATIC_CATALOG, catalogById = byId(STATIC_CATALOG);
+let keyState = {};        // provider id -> {set, hint, source, region, env}
+let keySavePending = null;  // provider id awaiting the server's "keys" reply
+const prov = {};          // provider panel elements, filled by buildProviderPanel()
+
+function byId(list) { return Object.fromEntries(list.map(p => [p.id, p])); }
 
 function el(tag, props, ...kids) {
   const e = Object.assign(document.createElement(tag), props || {});
@@ -259,11 +346,14 @@ function readValue(spec, input) {
   return input.value;
 }
 
-function sendSet(partial) {
-  if (!ctl || ctl.readyState !== WebSocket.OPEN) { errEl.textContent = "Not connected to server."; return; }
+function sendCtl(msg) {
+  if (!ctl || ctl.readyState !== WebSocket.OPEN) { errEl.textContent = "Not connected to server."; return false; }
   errEl.textContent = "";
-  ctl.send(JSON.stringify({ type: "set", settings: partial }));
+  ctl.send(JSON.stringify(msg));
+  return true;
 }
+
+function sendSet(partial) { sendCtl({ type: "set", settings: partial }); }
 
 function onChange(spec, input, row) {
   const val = readValue(spec, input);
@@ -279,7 +369,118 @@ function onChange(spec, input, row) {
   }
 }
 
+// ---- Speech engine: provider panel (cloud backends only) ----
+function buildProviderPanel() {
+  prov.note = el("div", { className: "note" });
+  prov.facts = el("div", { className: "note" });
+  prov.link = el("a", { textContent: "Get a key ↗", target: "_blank", rel: "noopener" });
+  prov.status = el("div", { className: "keystat" });
+  prov.region = el("input", { type: "text", id: "s-key-region", autocomplete: "off", placeholder: "e.g. eastus" });
+  prov.regionRow = el("div", { className: "row" }, el("label", { htmlFor: "s-key-region", textContent: "Region" }), prov.region);
+  prov.key = el("input", { type: "password", id: "s-key", autocomplete: "off", placeholder: "paste API key" });
+  prov.save = el("button", { type: "button", className: "small", textContent: "Save key", disabled: true });
+  prov.remove = el("button", { type: "button", className: "small", textContent: "Remove key" });
+  prov.key.addEventListener("input", () => { prov.save.disabled = !prov.key.value.trim(); });
+  prov.key.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveKey(); } });
+  prov.save.onclick = saveKey;
+  prov.remove.onclick = removeKey;
+  const keyRow = el("div", { className: "row" },
+    el("label", { htmlFor: "s-key", textContent: "API key" }), prov.key, prov.save);
+  prov.box = el("div", { className: "provider" }, prov.note, prov.facts,
+    el("div", { className: "note" }, prov.link), prov.status, prov.regionRow, keyRow,
+    el("div", { className: "row" }, prov.remove));
+  return prov.box;
+}
+
+function selectedProvider() {
+  const sel = fields.asr_backend && fields.asr_backend[0].input;
+  return sel ? catalogById[sel.value] || null : null;
+}
+
+function saveKey() {
+  const p = selectedProvider();
+  const key = prov.key.value.trim();
+  if (!p || !key) return;
+  const msg = { type: "set_key", provider: p.id, key };
+  const region = prov.region.value.trim();
+  if (p.needs_region && region) msg.region = region;
+  if (sendCtl(msg)) keySavePending = p.id;
+}
+
+function removeKey() {
+  const p = selectedProvider();
+  if (p) sendCtl({ type: "clear_key", provider: p.id });
+}
+
+function renderProviderPanel(p) {
+  prov.box.hidden = !p;
+  if (!p) return;
+  prov.note.textContent = p.note || "";
+  prov.facts.textContent = providerFacts(p).join(" · ");
+  const url = /^https:\/\//.test(p.key_url || "") ? p.key_url : "";
+  prov.link.href = url || "#";
+  prov.link.hidden = !url;
+  const k = keyState[p.id];
+  prov.status.textContent = keyStatusText(k);
+  prov.regionRow.hidden = !p.needs_region;
+  prov.remove.hidden = !(k && k.source === "saved");
+}
+
+// Cloud backends: no confidence knobs, Auto only with provider language ID,
+// translate label notes provider-side translation.
+function applyEngineToMode(p) {
+  if (sectionEls.Confidence) sectionEls.Confidence.hidden = !!p;
+  const auto = [...fields.asr_mode[0].input.options].find(o => o.value === "auto");
+  if (auto) {
+    auto.disabled = !!p && !p.language_id;
+    auto.title = auto.disabled ? `${p.label} has no Gujarati/English auto-detect` : "";
+  }
+  const label = fields.translate[0].row.querySelector("label");
+  label.textContent = "Translate to English" + (p && p.translates ? ` (built into ${p.label})` : "");
+}
+
+function refreshEngineUI() {
+  if (!prov.box) return;
+  const p = selectedProvider();
+  renderProviderPanel(p);
+  applyEngineToMode(p);
+}
+
+function setBackendOptions(list) {
+  const sel = fields.asr_backend[0].input;
+  const want = (current && current.asr_backend) || sel.value || LOCAL_BACKEND;
+  sel.replaceChildren(...backendOptions(list).map(([v, text]) => new Option(text, v)));
+  sel.value = catalogById[want] || want === LOCAL_BACKEND ? want : LOCAL_BACKEND;
+}
+
+function onProviders(m) {
+  if (Array.isArray(m.catalog) && m.catalog.length) {
+    catalog = m.catalog;
+    catalogById = byId(catalog);
+    setBackendOptions(catalog);
+  }
+  onKeys(m.keys);
+}
+
+function onKeys(keys) {
+  keyState = keys && typeof keys === "object" ? keys : {};
+  const saved = keySavePending;
+  if (saved) {
+    keySavePending = null;
+    prov.key.value = "";
+    prov.region.value = "";
+    prov.save.disabled = true;
+    // The engine switch was likely refused for lack of a key; retry it now.
+    const sel = fields.asr_backend[0].input;
+    if (sel.value === saved && current.asr_backend !== saved && keyState[saved]?.set) {
+      sendSet({ asr_backend: saved });
+    }
+  }
+  refreshEngineUI();
+}
+
 function buildControl(spec) {
+  if (spec.t === "provider") return buildProviderPanel();
   if (spec.note) return el("div", { className: "note", textContent: spec.note });
   const row = el("div", { className: "row" });
   const entry = { spec, row };
@@ -325,8 +526,11 @@ function buildPanel() {
   SECTIONS.forEach(([title, specs]) => {
     const fs = el("fieldset", null, el("legend", { textContent: title }));
     specs.forEach(s => fs.append(buildControl(s)));
+    sectionEls[title] = fs;
     bodyEl.append(fs);
   });
+  fields.asr_backend[0].input.addEventListener("change", refreshEngineUI);
+  refreshEngineUI();
   const reset = el("button", { id: "resetBtn", type: "button", textContent: "Reset to defaults" });
   reset.onclick = () => {
     const { schema, ...vals } = (current && current.defaults) || DEFAULTS;  // schema is read-only
@@ -358,6 +562,7 @@ function applySnapshot(snap) {
   tr.row.classList.toggle("off", !gu);
   tr.row.title = gu ? "" : "Translation is only used with Gujarati speech";
   if (!gu) tr.input.checked = false;
+  refreshEngineUI();
 }
 
 // "on · last en 0.93 @1.5 s" — latest Auto-mode decision (lid_last) for the operator
@@ -374,15 +579,24 @@ let lastStatus = null, statusTimer = null, lastRender = 0;
 function renderStatus() {
   statusTimer = null; lastRender = Date.now();
   const s = lastStatus;
-  if (!s || s.asr == null) {
+  const open = ctl && ctl.readyState === WebSocket.OPEN;
+  if (!s || !open) {
     liveEl2.classList.remove("active");
-    liveEl2.textContent = ctl && ctl.readyState === WebSocket.OPEN ? "server: idle (no mic active)" : "server: disconnected";
+    liveEl2.textContent = open ? "server: idle (no mic active)" : "server: disconnected";
     return;
   }
-  liveEl2.classList.add("active");
+  const eng = engineStatus(s, catalogById);
+  const models = s.models === "loading" ? " · loading local models…" : "";
+  liveEl2.replaceChildren(el("span", { className: eng.bad ? "bad" : "", textContent: eng.text }),
+    models + " · " + pipelineText(s));
+  liveEl2.classList.toggle("active", s.asr != null);
+}
+
+function pipelineText(s) {
+  if (s.asr == null) return "server: idle (no mic active)";
   const ms = v => (typeof v === "number" ? Math.round(v) : "–");
   const sec = v => (typeof v === "number" ? v.toFixed(1) : "–");
-  liveEl2.textContent = `ASR: ${ASR_LABEL[s.asr] || s.asr} · Translate: ${s.translate ? "on" : "off"}` +
+  return `ASR: ${ASR_LABEL[s.asr] || s.asr} · Translate: ${s.translate ? "on" : "off"}` +
     ` · LID: ${lidText(s)} · decode ${ms(s.decode_ms)} ms (avg ${ms(s.avg_decode_ms)})` +
     ` · lag ${sec(s.lag_s)} s · utt ${s.utterances ?? 0}` +
     (s.asr_warning ? ` · warning: ${s.asr_warning}` : "");
@@ -401,7 +615,12 @@ function connectControl() {
     let m; try { m = JSON.parse(e.data); } catch { return; }
     if (m.type === "settings") { errEl.textContent = ""; applySnapshot(m); }
     else if (m.type === "status") onStatus(m);
-    else if (m.type === "error") errEl.textContent = m.message || "Server rejected the change.";
+    else if (m.type === "providers") onProviders(m);
+    else if (m.type === "keys") onKeys(m.keys);
+    else if (m.type === "error") {
+      keySavePending = null;  // keep the typed key so the operator can correct it
+      errEl.textContent = m.message || "Server rejected the change.";
+    }
   };
   ctl.onclose = () => {
     ctlStateEl.textContent = "(disconnected, retrying…)";

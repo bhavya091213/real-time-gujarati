@@ -3,7 +3,14 @@
 import pytest
 from fakes import FakeEngine, FakeVAD, frames, ramp
 
-from gujusub.engines import EngineNotLoaded, EngineRegistry, parse_engine_list
+from gujusub import engines as engines_mod
+from gujusub.engines import (
+    EngineNotLoaded,
+    EngineRegistry,
+    engine_loaders,
+    load_engines,
+    parse_engine_list,
+)
 from gujusub.streaming import StreamingConfig, StreamingTranscriber, TranscriptEvent
 
 INTERVAL_FRAMES = 15
@@ -134,3 +141,29 @@ def test_parse_engine_list(text, expected):
 def test_parse_engine_list_rejects(text):
     with pytest.raises(ValueError):
         parse_engine_list(text)
+
+
+def test_engine_loaders_swap_gu_slot_only(monkeypatch):
+    full, fast, en = object(), object(), object()
+    monkeypatch.setattr(engines_mod, "GU_LOADERS", {"full": full, "fast": fast})
+    monkeypatch.setattr(engines_mod, "LOADERS", {"gu": full, "en": en})
+    assert engine_loaders() == {"gu": full, "en": en}
+    assert engine_loaders("fast") == {"gu": fast, "en": en}
+    with pytest.raises(ValueError, match="huge"):
+        engine_loaders("huge")
+
+
+def test_load_engines_uses_chosen_gu_loader(monkeypatch):
+    built = []
+
+    def loader(name):
+        def load(device):
+            built.append((name, device))
+            return FakeEngine()
+        return load
+
+    monkeypatch.setattr(engines_mod, "GU_LOADERS", {"full": loader("full"), "fast": loader("fast")})
+    monkeypatch.setattr(engines_mod, "LOADERS", {"gu": loader("full"), "en": loader("en")})
+    registry = load_engines(("gu", "en"), "cpu", gu_model="fast")
+    assert registry.langs == ("gu", "en")
+    assert built == [("fast", "cpu"), ("en", "cpu")]

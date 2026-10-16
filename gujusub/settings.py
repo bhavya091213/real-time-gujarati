@@ -2,8 +2,8 @@
 
 One immutable `Settings` snapshot, persisted as JSON by `SettingsStore`
 (default ~/.cache/gujusub/settings.json, override with GUJUSUB_SETTINGS).
-The 22 display keys mirror DEFAULTS in static/display.html exactly; the rest
-(asr_mode, translate, conf_*) are server-only and never sent to /ws/view.
+The 34 display keys mirror DEFAULTS in static/display.html exactly; the rest
+(asr_mode, asr_backend, translate, conf_*) are server-only and never sent to /ws/view.
 """
 
 import dataclasses
@@ -16,9 +16,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from gujusub.cloud.registry import BACKENDS
+
 logger = logging.getLogger("settings")
 
-SCHEMA = 3
+SCHEMA = 4
+# Schema-3 defaults that schema 4 changed. A saved schema-3 file stores every
+# key, so values still equal to these are dropped on load to pick up the new
+# look; values the operator actually changed are kept.
+_V3_DEFAULTS = {
+    "clear": 6, "font": 'system-ui, "Noto Sans Gujarati", sans-serif', "size": 64,
+    "weight": 700, "lh": 1.3, "align": "left", "bar": True,
+}
 
 
 @dataclass(frozen=True)
@@ -27,27 +36,41 @@ class Settings:
     aspect: str = "16:9"
     mode: str = "translation"  # primary | translation | both
     stable: bool = False
-    clear: float = 6  # seconds of silence before fade, 0 = never
-    font: str = 'system-ui, "Noto Sans Gujarati", sans-serif'
-    size: float = 64
-    minsize: float = 36
-    weight: float = 700
-    lh: float = 1.3
+    clear: float = 20  # seconds without new text before fade, 0 = never
+    font: str = '"Noto Sans Gujarati", system-ui, sans-serif'  # Gujarati stack
+    size: float = 56  # px at a 1080-px-high stage (scales with the stage)
+    minsize: float = 36  # legacy: accepted, ignored by the row-based display
+    weight: float = 500
+    lh: float = 1.28  # English line height; Gujarati uses lh + 0.07
     ls: float = 0
     tt: str = "none"
     color: str = "#ffffff"
-    ow: float = 0
-    oc: str = "#000000"
-    shadow: bool = False
+    ow: float = 0  # text stroke width, px at 1080p
+    oc: str = "#000000"  # outline / shadow colour
+    shadow: bool = False  # soft character shadow
     bg: str = "#000000"
-    align: str = "left"
-    pad: float = 5
-    bottom: float = 8
-    bar: bool = True
+    align: str = "center"
+    pad: float = 5  # inner horizontal padding, % of stage width
+    bottom: float = 8  # legacy: superseded by y; ignored by the display
+    bar: bool = False  # legacy caption bar (bar/barw/barc): accepted, ignored
     barw: float = 8
     barc: str = "#ffffff"
+    rows_primary: int = 2  # visible rows, primary (ASR) block
+    rows_translation: int = 3  # visible rows, translation block
+    x: float = 50  # block centre, % of stage width
+    y: float = 88  # bottom edge of the lowest block, % of stage height
+    gap: float = 16  # primary block's bottom edge sits this % above translation's
+    scale: float = 1  # font scale multiplier
+    maxw: float = 100  # block width, % of stage width
+    panel: str = "bottom"  # backing: bottom | lines | none
+    panel_h: float = 25  # min bottom-panel height, % (grows to cover the lowest block)
+    panel_opacity: float = 0.75
+    wordfade: bool = True  # fade new words in
+    font_en: str = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
     # --- server-only keys ---
     asr_mode: Literal["gu", "en", "auto"] = "gu"
+    # "local" (bundled models) or a cloud provider id (gujusub/cloud/registry.py)
+    asr_backend: str = "local"
     translate: bool = True
     # Confidence trimming (gujusub/confidence.py), provisional until real clips
     # in samples/ refine it (unit 4.3). Calibrated in
@@ -66,7 +89,8 @@ class Settings:
 DISPLAY_KEYS = (
     "aspect", "mode", "stable", "clear", "font", "size", "minsize", "weight",
     "lh", "ls", "tt", "color", "ow", "oc", "shadow", "bg", "align", "pad",
-    "bottom", "bar", "barw", "barc",
+    "bottom", "bar", "barw", "barc", "rows_primary", "rows_translation", "x", "y",
+    "gap", "scale", "maxw", "panel", "panel_h", "panel_opacity", "wordfade", "font_en",
 )
 
 _COLOUR = re.compile(
@@ -92,6 +116,13 @@ def _num(lo: float | None = None, hi: float | None = None, *, positive=False):
         if positive and v <= 0:
             return False
         return (lo is None or v >= lo) and (hi is None or v <= hi)
+    return check
+
+
+def _int(lo: int, hi: int):
+    def check(v: Any) -> bool:
+        return (not isinstance(v, bool) and isinstance(v, (int, float))
+                and math.isfinite(v) and v == int(v) and lo <= v <= hi)
     return check
 
 
@@ -134,7 +165,20 @@ _CHECKS = {
     "bar": _bool,
     "barw": _num(0, 24),
     "barc": _colour,
+    "rows_primary": _int(1, 6),
+    "rows_translation": _int(1, 6),
+    "x": _num(0, 100),
+    "y": _num(0, 100),
+    "gap": _num(0, 60),
+    "scale": _num(0.5, 2),
+    "maxw": _num(20, 100),
+    "panel": _enum("bottom", "lines", "none"),
+    "panel_h": _num(0, 100),
+    "panel_opacity": _num(0, 1),
+    "wordfade": _bool,
+    "font_en": _font,
     "asr_mode": _enum("gu", "en", "auto"),
+    "asr_backend": _enum(*BACKENDS),
     "translate": _bool,
     "conf_word_min": _num(0, 1),
     "conf_utt_min": _num(0, 1),
@@ -153,6 +197,9 @@ def validate(partial: dict) -> dict:
         if not check(value):
             raise ValueError(f"invalid value for {key!r}: {value!r}")
     cleaned = dict(partial)
+    for key in ("rows_primary", "rows_translation"):
+        if key in cleaned:
+            cleaned[key] = int(cleaned[key])
     if "mode" in cleaned:
         cleaned["mode"] = _LEGACY_MODE.get(cleaned["mode"], cleaned["mode"])
     return cleaned
@@ -202,9 +249,12 @@ class SettingsStore:
             logger.warning("settings file %s is not an object; using defaults", self.path)
             return Settings()
         good = {}
+        old = not isinstance(raw.get("schema"), int) or raw["schema"] < 4
         for key, value in raw.items():
             if key == "schema":
                 continue
+            if old and key in _V3_DEFAULTS and value == _V3_DEFAULTS[key]:
+                continue  # untouched schema-3 default -> take the new one
             try:
                 good.update(validate({key: value}))
             except ValueError as e:

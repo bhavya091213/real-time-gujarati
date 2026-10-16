@@ -9,6 +9,7 @@ is an upper bound: translation time is charged to the serial processing clock.
 Run:  python tools/replay.py samples/test-guju.m4a
       python tools/replay.py samples/test-guju.m4a --loop-to 60 --no-endpoint --translate
       python tools/replay.py samples/test-guju.m4a --engine auto   # LID picks gu/en
+      python tools/replay.py samples/test-guju.m4a --gu-model fast  # Gujarati-only int8
 
 --engine auto loads gu + en + LID and reports each utterance's LID decision
 (lang, p, speech seconds that decided, time since VAD onset, and when the
@@ -50,14 +51,26 @@ def _load_gu():
     return ASREngine(lang="gu", device="cpu")
 
 
+def _load_gu_fast():
+    from gujusub.engine_gu_fast import FastGujaratiEngine
+
+    return FastGujaratiEngine()
+
+
 def _load_en():
     from gujusub.engine_parakeet import ParakeetEngine
 
     return ParakeetEngine()
 
 
+GU_LOADERS: dict[str, Callable[[], object]] = {"full": _load_gu, "fast": _load_gu_fast}
 ENGINES: dict[str, Callable[[], object]] = {"gu": _load_gu, "en": _load_en}
 AUTO = "auto"  # --engine auto: both ENGINES + LID
+
+
+def engine_loaders(gu_model: str) -> dict[str, Callable[[], object]]:
+    """ENGINES with the chosen Gujarati engine (--gu-model full|fast) in the gu slot."""
+    return {**ENGINES, "gu": GU_LOADERS[gu_model]}
 
 
 def load_lid():
@@ -333,6 +346,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("audio", type=Path)
     p.add_argument("--engine", default="gu", choices=sorted([*ENGINES, AUTO]))
+    p.add_argument("--gu-model", default="full", choices=sorted(GU_LOADERS),
+                   help="Gujarati engine: full (600M, default) or fast (120M int8)")
     p.add_argument("--loop-to", type=float, default=0.0, metavar="SECONDS")
     p.add_argument("--no-endpoint", action="store_true", help="never endpoint on silence")
     p.add_argument("--rtf", type=int, choices=(0, 1), default=0, help="1 = pace in real time")
@@ -349,15 +364,16 @@ def main(argv: list[str] | None = None) -> int:
 
     audio = loop_to(load_audio(args.audio), args.loop_to)
     lid = None
+    loaders = engine_loaders(args.gu_model)
     if args.engine == AUTO:
-        engine = {lang: load() for lang, load in ENGINES.items()}
+        engine = {lang: load() for lang, load in loaders.items()}
         for eng in engine.values():
             eng.warmup()
         language_id = load_lid()
         language_id.warmup()
         lid = language_id.classify
     else:
-        engine = ENGINES[args.engine]()
+        engine = loaders[args.engine]()
         engine.warmup()
     translator = None
     if args.translate and lid is not None:

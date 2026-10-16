@@ -49,6 +49,36 @@ ID model adds about 250 MB and is loaded only when the English engine is. On a
 low-RAM machine start with `--engines gu`, which disables English and Auto (both
 fall back to Gujarati and the status strip shows a warning).
 
+Fast Gujarati: `--gu-model fast` swaps the 600M multilingual IndicConformer for
+AI4Bharat's Gujarati-only 120M model, quantised to int8 on first load. It
+decodes about twice as fast (5 s window ~110 ms vs ~210 ms) and needs about
+0.55 GB instead of 2.9 GB for the Gujarati engine; the download is ~460 MB
+instead of 2.4 GB. Accuracy has only been checked on one clip, so try it on
+your own recordings before relying on it (`tools/replay.py FILE --gu-model fast`).
+
+Cloud speech APIs (optional): the mic page's **Speech engine** section can
+switch from the bundled models to a streaming API, which is how
+[sabha-stt](https://sabha-stt.vercel.app/) gets its near-instant captions.
+Paste the provider's key there (only the last four characters are ever shown;
+keys live in `~/.cache/gujusub/keys.json` with mode 0600, or come from the
+environment variable listed next to the provider) and the server stops loading
+the local ASR models on the next start. Providers:
+
+| Backend | Service | Gujarati | Notes |
+|---------|---------|----------|-------|
+| `soniox` | Soniox `stt-rt-v5` | yes | Built-in Gujarati/English language ID and English translation (the local translator is not loaded). What sabha-stt uses. |
+| `elevenlabs` | ElevenLabs Scribe v2 Realtime | yes | Language detection; translation stays local. |
+| `deepgram` | Deepgram Nova-3 | yes (`language=gu`) | No Gujarati/English auto-detect; translation stays local. |
+| `openai` | OpenAI Realtime `gpt-4o-transcribe` | unconfirmed | Text arrives per phrase after the server's VAD, so partials are coarser. |
+| `sarvam` | Sarvam AI Saaras v3 realtime | yes (`gu-IN`) | Indian-language specialist; `language_code=auto` for Gujarati/English. |
+| `azure` | Azure AI Speech (`gu-IN`) | yes | Needs key + region and `pip install azure-cognitiveservices-speech`. |
+
+Audio leaves the machine with a cloud backend, and every provider bills per
+minute of stream. None of the integrations has been run against the live
+services yet (written from the vendors' docs, tested against fakes), so expect
+to debug the first session with a real key. `--backend ID` on the command line
+sets the same saved setting.
+
 See [`wiki/`](wiki/README.md) for architecture, design decisions, gotchas, and
 the broadcast setup guide.
 
@@ -110,10 +140,12 @@ resolve from the repo root.
 | `--help` | start script | | Usage plus the live server flag list |
 | `--device cpu\|mps` | server | `cpu` | ASR device; `mps` is Apple Silicon only (Windows uses `cpu`) |
 | `--engines LIST` | server | `gu,en` | ASR engines to load: `gu,en` or `gu` (low RAM) |
+| `--gu-model full\|fast` | server | `full` | Gujarati engine: `full` (600M multilingual) or `fast` (Gujarati-only 120M int8, ~2x faster, ~2.3 GB less RAM) |
 | `--lang CODE` | server | `gu` | Deprecated no-op; use `--engines` and the Speech language setting |
 | `--port N` | server | `8765` | HTTP/WebSocket port |
 | `--no-translate` | server | off | Skip Gujarati to English translation |
 | `--no-filter` | server | off | Show filler words instead of hiding them |
+| `--backend ID` | server | saved setting (`local`) | Speech engine: `local` (bundled models) or a cloud provider `soniox`, `elevenlabs`, `deepgram`, `openai`, `sarvam`, `azure`. Saved as `asr_backend`; with a cloud backend the local ASR models are not loaded |
 
 ## Configuration
 
@@ -175,6 +207,7 @@ gujusub/            Python package
   engines.py        Engine registry (--engines), per-utterance engine selection
   lid.py            Spoken-language ID (SpeechBrain ECAPA, gu/en) + Auto decision policy
   engine_parakeet.py Parakeet-TDT English engine (onnx-asr, int8)
+  engine_gu_fast.py Gujarati-only IndicConformer 120M engine (--gu-model fast, int8)
   confidence.py     Confidence trimming + utterance gate
   glossary.py       BAPS glossary matcher (data/glossary_baps.json)
   threads.py        Thread-count policy (GUJUSUB_THREADS)

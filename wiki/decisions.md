@@ -193,3 +193,62 @@ localStorage. Changing the device while streaming restarts the capture
   the endpoint; no code-switching.
 - Measured (M1 Pro): Gujarati decided at 1.5 s of speech, first caption +2.1 s after
   onset; English +1.9 s.
+
+## Fast Gujarati engine (`--gu-model fast`, 2026-10-14)
+
+- **Why a second Gujarati engine.** The 600M multilingual IndicConformer is one
+  shared encoder for 22 languages (2.43 GB fp32, ~2.9 GB RSS); there are no
+  per-language weights worth dropping (<80 MB). The real savings come from a
+  different model: AI4Bharat's Gujarati-only IndicConformer (~120M, CTC+RNNT
+  hybrid, we use the CTC head) via the MIT ONNX export
+  `OpenVoiceOS/ai4bharat-indicconformer-gu-onnx`.
+- **int8 built locally, MatMul only.** The export's `model.int8.onnx` uses signed
+  `ConvInteger`, which onnxruntime's CPU provider rejects, so `engine_gu_fast`
+  quantises the fp32 graph's MatMuls with `quantize_dynamic` on first load
+  (2 s) into `model.gujusub-int8.onnx`. Written via temp file + rename so the
+  hardlinked hub copies are never written through (see gotchas). 4-bit
+  (MatMulNBits) was tried on the 600M model and was 50% slower; CoreML EP too.
+- **Numbers (M1 Pro, CPU, `samples/test-guju.m4a`).** Per decode, 5 s / 8 s
+  window: full 207 / 267 ms, fast 113 / 142 ms. Streaming replay p50 decode
+  211 vs 106 ms, max lag 0.74 vs 0.20 s, RTF 0.44 vs 0.19. RSS ~2.9 GB vs
+  ~0.55 GB; load 6-11 s vs 0.4 s (after the one-time quantisation). Download
+  2.4 GB vs ~460 MB.
+- **Same confidence semantics.** Decoding goes through `asr_engine.ctc_words`,
+  so word confidence (weakest token's best frame probability) and the
+  0.5 / 0.7 gates mean the same as for the full engine. The window stays 5 s.
+- **Default stays `full`.** Accuracy was compared on one clip only: the two
+  engines differ on one word (full `પીઉ`, fast `પીવ` for "પીઉં"; both get
+  `અત્યારે` right, which the fp32 full model got wrong). Switching the default
+  needs real recordings through `tools/replay.py --gu-model fast` and
+  `tools/calibrate_confidence.py`.
+
+## Cloud speech backends (`asr_backend`, 2026-10-16)
+
+Why: sabha-stt.vercel.app is "real fast" only because it streams the mic to
+Soniox's cloud model and renders tokens as they arrive; no local trick closes
+that gap. So the server can now run with no local ASR at all: `asr_backend`
+("local" or a provider id) is a persisted setting, chosen on the mic page or
+with `--backend`, and a cloud backend skips loading IndicConformer, Parakeet
+and the LID model entirely.
+
+Shape: `gujusub/cloud/base.py` defines one `CloudSession` protocol (start /
+send_audio / events / close) plus `SegmentTracker`, which turns a provider's
+"finals so far + current pending" into the same partial/final `TranscriptEvent`
+stream the local transcriber emits. Everything downstream (fillers, glossary,
+translation, broadcast, display) is untouched; a provider that translates
+itself (Soniox) attaches `TranscriptEvent.translation` and the local
+translator is bypassed for those events.
+
+Keys: stored only server-side (`~/.cache/gujusub/keys.json`, mode 0600) or
+read from `<PROVIDER>_API_KEY`; the control socket only ever sees
+`••••wxyz`, the source, and the Azure region. The key input is a password
+field that is never pre-filled.
+
+Providers shipped: Soniox, ElevenLabs, Deepgram, OpenAI, Sarvam, Azure.
+AssemblyAI was researched and dropped: its streaming models have no
+Gujarati. Google Cloud STT needs OAuth/service-account auth rather than a
+pasteable key, so it was left out.
+
+Caveat: all six clients were written from vendor docs and tested against fake
+sockets only (no keys here), so the first live session will need a debugging
+pass. Default stays `local`.

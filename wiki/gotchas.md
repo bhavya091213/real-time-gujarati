@@ -166,3 +166,15 @@ installed wheel would need package-data added.
 - **LID and confidence defaults are provisional.** There are no user clips in
   `samples/` yet, so thresholds (0.80 / 0.95 / 1.5 s / 3 s, RMS guard) were set on
   one Gujarati clip plus synthetic English. Calibration and a bake-off are unit 4.3.
+
+## Materialised model files are hardlinks: never write through them
+
+`model_dir.py` hardlinks the hub blobs into `~/.cache/gujusub/<repo>`, so the
+copy and the blob are one inode. Saving a file to that path with a normal
+write (e.g. `onnx.save` to `assets/encoder.onnx`) overwrites the hub cache
+too, and huggingface_hub will not notice (it trusts the filename). It
+happened on 2026-10-09; recovery is `hf_hub_download(..., force_download=True)`
+after moving the bad blob aside. Also, `materialize_snapshot` "repairs" any
+file whose size differs from the snapshot's, so an experimental
+`GUJUSUB_MODEL_DIR` with swapped weights gets silently reverted on the next
+load. Write experiments to fresh paths and load them without the materialiser.

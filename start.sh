@@ -19,8 +19,8 @@
 # Before starting the server, anything already listening on the port (--port,
 # default 8765) is stopped, unless --keep-port is given.
 #
-# Any other flag (--device, --engines, --port, --no-translate, --no-filter, ...)
-# is passed to the server unchanged.
+# Any other flag (--device, --engines, --gu-model, --backend, --port, --no-translate,
+# --no-filter, ...) is passed to the server unchanged.
 
 set -euo pipefail
 

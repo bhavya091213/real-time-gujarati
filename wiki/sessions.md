@@ -189,3 +189,134 @@ settings writes. Deferred (low): fan-out ordering for overlapping sets,
 panel re-`get` after a rejected set, `_joining` cleanup on cancellation.
 Tests: 245.
 
+
+## 2026-10-09 - Investigation: dropping non-Gujarati weights / shrinking the Indic models
+
+No code changed. Question: can the non-Gujarati weights be dropped, and can
+the Indic models be optimised further? Measured on the M1 Pro (16 GB), CPU,
+`samples/test-guju.m4a`, median of 5 decodes, RSS after warmup.
+
+- **There are almost no Gujarati-specific weights to drop in the 600M ASR.**
+  Encoder = 607.7M params fp32 (2.43 GB) shared by all 22 languages; the
+  per-language parts are 21 unused `joint_post_net_*` (0.65 MB each), 5376 of
+  5633 CTC head rows (~21 MB) and the RNNT sessions we never run (~45 MB).
+  The translator transliterates Gujarati to Devanagari before tokenising, so
+  its 122.7k source vocab is mostly shared Devanagari; only the Arabic-script,
+  Ol Chiki and Meetei rows (~28k, ~57 MB fp32) are provably unused.
+- **Numbers** (load s / RSS MB / 5 s decode ms / 8 s decode ms / text):
+  600M fp32 (current): 6.5-11 / 2900 / 207 / 267 / `...પાણી પીઉું છું અતાર`.
+  600M int8 dynamic (MatMul only, 217 of 289): 3.6 / 1400 / 180 / 228 /
+  `...પીઉ છું અત્યારે`. CTC-only sessions of that: 930 MB.
+  600M 4-bit MatMulNBits: 1200 MB but 50% slower (313 ms at 5 s), rejected.
+  Gujarati-only 120M (`OpenVoiceOS/ai4bharat-indicconformer-gu-onnx`, MIT,
+  export of `ai4bharat/indicconformer_stt_gu_hybrid_ctc_rnnt_large`, 80 mel,
+  subsampling 4, vocab 257): fp32 460 MB on disk / 2.4 / 550 / 176 / 206 /
+  `...પીવ છું અત્યારે`; MatMul int8 (self-made, 177 MB): 0.4 / 555 / 113 / 142 /
+  `...પીઉ છું અત્યારે`. Its shipped `model.int8.onnx` uses ConvInteger with
+  signed weights and does not load in onnxruntime 1.20 (NOT_IMPLEMENTED).
+  CoreML EP for the 600M encoder: 387 ms at 5 s, slower than CPU.
+  ORT arena off: no RSS change. Translator: load 0.9 s, +730 MB RSS, 84 ms per
+  sentence; `model.bin` is fp32 on disk (808 MB) and quantised on load.
+- **Caveat**: one clip. Both candidates got અત્યારે where the current model
+  gives અતાર, but accuracy needs real clips before switching (same gap noted
+  for confidence/LID calibration).
+- **Incident**: writing a quantised graph to a path that was a hardlink of the
+  hub blob overwrote the original `assets/encoder.onnx` in both the hub cache
+  and `~/.cache/gujusub`. Corrupted copies moved to
+  `~/.agents/backups/retired-corrupt-encoder-onnx-2026-10-09/`, the graph
+  re-downloaded (2,976,427 bytes, 1903 Constant + 289 MatMul) and the baseline
+  re-run with identical output. See gotchas.
+- Also now in the hub cache: `OpenVoiceOS/ai4bharat-indicconformer-gu-onnx`
+  (~590 MB). Unrelated leftovers there from earlier experiments: nllb-200
+  (4.6 GB), prajdabre rotary IndicTrans2 (1.6 GB), kompress, MiniLM, ModernBERT.
+
+Open: pick between 600M int8 (same model, -1.5 GB, ~15% faster) and the
+Gujarati-only 120M int8 (-2.3 GB, ~45% faster, 177 MB download) once real
+clips exist; either needs a CTC-only loader that bypasses `model_onnx.py`;
+pre-quantised IndicTrans2 CT2 on disk would cut 600 MB of download/disk only.
+
+## 2026-10-14 - `--gu-model fast`: Gujarati-only 120M int8 engine
+
+Follow-up to the 2026-10-09 investigation. New `gujusub/engine_gu_fast.py`
+(`FastGujaratiEngine`): fetches `OpenVoiceOS/ai4bharat-indicconformer-gu-onnx`
+(fp32 graph + weights + vocab, ~460 MB), materialises it, quantises MatMuls to
+int8 once (`model.gujusub-int8.onnx`, temp-file + rename), runs the ORT session
+with onnx-asr's NumPy NeMo preprocessor and decodes through `ctc_words`
+(40 ms frames). `engines.py` gained `GU_MODELS`, `engine_loaders(gu_model)` and a
+`gu_model` argument on `load_engines`; `server.py --gu-model full|fast` (default
+`full`); `tools/replay.py --gu-model`; `tools/prefetch_models.py --gu-model
+full|fast|both` (download and `--verify`). README, architecture and decisions
+updated; launcher comments mention the flag.
+Verified: `prefetch_models.py --verify --gu-model fast` transcribes the sample's
+first 3 s as `મારું નામ ભવ્ય છે`; replay full vs fast: decode p50 211 vs 106 ms,
+max lag 0.74 vs 0.20 s, RTF 0.44 vs 0.19, final text differs on one word
+(`પીઉ` vs `પીવ`). Tests: 439 (new `tests/test_engine_gu_fast.py`,
+registry and flag tests).
+Open: accuracy on real clips before making `fast` the default; the installers
+still prefetch only the full model (pass `--gu-model fast` or `both` by hand);
+the fast engine ignores `--device` (CPU only, like Parakeet).
+
+## 2026-10-16 — How sabha-stt.vercel.app is fast (investigation, no code changes)
+
+User asked how https://sabha-stt.vercel.app/ gets near-instant captions. Read
+its Next.js bundles (no login needed). Answer: it does no local inference at all.
+
+- ASR + translation are **Soniox** cloud (`SonioxClient`, model `stt-rt-v5`,
+  `enableLanguageIdentification`, `enableEndpointDetection`, `languageHints
+  ["en","gu","hi"]`, one-way translation `gu→en` or `en→gu`). The browser
+  streams the mic/Dante feed straight to Soniox over WebSocket using a
+  temporary key from `/api/soniox-token`. Tokens arrive with `is_final`,
+  `language`, `translation_status`, and an `<end>` endpoint token.
+- The `/dictionary` page feeds Soniox's `context` field: `general` rules
+  (domain, devotional terminology, jay naad), `terms` (custom vocabulary) and
+  `translation_terms` (source→target pairs), trimmed to a 9.6 KB JSON budget.
+  Contributions go through `/api/dictionary` with a review page.
+- Audio input: `getUserMedia`, or a local "Sabha Network Receiver" /
+  `dante-rx` on `ws://127.0.0.1:8770/audio` played through an AudioWorklet
+  ring buffer (100 ms target fill, underruns filled with silence).
+- Client-side post-processing: jay-naad chant rewriting, a devotional-term
+  correction pass on English, a profanity filter, and segment tracking keyed
+  on `<end>`.
+
+Implication for guju-sub: their speed is the vendor's streaming model plus
+~zero client compute, not a trick we can port. Our equivalent levers are
+`--gu-model fast` (shipped 2026-10-14) and the context/glossary idea
+(we already have `glossary_baps.json`). A Soniox engine would mean a paid
+cloud dependency and audio leaving the machine.
+
+## 2026-10-16 — Cloud API backends + Sabha-style display (implementation)
+
+Request: "add an option for API based inference", key entry with the key
+hidden but for its last characters, no local models when a cloud engine is
+selected, "ElevenLabs and other popular providers", and "change our display
+to how they do it".
+
+Done (orchestrated: 6 research agents, then 9 implementation agents in
+parallel, each owning disjoint files):
+- `gujusub/cloud/` package: `base.py` (CloudSession protocol, SegmentTracker,
+  WebSocketSession with reconnects), `keys.py` (0600 key file + env fallback,
+  masking), `registry.py` (catalogue, `asr_backend` values), and six providers:
+  `soniox.py`, `elevenlabs.py`, `deepgram.py`, `openai.py`, `sarvam.py`,
+  `azure.py` (SDK-based, optional dependency). Each has a fake-socket test
+  file. AssemblyAI researched and dropped (no Gujarati streaming).
+- `gujusub/cloud_pipeline.py` (CloudPipeline: raw PCM16 -> provider, events
+  -> the usual publish path), `gujusub/local_models.py` (one-shot background
+  loader for switching back to local at runtime), `server.py` `--backend`,
+  control messages `providers` / `set_key` / `clear_key` / `keys`, status
+  fields `backend`, `cloud`, `models`; `settings.asr_backend`.
+- Mic page: "Speech engine" section with provider notes, masked key status,
+  password field, Save/Remove, Azure region; status strip shows the engine.
+- Display rebuilt after the Sabha overlay: per-language row engine (measureText
+  wrapping, phrase breaks on final/punctuation/word cap/900 ms pause), rows
+  grow upward, 100 ms word fade-in, Gujarati block above English, bottom panel
+  / per-line chips / shadow / outline, F/G/C/+/-/Esc keys, 20 s fade,
+  `?preview=1` placeholders; schema 4 with 12 new display keys.
+- README cloud table, wiki architecture/decisions/broadcast-setup updated,
+  `start.sh`/`start.cmd` mention `--backend`, requirements note the optional
+  Azure SDK.
+
+Not verified live: no provider keys on this machine, so every client was
+tested only against fakes. First real session per provider needs a debug pass
+(watch the server log for the provider's error message). Open: Soniox and
+Sarvam override the base `_reconnect` for "server finished the stream" and
+close-code classification — a proper hook in `base.py` would be cleaner.

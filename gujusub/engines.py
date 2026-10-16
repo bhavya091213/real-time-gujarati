@@ -2,6 +2,8 @@
 
 Built once in server.main() from ``--engines gu,en``. Gujarati is mandatory: it
 is the fallback whenever the selected mode needs an engine that was not loaded.
+``--gu-model`` picks which Gujarati engine fills the "gu" slot: ``full`` (the
+600M multilingual IndicConformer) or ``fast`` (Gujarati-only 120M, int8).
 """
 
 import logging
@@ -13,6 +15,8 @@ logger = logging.getLogger("engines")
 
 KNOWN_LANGS = ("gu", "en")
 FALLBACK_LANG = "gu"
+GU_MODELS = ("full", "fast")
+DEFAULT_GU_MODEL = "full"
 
 
 class EngineNotLoaded(LookupError):
@@ -64,15 +68,32 @@ def _load_gu(device: str) -> ASREngine:
     return IndicConformer(lang="gu", device=device)
 
 
+def _load_gu_fast(device: str) -> ASREngine:
+    from gujusub.engine_gu_fast import FastGujaratiEngine
+
+    return FastGujaratiEngine()  # ONNX on CPU; device does not apply
+
+
 def _load_en(device: str) -> ASREngine:
     from gujusub.engine_parakeet import ParakeetEngine
 
     return ParakeetEngine()  # ONNX on CPU; device does not apply
 
 
+GU_LOADERS: dict[str, Callable[[str], ASREngine]] = {"full": _load_gu, "fast": _load_gu_fast}
 LOADERS: dict[str, Callable[[str], ASREngine]] = {"gu": _load_gu, "en": _load_en}
 
 
-def load_engines(langs: Iterable[str], device: str = "cpu") -> EngineRegistry:
+def engine_loaders(gu_model: str = DEFAULT_GU_MODEL) -> dict[str, Callable[[str], ASREngine]]:
+    """Per-language loaders with the chosen Gujarati engine in the "gu" slot."""
+    if gu_model not in GU_LOADERS:
+        raise ValueError(f"unknown gu model {gu_model!r}; choose from {list(GU_MODELS)}")
+    return {**LOADERS, "gu": GU_LOADERS[gu_model]}
+
+
+def load_engines(
+    langs: Iterable[str], device: str = "cpu", gu_model: str = DEFAULT_GU_MODEL
+) -> EngineRegistry:
     """Load (not warm up) every requested engine."""
-    return EngineRegistry({lang: LOADERS[lang](device) for lang in langs})
+    loaders = engine_loaders(gu_model)
+    return EngineRegistry({lang: loaders[lang](device) for lang in langs})

@@ -52,9 +52,32 @@ def _build_index(entries: list[dict]) -> _Index:
     return index
 
 
+def _rank_terms(entries: list[dict]) -> tuple[str, ...]:
+    """Distinct canonical spellings for ASR vocabulary hints.
+
+    Ordinary-word entries (``safe: false``) are left out. Order: entries with
+    more known mis-spellings first (the likeliest to be misheard), then longer
+    phrases, then file order.
+    """
+    ranked: dict[str, int] = {}  # lower-cased canonical -> rank position
+    keyed = []
+    for pos, entry in enumerate(entries):
+        canonical = " ".join(str(entry.get("canonical", "")).split())
+        if not canonical or entry.get("safe", True) is False:
+            continue
+        keyed.append((-len(entry.get("variants", ())), -len(canonical), pos, canonical))
+    out = []
+    for *_, canonical in sorted(keyed):
+        if canonical.lower() not in ranked:
+            ranked[canonical.lower()] = len(out)
+            out.append(canonical)
+    return tuple(out)
+
+
 class Glossary:
     def __init__(self, entries: list[dict], override: Path | None = None) -> None:
         self._index = _build_index(entries)
+        self._terms = _rank_terms(entries)
         self._max_len = max((len(r[0]) for v in self._index.values() for r in v), default=1)
         self._override = override
         self._mtime = self._stat()
@@ -87,9 +110,14 @@ class Glossary:
             self._mtime = mtime  # don't retry the same broken file every 2 s
             return
         self._index = _build_index(entries)
+        self._terms = _rank_terms(entries)
         self._max_len = max((len(r[0]) for v in self._index.values() for r in v), default=1)
         self._mtime = mtime
         logger.info("glossary reloaded from %s", self._override)
+
+    def terms(self, limit: int = 300) -> tuple[str, ...]:
+        """Up to `limit` distinct house spellings (vocabulary hints for cloud ASR)."""
+        return self._terms[:max(0, limit)]
 
     def apply(self, text: str) -> str:
         if not text:

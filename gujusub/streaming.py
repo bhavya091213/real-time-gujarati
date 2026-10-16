@@ -103,6 +103,9 @@ class TranscriptEvent:
     tail: str  # unstable text, may change on the next update
     lang: str = "gu"  # language of the engine that decoded this utterance
     translate_allowed: bool = True  # pinned route policy; internal, not serialized
+    # English supplied by a cloud provider that translates itself (None: the
+    # server translates locally). Internal; the server copies it into the payload.
+    translation: str | None = None
 
     def to_dict(self) -> dict:
         return {

@@ -197,3 +197,24 @@ def test_broken_reload_keeps_previous(tmp_path):
     gl._checked -= 3
     gl.maybe_reload()
     assert gl.apply("fu") == "Foo"
+
+
+def test_terms_ranked_distinct_capped_and_skip_ordinary_words():
+    entries = [
+        {"canonical": "Swami", "variants": ["swami"]},
+        {"canonical": " Prasad ", "variants": ["prasad", "prashad"]},
+        {"canonical": "Pramukh  Swami Maharaj", "variants": ["pramukh swami maharaj", "x"]},
+        {"canonical": "prasad", "variants": ["parsad"]},  # duplicate (case-insensitive)
+        {"canonical": "Beta", "variants": ["beta", "betaa", "bETA"], "safe": False},
+    ]
+    g = Glossary(entries)
+    assert g.terms() == ("Pramukh Swami Maharaj", "Prasad", "Swami")
+    assert g.terms(limit=2) == ("Pramukh Swami Maharaj", "Prasad")
+    assert g.terms(limit=0) == ()
+
+
+def test_packaged_terms_are_nonempty_and_within_default_cap():
+    terms = load_glossary(DATA).terms()
+    assert 0 < len(terms) <= 300
+    assert len({t.lower() for t in terms}) == len(terms)
+    assert all(t == t.strip() and t for t in terms)

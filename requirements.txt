@@ -14,3 +14,6 @@ onnx-asr
 IndicTransToolkit
 huggingface_hub
 speechbrain
+
+# Optional, only for --backend azure (not installed by default):
+#   azure-cognitiveservices-speech

@@ -2,6 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from gujusub import server
+from gujusub.cloud.keys import KeyStore
+from gujusub.cloud.registry import PROVIDERS
 from gujusub.settings import SettingsStore
 from gujusub.streaming import TranscriptEvent
 
@@ -18,6 +20,15 @@ def settings_store(monkeypatch, tmp_path):
     store.load()
     monkeypatch.setattr(server, "store", store)
     monkeypatch.setattr(server, "_control_buckets", {})  # fresh rate-limit state per test
+    # cloud keys: a tmp store, no provider keys leaking in from the environment
+    for info in PROVIDERS:
+        monkeypatch.delenv(info.key_env, raising=False)
+    keys = KeyStore(tmp_path / "keys.json")
+    keys.load()
+    monkeypatch.setattr(server, "keys", keys)
+    monkeypatch.setattr(server, "local_models", None)
+    monkeypatch.setattr(server, "_last_cloud_error", None)
+    monkeypatch.setattr(server, "no_translate", False)
     return store
 
 
@@ -117,6 +128,9 @@ class FakeTranslator:
     def __init__(self, gate: threading.Event | None = None):
         self.calls: list[str] = []
         self.gate = gate
+
+    def warmup(self):
+        pass
 
     def translate(self, text: str) -> str:
         self.calls.append(text)
@@ -762,6 +776,8 @@ def test_control_snapshot_and_idle_status_on_connect(client):
         snap = ctl.receive_json()
         assert snap == {"type": "settings", **control_payload(Settings()),
                         "defaults": control_payload(Settings())}
+        providers = ctl.receive_json()
+        assert providers["type"] == "providers" and providers["backends"][0] == "local"
         status = ctl.receive_json()
         assert status["type"] == "status" and status["asr"] is None
         ctl.send_json({"type": "get"})
@@ -785,6 +801,7 @@ def test_control_set_fans_out_and_persists(client, settings_store):
         viewer.receive_json()
         for ctl in (a, b):
             ctl.receive_json()  # settings
+            ctl.receive_json()  # providers
             ctl.receive_json()  # idle status
         a.send_json({"type": "set", "settings": {"size": 40, "translate": False}})
         ack = a.receive_json()
@@ -822,6 +839,7 @@ def test_control_invalid_message_errors_and_changes_nothing(
     monkeypatch.setattr(server, "broadcast", record_viewer_fanout)
     with client, client.websocket_connect("/ws/control") as ctl:
         ctl.receive_json()
+        ctl.receive_json()  # providers
         ctl.receive_json()
         ctl.send_json(msg)
         err = ctl.receive_json()
@@ -837,6 +855,7 @@ def test_control_invalid_message_errors_and_changes_nothing(
 def test_control_malformed_json_errors(client):
     with client, client.websocket_connect("/ws/control") as ctl:
         ctl.receive_json()
+        ctl.receive_json()  # providers
         ctl.receive_json()
         ctl.send_text("{nope")
         assert ctl.receive_json()["type"] == "error"
@@ -864,6 +883,7 @@ def test_control_oversized_utf8_closes_1009_before_processing(
 
     with client, client.websocket_connect("/ws/control") as ctl:
         ctl.receive_json()  # settings snapshot
+        ctl.receive_json()  # providers
         ctl.receive_json()  # idle status
         monkeypatch.setattr(server.json, "loads", forbidden_parse)
         monkeypatch.setattr(settings_store, "update", forbidden_update)
@@ -897,6 +917,7 @@ def test_control_rejects_extra_top_level_fields(
     monkeypatch.setattr(server, "broadcast", forbidden_fanout)
     with client, client.websocket_connect("/ws/control") as ctl:
         ctl.receive_json()
+        ctl.receive_json()  # providers
         ctl.receive_json()
         ctl.send_json(msg)
         assert ctl.receive_json()["type"] == "error"
@@ -980,10 +1001,10 @@ def test_control_noop_acknowledges_sender_without_fanout_or_save(
     ws = FakeControlSocket("203.0.113.10")
 
     asyncio.run(server.handle_control(
-        ws, json.dumps({"type": "set", "settings": {"size": 64}})))
+        ws, json.dumps({"type": "set", "settings": {"size": Settings().size}})))
 
     assert len(ws.sent) == 1
-    assert ws.sent[0]["type"] == "settings" and ws.sent[0]["size"] == 64
+    assert ws.sent[0]["type"] == "settings" and ws.sent[0]["size"] == Settings().size
     assert control_fanout == []
     assert viewer_fanout == []
     assert not settings_store.path.exists()
@@ -1067,7 +1088,7 @@ def test_main_configures_explicit_websocket_message_limit(
     monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate"])
     monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
     monkeypatch.setattr(server, "load_engines",
-                        lambda langs, device: EngineRegistry(
+                        lambda langs, device, **kw: EngineRegistry(
                             {lang: DummyEngine() for lang in langs}))
     monkeypatch.setattr(server, "engines", None)
     monkeypatch.setattr(server, "translator", None)
@@ -1165,7 +1186,9 @@ def test_status_shape_while_pipeline_active(monkeypatch, wire, settings_store):
     last = live[-1]
     assert set(last) == {"type", "asr", "translate", "lid", "decode_ms",
                          "avg_decode_ms", "window_s", "decodes", "lag_s",
-                         "backlog_s", "utterances", "asr_warning", "lid_last"}
+                         "backlog_s", "utterances", "asr_warning", "lid_last",
+                         "backend", "cloud", "models", "translator"}
+    assert (last["backend"], last["cloud"]) == ("local", None)
     assert last["asr_warning"] is None
     assert last["asr"] == "gu" and last["translate"] is True and last["lid"] is False
     assert (last["decode_ms"], last["avg_decode_ms"]) == (180.0, 150.5)
@@ -1336,6 +1359,7 @@ def test_control_set_en_switches_next_utterance(client, wire, registry):
             first = recv_until(ws, lambda m: m["type"] == "final")
             with client.websocket_connect("/ws/control") as ctl:
                 ctl.receive_json()  # settings snapshot
+                ctl.receive_json()  # providers
                 ctl.receive_json()  # status
                 ctl.send_json({"type": "set", "settings": {"asr_mode": "en"}})
                 assert recv_until(ctl, lambda m: m["type"] == "settings")[-1][
@@ -1358,8 +1382,8 @@ def test_main_loads_requested_engines(settings_store, monkeypatch):
         def warmup(self):
             pass
 
-    def fake_load(langs, device):
-        requested.append((langs, device))
+    def fake_load(langs, device, gu_model="full"):
+        requested.append((langs, device, gu_model))
         return EngineRegistry({lang: DummyEngine() for lang in langs})
 
     monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu"])
@@ -1369,8 +1393,37 @@ def test_main_loads_requested_engines(settings_store, monkeypatch):
     monkeypatch.setattr(server, "translator", None)
     monkeypatch.setattr(server.uvicorn, "run", lambda *a, **k: None)
     server.main()
-    assert requested == [(("gu",), "cpu")]
+    assert requested == [(("gu",), "cpu", "full")]
     assert server.engines.langs == ("gu",)
+
+
+def test_main_passes_gu_model_choice_to_loader(settings_store, monkeypatch):
+    requested = []
+
+    class DummyEngine:
+        def warmup(self):
+            pass
+
+    def fake_load(langs, device, gu_model="full"):
+        requested.append(gu_model)
+        return EngineRegistry({lang: DummyEngine() for lang in langs})
+
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu",
+                                     "--gu-model", "fast"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    monkeypatch.setattr(server, "load_engines", fake_load)
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server.uvicorn, "run", lambda *a, **k: None)
+    server.main()
+    assert requested == ["fast"]
+
+
+def test_main_rejects_unknown_gu_model(settings_store, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--gu-model", "huge"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    with pytest.raises(SystemExit):
+        server.main()
 
 
 # --- Auto mode (unit 4.2) ---------------------------------------------------
@@ -1560,7 +1613,8 @@ def test_main_loads_language_id_with_en_engine(settings_store, monkeypatch):
     monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu,en"])
     monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
     monkeypatch.setattr(server, "load_engines",
-                        lambda langs, device: EngineRegistry({k: DummyEngine() for k in langs}))
+                        lambda langs, device, **kw: EngineRegistry(
+                            {k: DummyEngine() for k in langs}))
     monkeypatch.setattr(server, "load_language_id", DummyLid)
     monkeypatch.setattr(server, "engines", None)
     monkeypatch.setattr(server, "translator", None)
@@ -1581,7 +1635,8 @@ def test_main_skips_language_id_without_en_engine(settings_store, monkeypatch):
     monkeypatch.setattr("sys.argv", ["gujusub.server", "--no-translate", "--engines", "gu"])
     monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
     monkeypatch.setattr(server, "load_engines",
-                        lambda langs, device: EngineRegistry({k: DummyEngine() for k in langs}))
+                        lambda langs, device, **kw: EngineRegistry(
+                            {k: DummyEngine() for k in langs}))
     monkeypatch.setattr(server, "load_language_id", boom)
     monkeypatch.setattr(server, "engines", None)
     monkeypatch.setattr(server, "translator", None)
@@ -1593,3 +1648,673 @@ def test_main_skips_language_id_without_en_engine(settings_store, monkeypatch):
 
 def test_lid_config_default_falls_back_to_gu():
     assert server.lid_config == LidConfig()
+
+
+# --- cloud backend: pipeline, control keys, startup ------------------------
+
+from gujusub.cloud.base import CloudAuthError  # noqa: E402
+from gujusub.cloud_pipeline import CloudPipeline  # noqa: E402
+from gujusub.local_models import LocalModels, LocalSpec  # noqa: E402
+
+SECRET = "sk-test-SECRET-1234wxyz"
+
+
+class FakeSession:
+    """CloudSession double: records audio; the test drives events()."""
+
+    def __init__(self, creds, config, start_error=None, drain=()):
+        self.creds, self.config = creds, config
+        self.state, self.error = "connecting", None
+        self.start_error = start_error
+        self.drain = list(drain)  # events the provider flushes on close()
+        self.audio: list[bytes] = []
+        self.closed = False
+        self.queue: asyncio.Queue = asyncio.Queue()
+
+    async def start(self):
+        if self.start_error is not None:
+            self.state, self.error = "error", str(self.start_error)
+            raise self.start_error
+        self.state = "connected"
+
+    async def send_audio(self, pcm16):
+        self.audio.append(pcm16)
+
+    def emit(self, *events):
+        for ev in events:
+            self.queue.put_nowait(ev)
+
+    def fail(self, message):
+        self.state, self.error = "error", message
+        self.queue.put_nowait(None)
+
+    async def events(self):
+        while True:
+            ev = await self.queue.get()
+            if ev is None:
+                return
+            yield ev
+
+    async def close(self):
+        self.closed = True
+        self.emit(*self.drain)
+        if self.state != "error":
+            self.state = "closed"
+        self.queue.put_nowait(None)
+
+
+def TE(kind, uid, text, translation=None, lang="gu"):
+    return TranscriptEvent(kind, uid, text, "", lang=lang, translation=translation)
+
+
+@pytest.fixture
+def cloud(monkeypatch, settings_store, wire):
+    """Soniox backend with a saved key; server.open_session returns FakeSessions."""
+
+    class Cloud:
+        sessions: list[FakeSession] = []
+        start_error = None
+        drain = ()
+
+    def fake_open(provider, creds, config):
+        sess = FakeSession(creds, config, Cloud.start_error, Cloud.drain)
+        sess.provider = provider
+        Cloud.sessions.append(sess)
+        return sess
+
+    def boom():
+        raise AssertionError("cloud pipelines must not build a local transcriber")
+
+    wire(ScriptedTranscriber())
+    monkeypatch.setattr(server, "new_transcriber", boom)
+    monkeypatch.setattr(server, "open_session", fake_open)
+    server.keys.set("soniox", SECRET)
+    settings_store.update({"asr_backend": "soniox"})
+    return Cloud
+
+
+def _run_cloud(script, backend="soniox"):
+    """Run a CloudPipeline on a FakeMic; `script(mic, pipe)` drives it; returns mic."""
+
+    async def run():
+        mic = FakeMic()
+        pipe = CloudPipeline(mic, backend)
+        task = asyncio.create_task(pipe.run())
+        await script(mic, pipe)
+        mic.inbox.put_nowait(None)
+        await asyncio.wait_for(task, 2)
+        return mic, pipe
+
+    return asyncio.run(run())
+
+
+def test_cloud_pipeline_forwards_pcm16_bytes(cloud):
+    frames = [np.full(MSG, i, dtype=np.int16).tobytes() for i in range(20)]
+
+    async def script(mic, pipe):
+        for f in frames:
+            mic.inbox.put_nowait(f)
+        await _until(lambda: cloud.sessions and
+                     sum(map(len, cloud.sessions[0].audio)) == 20 * MSG * 2)
+
+    _run_cloud(script)
+    sess = cloud.sessions[0]
+    assert b"".join(sess.audio) == b"".join(frames)  # raw bytes, in order, none lost
+    assert sess.closed and sess.provider == "soniox"
+    assert sess.creds.key == SECRET
+
+
+def test_cloud_events_published_and_broadcast(cloud):
+    viewer = RecordingViewer()
+    server.viewers.add(viewer)
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        cloud.sessions[0].emit(TE("partial", 1, "હા"), TE("final", 1, "હા જી"))
+        await mic.wait_for(lambda m: m["type"] == "final")
+
+    try:
+        mic, _ = _run_cloud(script)
+    finally:
+        server.viewers.discard(viewer)
+    assert [(m["type"], m["committed"]) for m in mic.sent] == [
+        ("partial", "હા"), ("final", "હા જી")]
+    assert viewer.sent == mic.sent
+
+
+def test_provider_translation_bypasses_local_translator(cloud, monkeypatch):
+    tr = FakeTranslator()
+    monkeypatch.setattr(server, "translator", tr)
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        cloud.sessions[0].emit(TE("partial", 1, "a", "he gave prasad"),
+                               TE("partial", 1, "a b"),  # no English yet: keep the last
+                               TE("final", 1, "a b c", "he gave prasad today"))
+        await mic.wait_for(lambda m: m["type"] == "final")
+
+    mic, _ = _run_cloud(script)
+    assert cloud.sessions[0].config.translate is True
+    assert tr.calls == []
+    assert [m["translation"] for m in mic.sent] == [
+        "he gave Prasad", "he gave Prasad", "he gave Prasad today"]
+
+
+def test_provider_translation_respects_translate_off(cloud, settings_store):
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        settings_store.update({"translate": False})
+        cloud.sessions[0].emit(TE("final", 1, "a", "x"))
+        await mic.wait_for(lambda m: m["type"] == "final")
+
+    mic, _ = _run_cloud(script)
+    assert mic.sent[-1]["translation"] == ""
+
+
+def test_non_translating_provider_uses_local_translator(cloud, monkeypatch):
+    tr = FakeTranslator()
+    monkeypatch.setattr(server, "translator", tr)
+    server.keys.set("deepgram", SECRET)
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        cloud.sessions[0].emit(TE("final", 1, "આવો"))
+        await mic.wait_for(lambda m: m["type"] == "final")
+
+    mic, _ = _run_cloud(script, backend="deepgram")
+    assert cloud.sessions[0].config.translate is False
+    assert tr.calls == ["આવો"]
+    assert mic.sent[-1]["translation"] == "EN<આવો>"
+
+
+def test_cloud_disconnect_closes_session_then_publishes_drained_finals(cloud):
+    cloud.drain = (TE("final", 3, "last words"),)
+
+    async def script(mic, pipe):
+        mic.inbox.put_nowait(pcm())
+        await _until(lambda: cloud.sessions and cloud.sessions[0].audio)
+
+    mic, _ = _run_cloud(script)
+    assert cloud.sessions[0].closed
+    assert mic.sent[-1]["committed"] == "last words" and mic.sent[-1]["type"] == "final"
+
+
+def _with_control(fn):
+    ctl = RecordingViewer()
+    server.controls.add(ctl)
+    try:
+        result = fn()
+    finally:
+        server.controls.discard(ctl)
+    return ctl, result
+
+
+def test_cloud_missing_key_reports_error_and_closes_1011(cloud):
+    server.keys.clear("soniox")
+
+    async def script(mic, pipe):
+        pass
+
+    ctl, (mic, _) = _with_control(lambda: _run_cloud(script))
+    assert mic.closed_with == 1011
+    assert cloud.sessions == []  # never opened
+    errors = [m for m in ctl.sent if m["type"] == "status" and m["cloud"]]
+    assert errors[0]["cloud"] == {"provider": "soniox", "state": "error",
+                                  "error": "No API key saved for Soniox"}
+    assert ctl.sent[-1] == server.idle_status()  # idle keeps showing the error
+    assert ctl.sent[-1]["cloud"]["error"] == "No API key saved for Soniox"
+
+
+def test_cloud_auth_error_on_start_reports_error_and_closes_1011(cloud):
+    cloud.start_error = CloudAuthError("Soniox rejected the API key")
+
+    async def script(mic, pipe):
+        pass
+
+    ctl, (mic, _) = _with_control(lambda: _run_cloud(script))
+    assert mic.closed_with == 1011
+    status = next(m for m in ctl.sent if m["type"] == "status" and m["cloud"])
+    assert status["cloud"]["state"] == "error"
+    assert status["cloud"]["error"] == "Soniox rejected the API key"
+    assert SECRET not in json.dumps(ctl.sent)
+
+
+def test_cloud_stream_failure_mid_session_closes_1011(cloud):
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        cloud.sessions[0].fail("connection lost; gave up after 3 reconnects")
+        await _until(lambda: mic.closed_with is not None)
+
+    ctl, (mic, _) = _with_control(lambda: _run_cloud(script))
+    assert mic.closed_with == 1011
+    assert any(m["type"] == "status" and m["cloud"] and m["cloud"]["state"] == "error"
+               for m in ctl.sent)
+
+
+def test_cloud_status_shape(cloud, settings_store):
+    settings_store.update({"asr_mode": "auto"})
+    server.keys.set("deepgram", SECRET)  # no language ID: auto falls back to gu
+    got = {}
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        got["status"] = pipe.status()
+
+    _run_cloud(script, backend="deepgram")
+    st = got["status"]
+    assert set(st) == set(server.idle_status())
+    assert st["asr"] == "gu" and st["lid"] is False
+    assert "no language ID" in st["asr_warning"]
+    assert st["backend"] == "deepgram"
+    assert st["cloud"] == {"provider": "deepgram", "state": "connected", "error": None}
+    assert st["decode_ms"] == 0.0 and st["models"] == "unloaded"
+    assert cloud.sessions[0].config.language == "gu"
+
+
+def test_cloud_auto_mode_passes_auto_to_provider_with_language_id(cloud, settings_store):
+    settings_store.update({"asr_mode": "auto"})
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+
+    _run_cloud(script)
+    assert cloud.sessions[0].config.language == "auto"
+
+
+def test_ws_routes_to_cloud_pipeline(client, cloud):
+    with client, client.websocket_connect("/ws") as ws:
+        ws.send_bytes(pcm())
+        eventually(lambda: cloud.sessions and cloud.sessions[0].audio)
+        cloud.sessions[0].emit(TE("final", 1, "hello", lang="en"))
+        msg = ws.receive_json()
+    assert msg["committed"] == "hello" and msg["lang"] == "en"
+
+
+def test_local_status_and_idle_status_carry_backend_fields(wire):
+    wire(ScriptedTranscriber())
+
+    async def run():
+        return server._Pipeline(FakeMic()).status()
+
+    st = asyncio.run(run())
+    assert (st["backend"], st["cloud"], st["models"]) == ("local", None, "unloaded")
+    idle = server.idle_status()
+    assert (idle["backend"], idle["cloud"]) == ("local", None)
+
+
+# --- control: providers, set_key, clear_key --------------------------------
+
+
+def _handshake(ctl):
+    return ctl.receive_json(), ctl.receive_json(), ctl.receive_json()
+
+
+def test_control_sends_providers_between_settings_and_status(client):
+    server.keys.set("deepgram", SECRET)
+    with client, client.websocket_connect("/ws/control") as ctl:
+        settings, providers, status = _handshake(ctl)
+    assert (settings["type"], status["type"]) == ("settings", "status")
+    assert providers["type"] == "providers"
+    assert providers["backends"] == ["local", "soniox", "elevenlabs", "deepgram",
+                                     "openai", "sarvam", "azure"]
+    assert [c["id"] for c in providers["catalog"]] == providers["backends"][1:]
+    assert providers["keys"]["deepgram"] == {"set": True, "hint": "••••wxyz",
+                                             "source": "saved", "region": None,
+                                             "env": "DEEPGRAM_API_KEY"}
+    assert providers["keys"]["soniox"]["set"] is False
+    assert SECRET not in json.dumps(providers)
+
+
+def test_set_key_fans_out_masked_status_and_persists(client, tmp_path):
+    with client, client.websocket_connect("/ws/control") as a, \
+            client.websocket_connect("/ws/control") as b:
+        _handshake(a)
+        _handshake(b)
+        a.send_json({"type": "set_key", "provider": "soniox", "key": SECRET})
+        ack, other = a.receive_json(), b.receive_json()
+        assert ack == other and ack["type"] == "keys"
+        assert ack["keys"]["soniox"]["hint"] == "••••wxyz"
+        assert ack["keys"]["soniox"]["source"] == "saved"
+        a.send_json({"type": "clear_key", "provider": "soniox"})
+        cleared = a.receive_json()
+        assert b.receive_json() == cleared
+        assert cleared["keys"]["soniox"]["set"] is False
+        assert SECRET not in json.dumps([ack, other, cleared])
+    saved = KeyStore(tmp_path / "keys.json")
+    saved.load()
+    assert saved.source(server.BY_ID["soniox"]) is None
+
+
+def test_set_key_persists_to_file_with_region(client, tmp_path):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        ctl.send_json({"type": "set_key", "provider": "azure", "key": SECRET,
+                       "region": "EastUS"})
+        assert ctl.receive_json()["keys"]["azure"]["region"] == "eastus"
+    saved = KeyStore(tmp_path / "keys.json")
+    saved.load()
+    assert saved.get(server.BY_ID["azure"]).key == SECRET
+
+
+@pytest.mark.parametrize("msg, fragment", [
+    ({"type": "set_key", "provider": "nope", "key": SECRET}, "unknown provider"),
+    ({"type": "set_key", "provider": "soniox", "key": "short"}, "characters"),
+    ({"type": "set_key", "provider": "soniox", "key": "has space inside"}, "whitespace"),
+    ({"type": "set_key", "provider": "azure", "key": SECRET}, "region"),
+    ({"type": "set_key", "provider": "azure", "key": SECRET, "region": "a b"}, "region"),
+    ({"type": "set_key", "provider": "soniox", "key": SECRET, "x": 1}, "invalid"),
+    ({"type": "set_key", "provider": "soniox"}, "invalid"),
+    ({"type": "clear_key", "provider": "soniox", "key": SECRET}, "invalid"),
+])
+def test_bad_key_messages_error_and_change_nothing(client, tmp_path, msg, fragment):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        ctl.send_json(msg)
+        err = ctl.receive_json()
+        assert err["type"] == "error" and fragment in err["message"]
+        assert SECRET not in err["message"]
+    assert not (tmp_path / "keys.json").exists()
+
+
+def test_key_messages_share_the_rate_limit(client):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        replies = []
+        for _ in range(server.CONTROL_SET_BURST + 1):
+            ctl.send_json({"type": "clear_key", "provider": "soniox"})
+            replies.append(ctl.receive_json())
+    assert replies[-1] == {"type": "error", "message": "control update rate limit exceeded"}
+
+
+def test_key_is_never_logged(client, caplog):
+    caplog.set_level("DEBUG")
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        ctl.send_json({"type": "set_key", "provider": "soniox", "key": SECRET})
+        ctl.receive_json()
+    assert SECRET not in caplog.text
+
+
+def test_select_cloud_backend_without_key_errors(client, settings_store):
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        ctl.send_json({"type": "set", "settings": {"asr_backend": "soniox"}})
+        err = ctl.receive_json()
+        assert err == {"type": "error", "message": "No API key saved for Soniox"}
+        server.keys.set("soniox", SECRET)
+        ctl.send_json({"type": "set", "settings": {"asr_backend": "soniox"}})
+        assert ctl.receive_json()["asr_backend"] == "soniox"
+    assert settings_store.get().asr_backend == "soniox"
+
+
+def test_env_key_allows_cloud_backend(client, settings_store, monkeypatch):
+    monkeypatch.setenv("DEEPGRAM_API_KEY", SECRET)
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _, providers, _ = _handshake(ctl)
+        assert providers["keys"]["deepgram"]["source"] == "env"
+        ctl.send_json({"type": "set", "settings": {"asr_backend": "deepgram"}})
+        assert ctl.receive_json()["asr_backend"] == "deepgram"
+
+
+class CountingLoader:
+    def __init__(self, gate=None):
+        self.calls = 0
+        self.gate = gate
+
+    def __call__(self, langs, device, gu_model="full"):
+        self.calls += 1
+        if self.gate is not None:
+            assert self.gate.wait(5)
+
+        class E:
+            def warmup(self):
+                pass
+
+        return EngineRegistry({lang: E() for lang in langs})
+
+
+def _loader(load, translate=False):
+    return LocalModels(LocalSpec(langs=("gu",), translate=translate), load_engines=load,
+                       make_translator=FakeTranslator, load_language_id=FakeLanguageID)
+
+
+def test_switch_to_local_loads_models_once(client, settings_store, monkeypatch):
+    load = CountingLoader()
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "local_models", _loader(load))
+    server.keys.set("soniox", SECRET)
+    settings_store.update({"asr_backend": "soniox"})
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        seen = []
+        for backend in ("local", "soniox", "local"):
+            ctl.send_json({"type": "set", "settings": {"asr_backend": backend}})
+            seen += recv_until(ctl, lambda m: m["type"] == "settings")
+        eventually(lambda: server.engines is not None)
+
+        def ready(m):
+            return m["type"] == "status" and m["models"] == "ready"
+
+        if not any(map(ready, seen)):
+            seen += recv_until(ctl, ready)
+    assert load.calls == 1
+    assert server.engines.langs == ("gu",)
+    assert [m["models"] for m in seen if m["type"] == "status"][0] == "loading"
+
+
+def test_local_pipeline_waits_for_background_models(wire, monkeypatch):
+    gate = threading.Event()
+    load = CountingLoader(gate)
+    tx = wire(ScriptedTranscriber([[F(1, "after load")]]))
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "local_models", _loader(load))
+    got = {}
+
+    async def run():
+        assert server.ensure_local_models()
+        assert server.models_state() == "loading"
+        mic = FakeMic()
+        pipe = server._Pipeline(mic)
+        task = asyncio.create_task(pipe.run())
+        mic.inbox.put_nowait(pcm())  # stale: dropped once the models are ready
+        await _until(lambda: pipe.waiting_models)
+        got["waiting"] = pipe.status()
+        gate.set()
+        await _until(lambda: server.engines is not None and not pipe.waiting_models)
+        mic.inbox.put_nowait(pcm())
+        await mic.wait_for(lambda m: m["type"] == "final")
+        mic.inbox.put_nowait(None)
+        await asyncio.wait_for(task, 2)
+
+    asyncio.run(run())
+    assert got["waiting"]["asr_warning"] == "loading local models…"
+    assert got["waiting"]["models"] == "loading"
+    assert tx.feeds == [MSG]  # only the post-load audio
+    assert load.calls == 1
+
+
+def test_local_pipeline_closes_when_background_load_fails(wire, monkeypatch):
+    def broken(langs, device, gu_model="full"):
+        raise OSError("model files missing")
+
+    wire(ScriptedTranscriber())
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "local_models", _loader(broken))
+
+    async def run():
+        server.ensure_local_models()
+        mic = FakeMic()
+        await asyncio.wait_for(server._Pipeline(mic).run(), 2)
+        return mic
+
+    mic = asyncio.run(run())
+    assert mic.closed_with == 1011
+    assert server.models_state() == "error"
+
+
+# --- main(): --backend ------------------------------------------------------
+
+
+def _main(monkeypatch, settings_store, tmp_path, argv):
+    calls = {"engines": 0, "translator": 0}
+
+    class DummyTranslator:
+        def __init__(self):
+            calls["translator"] += 1
+
+        def warmup(self):
+            pass
+
+    def fake_load(langs, device, gu_model="full"):
+        calls["engines"] += 1
+        return EngineRegistry({})
+
+    keys = KeyStore(tmp_path / "keys.json")
+    monkeypatch.setattr("sys.argv", ["gujusub.server", *argv])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    monkeypatch.setattr(server, "KeyStore", lambda: keys)
+    monkeypatch.setattr(server, "load_engines", fake_load)
+    monkeypatch.setattr(server, "Translator", DummyTranslator)
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server, "language_id", None)
+    monkeypatch.setattr(server.uvicorn, "run", lambda *a, **k: None)
+    server.main()
+    return calls
+
+
+def test_main_cloud_backend_skips_local_models(settings_store, monkeypatch, tmp_path, caplog):
+    caplog.set_level("INFO", logger="server")
+    calls = _main(monkeypatch, settings_store, tmp_path, ["--backend", "deepgram"])
+    assert calls == {"engines": 0, "translator": 1}  # deepgram does not translate
+    assert server.engines is None and server.language_id is None
+    assert settings_store.get().asr_backend == "deepgram"
+    assert SettingsStore(settings_store.path).load().asr_backend == "deepgram"  # persisted
+    assert "local ASR models not loaded" in caplog.text
+    assert "no API key for Deepgram" in caplog.text
+    assert server.local_models is not None and server.local_models.state == "idle"
+
+
+def test_main_translating_provider_skips_translator(settings_store, monkeypatch, tmp_path):
+    calls = _main(monkeypatch, settings_store, tmp_path, ["--backend", "soniox"])
+    assert calls == {"engines": 0, "translator": 0}
+    assert server.translator is None
+
+
+def test_main_uses_saved_backend_without_flag(settings_store, monkeypatch, tmp_path):
+    settings_store.update({"asr_backend": "soniox"})
+    calls = _main(monkeypatch, settings_store, tmp_path, ["--no-translate"])
+    assert calls == {"engines": 0, "translator": 0}
+    assert server.no_translate is True
+
+
+def test_main_backend_local_loads_engines(settings_store, monkeypatch, tmp_path):
+    settings_store.update({"asr_backend": "soniox"})
+    calls = _main(monkeypatch, settings_store, tmp_path,
+                  ["--backend", "local", "--no-translate", "--engines", "gu"])
+    assert calls["engines"] == 1 and server.engines is not None
+    assert settings_store.get().asr_backend == "local"
+
+
+def test_main_rejects_unknown_backend(settings_store, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["gujusub.server", "--backend", "nope"])
+    monkeypatch.setattr(server, "SettingsStore", lambda: settings_store)
+    with pytest.raises(SystemExit):
+        server.main()
+
+
+def test_cloud_session_receives_glossary_terms(cloud):
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+
+    _run_cloud(script)
+    terms = cloud.sessions[0].config.terms
+    assert terms and terms == server.get_glossary().terms()
+
+
+def _gated_translator_loader(gate, made):
+    def make():
+        assert gate.wait(5)
+        tr = FakeTranslator()
+        made.append(tr)
+        return tr
+
+    return LocalModels(LocalSpec(langs=("gu",)), load_engines=CountingLoader(),
+                       make_translator=make, load_language_id=FakeLanguageID)
+
+
+def test_cloud_pipeline_loads_translator_on_demand(cloud, monkeypatch):
+    gate, made = threading.Event(), []
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server, "local_models", _gated_translator_loader(gate, made))
+    server.keys.set("deepgram", SECRET)
+    got = {}
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+        got["status"] = pipe.status()
+        cloud.sessions[0].emit(TE("final", 1, "પહેલા"))
+        await mic.wait_for(lambda m: m["utterance_id"] == 1)
+        gate.set()
+        await _until(lambda: pipe.translator is not None)
+        cloud.sessions[0].emit(TE("final", 2, "પછી"))
+        await mic.wait_for(lambda m: m["utterance_id"] == 2)
+
+    mic, _ = _run_cloud(script, backend="deepgram")
+    assert got["status"]["translator"] == "loading"
+    assert [m["translation"] for m in mic.sent] == ["", "EN<પછી>"]
+    assert len(made) == 1 and server.translator is made[0]
+    assert server.translator_state() == "ready"
+    assert server.local_models.state == "idle"  # ASR engines/LID never loaded
+
+
+@pytest.mark.parametrize("backend, settings", [
+    ("soniox", {}),  # translates itself
+    ("deepgram", {"translate": False}),
+])
+def test_cloud_pipeline_skips_translator_load(cloud, monkeypatch, settings_store,
+                                              backend, settings):
+    lm = _gated_translator_loader(threading.Event(), [])
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server, "local_models", lm)
+    server.keys.set("deepgram", SECRET)
+    settings_store.update(settings)
+
+    async def script(mic, pipe):
+        await _until(lambda: cloud.sessions and cloud.sessions[0].state == "connected")
+
+    _run_cloud(script, backend=backend)
+    assert lm.translator_state == "idle"
+
+
+def test_switch_to_non_translating_provider_loads_translator_once(
+        client, settings_store, monkeypatch):
+    gate, made = threading.Event(), []
+    gate.set()
+    monkeypatch.setattr(server, "translator", None)
+    monkeypatch.setattr(server, "local_models", _gated_translator_loader(gate, made))
+    server.keys.set("deepgram", SECRET)
+    server.keys.set("soniox", SECRET)
+    with client, client.websocket_connect("/ws/control") as ctl:
+        _handshake(ctl)
+        for backend in ("deepgram", "soniox", "deepgram"):
+            ctl.send_json({"type": "set", "settings": {"asr_backend": backend}})
+            recv_until(ctl, lambda m: m["type"] == "settings")
+        eventually(lambda: server.translator is not None)
+    assert len(made) == 1
+
+
+def test_failed_background_load_status_says_restart(wire, monkeypatch):
+    def broken(langs, device, gu_model="full"):
+        raise OSError("model files missing")
+
+    monkeypatch.setattr(server, "engines", None)
+    monkeypatch.setattr(server, "local_models", _loader(broken))
+
+    async def run():
+        server.ensure_local_models()
+        await server.local_models.wait()
+
+    asyncio.run(run())
+    warning = server.idle_status()["asr_warning"]
+    assert "model files missing" in warning and "restart the server" in warning

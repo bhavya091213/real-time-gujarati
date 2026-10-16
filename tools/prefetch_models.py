@@ -5,6 +5,10 @@ Run:  python tools/prefetch_models.py            # download + materialise
       python tools/prefetch_models.py --verify   # also load every model and run a
                                                  # tiny inference (catches onnxruntime
                                                  # external-data and version problems)
+      python tools/prefetch_models.py --gu-model fast    # the Gujarati-only int8
+                                                         # model (server --gu-model fast)
+                                                         # instead of the 600M one;
+                                                         # "both" fetches both
 """
 
 import argparse
@@ -16,18 +20,29 @@ from huggingface_hub import snapshot_download
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gujusub import engine_parakeet, lid  # noqa: E402
+from gujusub import engine_gu_fast, engine_parakeet, lid  # noqa: E402
 from gujusub.asr_engine import MODEL_ID, prepare_model_dir  # noqa: E402
+from gujusub.engines import DEFAULT_GU_MODEL, GU_MODELS  # noqa: E402
 from gujusub.translator import CT2_REPO  # noqa: E402
+
+GU_MODEL_CHOICES = (*GU_MODELS, "both")
 
 SAMPLE = Path(__file__).resolve().parents[1] / "samples" / "test-guju.m4a"
 SAMPLE_SECONDS = 3
 LID_SECONDS = 2
 
 
-def download() -> None:
-    print(f"  {MODEL_ID}")
-    print(f"    -> {prepare_model_dir()}")
+def _wants(gu_model: str, which: str) -> bool:
+    return gu_model in (which, "both")
+
+
+def download(gu_model: str = DEFAULT_GU_MODEL) -> None:
+    if _wants(gu_model, "full"):
+        print(f"  {MODEL_ID}")
+        print(f"    -> {prepare_model_dir()}")
+    if _wants(gu_model, "fast"):
+        print(f"  {engine_gu_fast.REPO_ID} (fp32 graph; int8 is built on first load)")
+        print(f"    -> {engine_gu_fast.prepare_model_dir()}")
     print(f"  {engine_parakeet.REPO_ID} ({engine_parakeet.QUANTIZATION})")
     print(f"    -> {engine_parakeet.prepare_model_dir()}")
     print(f"  {lid.REPO_ID}")
@@ -36,7 +51,7 @@ def download() -> None:
     print(f"    -> {snapshot_download(CT2_REPO)}")
 
 
-def verify() -> None:
+def verify(gu_model: str = DEFAULT_GU_MODEL) -> None:
     import huggingface_hub
     import onnxruntime
     import transformers
@@ -49,9 +64,12 @@ def verify() -> None:
         f"huggingface_hub {huggingface_hub.__version__}, "
         f"transformers {transformers.__version__}"
     )
-    engine = ASREngine(device="cpu")
-    engine.warmup(seconds=1.0)
-    print("  ASR: loaded and ran on 1 s of silence")
+    if _wants(gu_model, "full"):
+        engine = ASREngine(device="cpu")
+        engine.warmup(seconds=1.0)
+        print("  ASR: loaded and ran on 1 s of silence")
+    if _wants(gu_model, "fast"):
+        verify_fast_gujarati()
 
     verify_english()
     verify_lid()
@@ -59,6 +77,17 @@ def verify() -> None:
     translator = Translator()
     sample = "કેમ છો"
     print(f"  translator: {sample!r} -> {translator.translate(sample)!r}")
+
+
+def verify_fast_gujarati() -> None:
+    from transcribe_file import SAMPLE_RATE, load_mono_16k  # sibling tool
+
+    engine = engine_gu_fast.FastGujaratiEngine()
+    engine.warmup(seconds=1.0)
+    print("  fast Gujarati ASR: loaded and ran on 1 s of silence")
+    clip = load_mono_16k(SAMPLE).numpy()[: SAMPLE_RATE * SAMPLE_SECONDS]
+    text = engine.transcribe(clip)
+    print(f"  fast Gujarati ASR on {SAMPLE.name} [0-{SAMPLE_SECONDS}s]: {text!r}")
 
 
 def verify_english() -> None:
@@ -95,12 +124,16 @@ def main() -> None:
     parser.add_argument(
         "--verify", action="store_true", help="load models and run a tiny inference"
     )
+    parser.add_argument(
+        "--gu-model", default=DEFAULT_GU_MODEL, choices=GU_MODEL_CHOICES,
+        help="which Gujarati ASR model to fetch/verify (default: full)",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     if args.verify:
-        verify()
+        verify(args.gu_model)
     else:
-        download()
+        download(args.gu_model)
 
 
 if __name__ == "__main__":

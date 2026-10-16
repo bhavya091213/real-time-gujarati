@@ -10,8 +10,17 @@ Protocol:
             later settings changes arrive as further "settings" messages.
   /ws/control  JSON both ways (mic page settings panel).
             server -> client on connect: {"type": "settings", <all keys>}, then
+              {"type": "providers", "backends": [...], "catalog": [...],
+               "keys": {<id>: {"set", "hint", "source", "region", "env"}}}, then
               one {"type": "status", ...}.
             client -> server: {"type": "get"} | {"type": "set", "settings": {...}}
+              | {"type": "set_key", "provider": id, "key": str[, "region": str]}
+              | {"type": "clear_key", "provider": id}
+            set_key/clear_key -> every control client gets {"type": "keys",
+              "keys": {...}} (masked hints only; the key is never sent back).
+            Selecting a cloud asr_backend without a key is an error; selecting
+              "local" when the models were skipped loads them once in the
+              background (status "models": "loading" -> "ready"|"error").
             "set" -> sender and other control clients get the full "settings",
               viewers get the display-only "settings"; a bad request gets
               {"type": "error", "message": "..."} and changes nothing.
@@ -24,6 +33,15 @@ Protocol:
                asr_warning explains a fallback, e.g. en engine not loaded;
                lid_last is the latest Auto-mode LID outcome: utterance_id,
                lang ("gu"|"en"|"unsure"), p, speech_s, since_onset_s, fallback).
+              Every status also has "backend" ("local"|provider id), "cloud"
+              (null, or {"provider", "state", "error"} for a cloud pipeline;
+              state connecting|connected|reconnecting|closed|error) and
+              "models" ("ready"|"loading"|"error"|"unloaded") and "translator"
+              ("ready"|"loading"|"missing"; loaded on demand for cloud providers
+              that do not translate).
+
+Cloud backend (settings.asr_backend != "local"; see gujusub/cloud_pipeline.py):
+the mic audio is streamed to the provider and its events take the same path.
 
 Mode routing: settings.asr_mode picks the engine when VAD opens an utterance
 (select_engine); it stays pinned until that utterance's final, and events
@@ -49,6 +67,7 @@ Per-connection pipeline (see _Pipeline):
               after their translation, so events stay in order.
 
 Run:  python -m gujusub.server [--device cpu|mps] [--engines gu,en] [--port 8765]
+                              [--backend local|soniox|...]
 """
 
 import argparse
@@ -64,11 +83,29 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 
+from gujusub.cloud.keys import KeyStore, validate_key, validate_region
+from gujusub.cloud.registry import (
+    BACKENDS,
+    BY_ID,
+    LOCAL,
+    PROVIDERS,
+    catalog,
+    is_cloud,
+    open_session,  # noqa: F401  (used by cloud_pipeline as server.open_session; tests patch it)
+    provider_info,
+)
 from gujusub.engine import ASREngine
-from gujusub.engines import EngineRegistry, load_engines, parse_engine_list
+from gujusub.engines import (
+    DEFAULT_GU_MODEL,
+    GU_MODELS,
+    EngineRegistry,
+    load_engines,
+    parse_engine_list,
+)
 from gujusub.fillers import clean_event
 from gujusub.glossary import Glossary, load_glossary
 from gujusub.lid import LanguageID, LidConfig, LidDecider
+from gujusub.local_models import LocalModels, LocalSpec
 from gujusub.settings import Settings, SettingsStore, display_payload, snapshot_payload
 from gujusub.streaming import AutoRoute, StreamingConfig, StreamingTranscriber, TranscriptEvent
 from gujusub.translator import Translator
@@ -84,6 +121,11 @@ translator: Translator | None = None  # loaded once in main(); None if --no-tran
 language_id: LanguageID | None = None  # loaded in main() when the en engine is
 lid_config = LidConfig()  # Auto-mode decision policy (lid_fallback "gu")
 filter_fillers = True  # set from --no-filter in main()
+no_translate = False  # --no-translate: also stops asking cloud providers for English
+keys: KeyStore | None = None  # cloud API keys; created in main(); tests inject one
+local_models: LocalModels | None = None  # runtime loader when started on a cloud backend
+_last_cloud_error: tuple[str, str] | None = None  # (provider, message) for idle status
+LOADING_MODELS_WARNING = "loading local models…"
 _glossary: Glossary | None = None  # lazily loaded; see get_glossary()
 viewers: set[WebSocket] = set()  # connected /ws/view sockets
 viewer_membership_lock = asyncio.Lock()  # guards viewers + _joining; never held across a send
@@ -105,6 +147,7 @@ _warned_modes: set[str] = set()  # asr_mode values already warned about
 # ticks in continuous speech, so commit-change gating alone still translates
 # ~55% of partials; the gap (latest-only, so the newest text wins) halves that.
 PARTIAL_TRANSLATE_GAP_S = 1.0
+CLOUD_READER_DRAIN_S = 5.0  # after session.close(): bound on publishing the last events
 
 
 @app.get("/")
@@ -167,11 +210,43 @@ def get_settings() -> Settings:
     return store.get() if store is not None else Settings()
 
 
+def models_state() -> str:
+    """Local models: "ready" | "loading" | "error" | "unloaded" (cloud start)."""
+    if engines is not None:
+        return "ready"
+    if local_models is not None and local_models.state in ("loading", "error"):
+        return local_models.state
+    return "unloaded"
+
+
+def models_warning() -> str | None:
+    """The background local load failed: it is not retried."""
+    if engines is None and local_models is not None and local_models.state == "error":
+        return (f"local models failed to load ({local_models.error}); "
+                "restart the server to retry")
+    return None
+
+
+def translator_state() -> str:
+    """Local translator: "ready" | "loading" (on-demand job) | "missing"."""
+    if translator is not None:
+        return "ready"
+    if local_models is not None and local_models.translator_state == "loading":
+        return "loading"
+    return "missing"
+
+
 def idle_status() -> dict:
+    backend = get_settings().asr_backend
+    cloud = None
+    if _last_cloud_error is not None and _last_cloud_error[0] == backend:
+        cloud = {"provider": backend, "state": "error", "error": _last_cloud_error[1]}
     return {"type": "status", "asr": None, "translate": False, "lid": False,
             "decode_ms": 0.0, "avg_decode_ms": 0.0, "window_s": 0.0,
             "decodes": 0, "lag_s": 0.0, "backlog_s": 0.0, "utterances": 0,
-            "asr_warning": None, "lid_last": None}
+            "asr_warning": models_warning(), "lid_last": None,
+            "backend": backend, "cloud": cloud, "models": models_state(),
+            "translator": translator_state()}
 
 
 def current_status() -> dict:
@@ -263,9 +338,11 @@ async def broadcast(payload: dict) -> None:
 class _Pipeline:
     """receiver -> coalescing worker -> (latest-only) translator for one /ws."""
 
+    backend = LOCAL
+
     def __init__(self, ws: WebSocket):
         self.ws = ws
-        self.transcriber = new_transcriber()
+        self.transcriber = self.make_transcriber()
         self.translator = translator
         self.loop = asyncio.get_running_loop()
         self.audio: asyncio.Queue[np.ndarray | None] = asyncio.Queue()
@@ -277,6 +354,10 @@ class _Pipeline:
         self.wake = asyncio.Event()
         self.queued_samples = 0  # audio waiting in self.audio (status backlog)
         self.utterances = 0  # finals published
+        self.waiting_models = False  # local models still loading in the background
+
+    def make_transcriber(self) -> StreamingTranscriber | None:
+        return new_transcriber()
 
     def enqueue(self, audio: np.ndarray) -> None:
         self.queued_samples += len(audio)
@@ -284,6 +365,9 @@ class _Pipeline:
 
     def translating(self) -> bool:
         return self.translator is not None and get_settings().translate
+
+    def provider_translating(self) -> bool:
+        return get_settings().translate and not no_translate
 
     def status(self) -> dict:
         tx = self.transcriber
@@ -297,8 +381,12 @@ class _Pipeline:
                 "window_s": float(getattr(tx, "last_window_s", 0.0)),
                 "decodes": int(getattr(tx, "decode_count", 0)),
                 "lag_s": backlog, "backlog_s": backlog,
-                "utterances": self.utterances, "asr_warning": warning,
-                "lid_last": getattr(tx, "lid_last", None) if auto else None}
+                "utterances": self.utterances,
+                "asr_warning": (LOADING_MODELS_WARNING if self.waiting_models
+                                else models_warning() or warning),
+                "lid_last": getattr(tx, "lid_last", None) if auto else None,
+                "backend": LOCAL, "cloud": None, "models": models_state(),
+                "translator": translator_state()}
 
     async def report_status(self) -> None:
         while True:
@@ -327,7 +415,30 @@ class _Pipeline:
             except RuntimeError:
                 pass  # client already gone
 
+    async def wait_for_models(self) -> bool:
+        """Local models loading in the background: wait, then drop the stale audio.
+
+        Returns False when the mic hung up while waiting; raises if the load failed.
+        """
+        if engines is not None or local_models is None or local_models.state != "loading":
+            return True
+        self.waiting_models = True
+        try:
+            ready = await local_models.wait()
+        finally:
+            self.waiting_models = False
+        if not ready:
+            raise RuntimeError(f"local models failed to load: {local_models.error}")
+        self.translator = translator
+        stale = []
+        while not self.audio.empty():
+            stale.append(self.audio.get_nowait())
+        self.queued_samples = 0
+        return all(chunk is not None for chunk in stale)
+
     async def _work(self) -> None:
+        if not await self.wait_for_models():
+            return
         done = False
         while not done:
             chunks = [await self.audio.get()]
@@ -359,11 +470,17 @@ class _Pipeline:
             self.translation_eligibility.pop(uid, None)
         else:
             self.translation_eligibility[uid] = eligible
-        if self.translator is not None and (
+        if event.translation is not None:  # English from a translating cloud provider
+            on = self.provider_translating() and eligible
+            payload["translation"] = get_glossary().apply(event.translation) if on else ""
+            self.translations.pop(uid, None)
+        elif self.translator is not None and (
                 not get_settings().translate or not eligible):
             # translation off, already English, or Auto-origin: no executor call
             payload["translation"] = ""
             self.translations.pop(uid, None)
+        elif self.translator is None and translator_state() == "loading":
+            payload["translation"] = ""  # on-demand translator not ready yet
         elif self.translator is not None:
             if event.type == "final":
                 payload["translation"] = await self.translate(text)
@@ -461,7 +578,13 @@ class _Pipeline:
 async def ws_transcribe(ws: WebSocket) -> None:
     await ws.accept()
     logger.info("client connected: %s", ws.client)
-    await _Pipeline(ws).run()
+    backend = get_settings().asr_backend
+    if is_cloud(backend):
+        from gujusub.cloud_pipeline import CloudPipeline  # imports this module
+
+        await CloudPipeline(ws, backend).run()
+    else:
+        await _Pipeline(ws).run()
 
 
 async def _send_bounded(ws: WebSocket, payload: dict) -> None:
@@ -539,6 +662,137 @@ def _allow_control_set(ws: WebSocket) -> bool:
     return True
 
 
+def keys_status() -> dict[str, dict]:
+    """Per-provider key status for the UI (masked hint only, never the key)."""
+    if keys is None:
+        return {p.id: {"set": False, "hint": "", "source": None, "region": None,
+                       "env": p.key_env} for p in PROVIDERS}
+    return keys.status(list(PROVIDERS))
+
+
+def providers_payload() -> dict:
+    return {"type": "providers", "backends": list(BACKENDS), "catalog": catalog(),
+            "keys": keys_status()}
+
+
+def backend_switch_error(partial: object) -> str | None:
+    """A cloud backend can only be selected once it has credentials."""
+    if not isinstance(partial, dict):
+        return None
+    backend = partial.get("asr_backend")
+    if not isinstance(backend, str) or not is_cloud(backend):
+        return None  # local, or invalid (the store reports that)
+    if backend == get_settings().asr_backend:
+        return None
+    info = provider_info(backend)
+    if keys is None or keys.get(info) is None:
+        return f"No API key saved for {info.label}"
+    return None
+
+
+_background: set[asyncio.Task] = set()
+
+
+def _spawn(coro) -> None:
+    task = asyncio.ensure_future(coro)
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+
+
+def _local_models_done(loaded: LocalModels) -> None:
+    """Runs on the event loop when the background load finishes."""
+    global engines, translator, language_id
+    if loaded.state == "ready":
+        engines = loaded.engines
+        if translator is None:
+            translator = loaded.translator
+        if language_id is None:
+            language_id = loaded.language_id
+        logger.info("local models ready (%s)", ",".join(engines.langs))
+    else:
+        logger.error("local models failed to load: %s", loaded.error)
+    _spawn(send_controls(current_status()))
+
+
+def ensure_local_models() -> bool:
+    """Switched to "local" without the models in memory: load them once."""
+    if engines is not None or local_models is None:
+        return False
+    need_translator = translator is None and local_models.translator_state != "loading"
+    return local_models.start_background(
+        asyncio.get_running_loop(), need_translator, _local_models_done)
+
+
+def _translator_done(loaded: LocalModels) -> None:
+    """Runs on the event loop when the on-demand translator job finishes."""
+    global translator
+    if loaded.translator_state == "ready":
+        if translator is None:
+            translator = loaded.translator
+        for pipe in list(pipelines):  # running pipelines start translating now
+            if pipe.translator is None:
+                pipe.translator = translator
+        logger.info("translator ready")
+    _spawn(send_controls(current_status()))
+
+
+def ensure_translator(backend: str) -> bool:
+    """Cloud provider without built-in translation: load the local translator once."""
+    if (translator is not None or local_models is None or no_translate
+            or not get_settings().translate or not is_cloud(backend)
+            or provider_info(backend).translates):
+        return False
+    return local_models.start_translator(asyncio.get_running_loop(), _translator_done)
+
+
+_KEY_FIELDS = {"set_key": ({"type", "provider", "key"}, {"region"}),
+               "clear_key": ({"type", "provider"}, set())}
+
+
+async def handle_key_message(ws: WebSocket, msg: dict) -> None:
+    """set_key / clear_key; the reply (and fan-out) is the masked key status."""
+    global _last_cloud_error
+    kind = msg["type"]
+    required, optional = _KEY_FIELDS[kind]
+    if not required <= set(msg) <= required | optional:
+        await ws.send_json({"type": "error", "message": f"invalid {kind} message"})
+        return
+    if not _allow_control_set(ws):
+        await ws.send_json({"type": "error", "message": "control update rate limit exceeded"})
+        return
+    provider = msg["provider"]
+    info = BY_ID.get(provider) if isinstance(provider, str) else None
+    if info is None:
+        await ws.send_json({"type": "error", "message": f"unknown provider: {provider!r}"})
+        return
+    if keys is None:
+        await ws.send_json({"type": "error", "message": "key storage unavailable"})
+        return
+    try:
+        async with _settings_update_lock:
+            if kind == "set_key":
+                key = validate_key(msg["key"])
+                region = validate_region(msg.get("region"))
+                if info.needs_region and region is None:
+                    raise ValueError(f"{info.label} needs a region (e.g. eastus)")
+                await asyncio.to_thread(keys.set, info.id, key, region)
+            else:
+                await asyncio.to_thread(keys.clear, info.id)
+    except ValueError as e:  # messages never contain the key
+        await ws.send_json({"type": "error", "message": str(e)})
+        return
+    except OSError:
+        logger.error("could not save API keys to %s", keys.path)
+        await ws.send_json({"type": "error", "message": "could not save key"})
+        return
+    logger.info("API key %s for %s", "saved" if kind == "set_key" else "removed", info.id)
+    if _last_cloud_error is not None and _last_cloud_error[0] == info.id:
+        _last_cloud_error = None
+    payload = {"type": "keys", "keys": keys_status()}
+    await ws.send_json(payload)
+    await send_controls(payload, exclude=ws)
+
+
 async def handle_control(ws: WebSocket, text: str) -> bool:
     if len(text.encode("utf-8")) > CONTROL_MAX_MESSAGE_BYTES:
         await ws.close(code=1009)
@@ -555,6 +809,9 @@ async def handle_control(ws: WebSocket, text: str) -> bool:
             return True
         await ws.send_json({"type": "settings", **snapshot_payload(get_settings())})
         return True
+    if kind in _KEY_FIELDS:
+        await handle_key_message(ws, msg)
+        return True
     if kind != "set":
         await ws.send_json({"type": "error", "message": f"unknown message type: {kind!r}"})
         return True
@@ -563,6 +820,10 @@ async def handle_control(ws: WebSocket, text: str) -> bool:
         return True
     if not _allow_control_set(ws):
         await ws.send_json({"type": "error", "message": "control update rate limit exceeded"})
+        return True
+    switch_error = backend_switch_error(msg["settings"])
+    if switch_error is not None:
+        await ws.send_json({"type": "error", "message": switch_error})
         return True
     try:
         async with _settings_update_lock:
@@ -581,6 +842,13 @@ async def handle_control(ws: WebSocket, text: str) -> bool:
         return True
     await send_controls(full, exclude=ws)
     await broadcast({"type": "settings", **display_payload(new)})
+    if new.asr_backend != previous.asr_backend:
+        logger.info("asr_backend %s -> %s (applies to the next mic connection)",
+                    previous.asr_backend, new.asr_backend)
+        if new.asr_backend == LOCAL and ensure_local_models():
+            await send_controls(current_status())  # models: "loading"
+        elif ensure_translator(new.asr_backend):
+            await send_controls(current_status())  # translator: "loading"
     return True
 
 
@@ -591,6 +859,7 @@ async def ws_control(ws: WebSocket) -> None:
     logger.info("control connected: %s (%d total)", ws.client, len(controls))
     try:
         await ws.send_json({"type": "settings", **snapshot_payload(get_settings())})
+        await ws.send_json(providers_payload())
         await ws.send_json(current_status())
         while True:
             if not await handle_control(ws, await ws.receive_text()):
@@ -609,42 +878,77 @@ def _engine_list_arg(text: str) -> tuple[str, ...]:
         raise argparse.ArgumentTypeError(str(e)) from None
 
 
+def _make_local_models(args: argparse.Namespace) -> LocalModels:
+    # late-binding wrappers: tests monkeypatch server.load_engines etc.
+    return LocalModels(
+        LocalSpec(langs=args.engines, device=args.device, gu_model=args.gu_model,
+                  translate=not args.no_translate),
+        load_engines=lambda *a, **kw: load_engines(*a, **kw),
+        make_translator=lambda: Translator(),
+        load_language_id=lambda: load_language_id(),
+    )
+
+
+def _start_cloud(backend: str, args: argparse.Namespace) -> None:
+    global translator
+    info = provider_info(backend)
+    logger.info("backend %s: local ASR models not loaded", backend)
+    if keys.get(info) is None:
+        logger.warning("no API key for %s yet (set %s or add it on the mic page)",
+                       info.label, info.key_env)
+    if not args.no_translate and not info.translates:
+        translator = Translator()
+        translator.warmup()
+
+
 def main() -> None:
     global engines, translator, filter_fillers, store, language_id
+    global no_translate, keys, local_models
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", default="cpu", choices=["cpu", "mps"])
     parser.add_argument("--lang", default="gu",
                         help="deprecated: the Gujarati slot is always 'gu'; use --engines")
     parser.add_argument("--engines", default="gu,en", type=_engine_list_arg,
                         help="ASR engines to load: gu,en (default) or gu (low RAM)")
+    parser.add_argument("--gu-model", default=DEFAULT_GU_MODEL, choices=GU_MODELS,
+                        help="Gujarati ASR: full (600M multilingual IndicConformer, default) "
+                             "or fast (Gujarati-only 120M int8: ~2x faster, ~2.3 GB less RAM)")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-translate", action="store_true",
                         help="disable Gujarati->English translation")
     parser.add_argument("--no-filter", action="store_true",
                         help="show filler words (um, uh, ...) instead of hiding them")
+    parser.add_argument("--backend", default=None, choices=BACKENDS,
+                        help="speech engine: local models or a cloud provider "
+                             "(saved in settings; default: the saved choice, else local)")
     args = parser.parse_args()
 
     filter_fillers = not args.no_filter
+    no_translate = args.no_translate
     store = SettingsStore()
     store.load()
+    if args.backend is not None:
+        store.update({"asr_backend": args.backend})
     loaded = store.get()
-    logger.info("settings: %s (asr_mode=%s translate=%s)", store.path,
-                loaded.asr_mode, loaded.translate)
+    backend = loaded.asr_backend
+    logger.info("settings: %s (asr_backend=%s asr_mode=%s translate=%s)", store.path,
+                backend, loaded.asr_mode, loaded.translate)
+    keys = KeyStore()
+    keys.load()
+    local_models = _make_local_models(args)
     if args.no_translate:
         logger.info("--no-translate: translation off regardless of settings")
     if args.lang != "gu":
         logger.warning("--lang %s ignored: use --engines (gu,en)", args.lang)
     started = time.perf_counter()
-    engines = load_engines(args.engines, args.device)
-    if not args.no_translate:
-        translator = Translator()
-        translator.warmup()
-    engines.warmup()
-    if "en" in engines:  # Auto mode needs gu + en + LID
-        language_id = load_language_id()
-        language_id.warmup()
-    logger.info("engines %s loaded and warm in %.1f s",
-                ",".join(engines.langs), time.perf_counter() - started)
+    if is_cloud(backend):
+        _start_cloud(backend, args)
+    else:
+        local_models.load()
+        engines, translator = local_models.engines, local_models.translator
+        language_id = local_models.language_id
+        logger.info("engines %s (gu model: %s) loaded and warm in %.1f s",
+                    ",".join(engines.langs), args.gu_model, time.perf_counter() - started)
     logger.info("ready — mic: http://localhost:%d  display: http://localhost:%d/display",
                 args.port, args.port)
     uvicorn.run(
@@ -657,4 +961,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Run as the importable module so gujusub.cloud_pipeline (which imports
+    # gujusub.server) sees the same globals that main() sets.
+    from gujusub import server as _server
+
+    _server.main()
